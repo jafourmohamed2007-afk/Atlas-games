@@ -37,3 +37,38 @@ An original side-scrolling stickman brawler. The genre and the Anger of Stick re
 - Engine test suite (desktop, phone, Arabic, 8× speed stress)
 - A gameplay bot that reaches wave 3
 - A long god-mode run to wave 11 that met 2 bosses, all 8 zombie types and several weapons, with no errors
+
+## Shop (added)
+Open it from the hero screen. Guns are bought once and kept; one gun is equipped at a time. Items are consumables you stock up on.
+
+### Guns (each has its own synthesized sound and a stats card)
+| Gun | Price | Damage | Shots/s | Ammo | Reload | Special |
+|---|---|---|---|---|---|---|
+| Hero Gun | free | per hero | | | | Kai pistol, Rook shotgun, Vex SMG, Juno kunai |
+| Twin Vipers | 250 | 12 | 9.1 | 24 | 1.2 s | dual pistols |
+| Buzzsaw SMG | 450 | 9 | 14.3 | 40 | 1.3 s | |
+| Boomstick | 650 | 9 ×7 | 1.7 | 6 | 1.5 s | 7 pellets, short range |
+| Ranger AR | 900 | 14 | 10 | 30 | 1.4 s | |
+| Longshot Sniper | 1200 | 95 | 1.1 | 5 | 1.8 s | pierces the whole line |
+| Thunder LMG | 1600 | 12 | 16.7 | 100 | 2.8 s | 100-round belt |
+| Inkjet Laser | 2000 | 24 | 5.6 | 35 | 1.4 s | piercing beam |
+| Frost Blaster | 2400 | 11 | 7.7 | 28 | 1.4 s | slows/freezes zombies |
+| Hornet Rockets | 3000 | 85 | 1.2 | 6 | 2.2 s | explosive |
+| Tesla Coil | 3800 | 20 | 4.2 | 20 | 1.6 s | chain lightning to 3 zombies |
+
+Weapon crates now also drop shop guns, with double ammo, so players can try a gun before buying it.
+
+### Items (on-screen buttons; keys 1–7)
+| Item | Price | Max | Effect (scales with the wave) |
+|---|---|---|---|
+| ❤ Heart | 150 | 5 | When you fall, a 6-second "Revive?" prompt appears. A heart brings you back with full HP and a shockwave |
+| Medkit | 60 | 9 | Heal 60% HP |
+| Grenade | 40 | 9 | Thrown explosive |
+| Freeze Bomb | 100 | 9 | Freezes every zombie for 4 s (bosses 1.6 s) |
+| Shield Bubble | 90 | 9 | No damage for 8 s |
+| Rage Serum | 70 | 9 | Double damage for 10 s |
+| Auto-Turret | 110 | 9 | Gun turret fights for 15 s |
+| Airstrike | 140 | 9 | 8 bombs rain across the screen |
+
+New players get a starter pack: 1 heart, 2 grenades and 1 medkit.
+The **"+60 · AD"** button in the shop is a rewarded ad (placeholder) that gives 60 coins, available every 90 s.

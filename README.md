@@ -40,6 +40,7 @@ node tools/build.js                       # build games/*.html from src/
 SITE_URL=https://yourdomain.com node tools/build.js   # set canonical/SEO URLs
 node tests/run.js                         # browser tests: menus, ads, saving, languages, touch, 8x-speed stress
 node tests/bots.js                        # gameplay bots that play each game and check the rules
+node tests/ink-features.js                # Ink Heroes: shop, all 11 guns, all 8 items, heart revive
 ```
 Source: `src/kit/` (shared engine and styles), `src/games/*.js` (one file per game), `src/games.json` (titles, SEO text, keywords in 3 languages).
 URL flags: `?lang=en|fr|ar`, `?test` (instant ads plus debug hooks), `?speed=N`.

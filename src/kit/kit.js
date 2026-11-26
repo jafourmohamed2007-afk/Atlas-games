@@ -273,6 +273,9 @@
     if (x !== undefined) { floatText(x, y, '+' + n, '#FFC93C', 22); sfx('coin'); }
   };
   K.wallet = function () { return wallet(); };
+  K.synth = { tone: function () { tone.apply(null, arguments); }, noise: function () { noise.apply(null, arguments); }, muted: function () { return muted; } };
+  /* Rewarded ad from inside a game (e.g. "watch ad for coins") — goes through the same AD PLACEHOLDER hook */
+  K.rewarded = function (done) { Ads.rewarded(function (ok) { done(!!ok); }); };
   K.spend = function (n) { if (wallet() < n) return false; store.set('coins', wallet() - n); updateHud(false); return true; };
   K.info = function (txt) { if (ui.info && ui.info.textContent !== txt) ui.info.textContent = txt; };
   K.tutorialDone = function () { if (K.tutorial) { K.tutorial = false; store.set('tut:' + cfg.id, true); } };
