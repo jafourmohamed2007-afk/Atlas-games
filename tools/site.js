@@ -29,7 +29,8 @@ const hash = (s) => crypto.createHash('md5').update(s).digest('hex').slice(0, 8)
 
 // ---------- static assets ----------
 fs.mkdirSync(path.join(ROOT, 'assets'), { recursive: true });
-const css = read('src/site/site.css'), js = read('src/site/site.js');
+const css = read('src/site/site.css'), js = read('src/kit/currency.js') + '\n' + read('src/site/site.js');
+const BubziCur = require('vm').runInNewContext(read('src/kit/currency.js') + ';BubziCur');
 fs.writeFileSync(path.join(ROOT, 'assets/site.css'), css);
 fs.writeFileSync(path.join(ROOT, 'assets/site.js'), js);
 const V = hash(css + js);
@@ -37,7 +38,7 @@ const V = hash(css + js);
 const ICON = {
   logo: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 12C36 4 45 4 46 9C41 9 37 11 34 14" fill="#14C8A0"/><path d="M32 14C50 14 59 27 59 39C59 52 47 59 32 59C17 59 5 52 5 39C5 27 14 14 32 14Z" fill="#7C5CFF" stroke="#5A2EE8" stroke-width="2.5"/><ellipse cx="20" cy="24" rx="7" ry="4" fill="#fff" opacity=".45" transform="rotate(-25 20 24)"/><circle cx="22.5" cy="37" r="7" fill="#fff"/><circle cx="41.5" cy="37" r="7" fill="#fff"/><circle cx="24" cy="38" r="3.7" fill="#241B4D"/><circle cx="43" cy="38" r="3.7" fill="#241B4D"/><path d="M27 46q5 5 10 0" stroke="#241B4D" stroke-width="2.8" fill="none" stroke-linecap="round"/></svg>',
   search: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
-  coin: '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#FFC93C" stroke="#E07A00" stroke-width="2"/><path d="M12 7v10" stroke="#C46A00" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  coin: BubziCur.svg('bubzi', 22),
   theme: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>',
   home: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg>',
   my: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4Z"/></svg>',

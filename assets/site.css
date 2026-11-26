@@ -250,3 +250,20 @@ details p{margin:6px 0 0}
 }
 @media (min-width:1200px){ .grid{grid-template-columns:repeat(6,minmax(0,1fr))} .cats{grid-template-columns:repeat(4,minmax(0,1fr))} }
 @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important;scroll-behavior:auto!important} }
+/* Bubzi Exchange + Tour */
+.xlist{display:flex;flex-direction:column;gap:8px}
+.xr{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.xr.hot{border-color:#FF8A1F;box-shadow:0 0 0 2px rgba(255,138,31,.35)}
+.xr svg{flex:none}
+.xn{display:flex;flex-direction:column;min-width:0;flex:1}
+.xn b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .xn span{font-size:12px;font-weight:700;color:var(--muted)}
+.xq{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;font-weight:800;color:var(--muted);white-space:nowrap}
+.xq span{display:inline-flex;align-items:center;gap:3px} .xq em{font-style:normal;color:#FF8A1F}
+.xq i{font-style:normal} .xq .up{color:#3BE0B5} .xq .down{color:#FF5F7A}
+.xb{flex:none;min-width:64px;padding:8px 12px;border:0;border-radius:12px;background:linear-gradient(135deg,#3BE0B5,#14A884);color:#05261D;font:800 14px var(--display);cursor:pointer;text-align:center;text-decoration:none}
+.xb.off{background:var(--line);color:var(--muted);font-size:12px}
+.tour{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.tour p{margin:0;font-weight:700;font-size:14px}
+.tds{display:flex;gap:6px;flex:none} .td{width:34px;height:34px;border-radius:50%;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center}
+.td.on{border:2px solid #3BE0B5;background:rgba(59,224,181,.12)}
+.badge.hotx{inset-inline-start:auto;inset-inline-end:8px;background:linear-gradient(135deg,#FF8A1F,#FF3D6E);color:#fff}

@@ -12,7 +12,7 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const safeScript = (s) => s.replace(/<\/script/gi, '<\\/script');
 
 const css = read('src/kit/kit.css');
-const kit = read('src/kit/kit.js');
+const kit = read('src/kit/currency.js') + '\n' + read('src/kit/kit.js');
 const games = JSON.parse(read('src/games.json'));
 const ICON = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M32 14C50 14 59 27 59 39C59 52 47 59 32 59C17 59 5 52 5 39C5 27 14 14 32 14Z" fill="#7B4DFF"/><circle cx="23" cy="37" r="7" fill="#fff"/><circle cx="41" cy="37" r="7" fill="#fff"/><circle cx="24" cy="38" r="3.6" fill="#241B4D"/><circle cx="42" cy="38" r="3.6" fill="#241B4D"/></svg>');
 

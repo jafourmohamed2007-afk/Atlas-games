@@ -123,3 +123,17 @@ select.lang{font-family:inherit;font-weight:800;font-size:15px;height:44px;borde
 .tobeat b{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#FF5FA2,#FFB020)}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .goal em{color:#FFC93C} :root:not([data-theme="light"]) .goal.done em{color:#3BE0B5} }
 :root[data-theme="dark"] .goal em{color:#FFC93C} :root[data-theme="dark"] .goal.done em{color:#3BE0B5}
+/* currencies + exchange */
+#menu .pills{display:flex;gap:6px} #menu .pills .pill{cursor:pointer;font:inherit;border:0}
+.pill svg{flex:none}
+.exch .xrow{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 4px}
+.exch .xbox{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 12px;border-radius:16px;background:var(--soft);min-width:104px;line-height:1.1}
+.exch .xbox b{font-size:22px} .exch .xbox span{font-size:12px;font-weight:800;color:var(--muted)}
+.exch .xarrow{font-size:22px;color:var(--muted)} [dir="rtl"] .exch .xarrow{transform:scaleX(-1)}
+.exch .xrate{margin:6px 0;font-weight:800} .exch .xrate i{font-style:normal} .exch .up{color:#12A57E} .exch .down{color:#E8364F} .exch .eq{color:var(--muted)}
+.exch .xhint{margin:2px 0;font-size:13px;font-weight:700;color:var(--muted);max-width:300px}
+.exch .xnone{margin:4px 0;font-weight:700;color:var(--muted)}
+.btn svg{vertical-align:middle}
+.codein{width:100%;box-sizing:border-box;font:800 22px var(--font);text-align:center;padding:12px;border-radius:14px;border:3px solid var(--line);background:var(--soft);color:var(--ink);letter-spacing:2px}
+.codein:focus{outline:none;border-color:#7B4DFF}
+.pill[hidden]{display:none!important}

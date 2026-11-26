@@ -54,6 +54,12 @@ URL flags: `?lang=en|fr|ar`, `?test` (instant ads plus debug hooks), `?speed=N`.
 `npm install` once (three.js, esbuild, glTF tools), then `node tools/build.js` as usual. `node tests/grove.js` tests it.
 3D models: [KayKit](https://kaylousberg.com) by Kay Lousberg, CC0. See `docs/pocket-grove-design.md`.
 
+### Currencies and the Bubzi Exchange
+Every game has its own currency, earned only in that game: Petals (Block Bloom), Grove Gold (Pocket Grove), Sparks (Rooftop Rush), Sky Gems (Hop Hook), Pop Bubbles (Number Pop), Nuts (Hill Hopper), Jelly Beans (Jelly Drop), Brain Stars (Memo Match), Apples (Wiggle Snake), Ink Drops (Ink Heroes).
+**Bubzi Coins** are the website currency: daily bonus and character skins. The **Bubzi Exchange** (Exchange button in each game, and the Rewards panel on the website) turns a game currency into Bubzi Coins.
+Rates change every day (0.8 to 1.25) and one game a day is **HOT** (×2), the same for everyone (computed from the date, no server). **Bubzi Tour:** play 3 different games in a day for +50 Bubzi Coins.
+Names, icons and base rates are in `src/kit/currency.js` (used by the games and the website).
+
 ### Creator code (TEMPORARY, remove before launch)
-In any game, type `creator` on the keyboard, or tap the game's title 5 times on the menu (phone) and enter `creator`. That game then gets 9,999,999 coins that never run out, all skins, and every unlock (Ink Heroes: all heroes, guns, items, story levels; Pocket Grove: gold, seeds, level 12, plots, sprinkler, decorations, pets). It is saved per game.
+In any game, press the **Code** button on the menu and enter `creator` (or type `creator` on the keyboard). That game then gets 9,999,999 of its currency and Bubzi Coins (refilled when spent), all skins, and every unlock (Ink Heroes: all heroes, guns, items, story levels; Pocket Grove: gold, seeds, level 12, plots, sprinkler, decorations, pets). It is saved per game.
 To remove it: delete every line marked `CREATOR` (`grep -rn CREATOR src/`), then rebuild.

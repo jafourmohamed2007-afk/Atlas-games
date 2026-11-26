@@ -160,17 +160,60 @@
     if (m.length) h += '<section><div class="sh"><h2>' + esc(T.mostPlayed) + '</h2></div><div class="grid">' + m.map(function (x) { return card(x.g, tr(T.plays, { n: x.n })); }).join('') + '</div></section>';
     out.innerHTML = h || '<p class="empty">' + esc(T.emptyMy) + '</p>';
   }
+  /* ---------- Bubzi Exchange: each game's own currency -> Bubzi Coins (rates change daily, one game is HOT x2) ---------- */
+  var X = {
+    en: { exch: 'Bubzi Exchange', hint: 'Every game has its own currency. Swap it for Bubzi Coins here. Rates change every day and one game is HOT (x2)!', hot: 'HOT x2', none: 'Play', open: 'Close the game to exchange', tour: 'Bubzi Tour', tourTxt: 'Play {n} different games today: +{c} Bubzi Coins', tourDone: 'Done today! Come back tomorrow.' },
+    fr: { exch: 'Bureau de change Bubzi', hint: 'Chaque jeu a sa propre monnaie. Échange-la ici contre des pièces Bubzi. Les taux changent chaque jour et un jeu est EN FEU (x2) !', hot: 'EN FEU x2', none: 'Jouer', open: 'Ferme le jeu pour échanger', tour: 'Tour Bubzi', tourTxt: "Joue à {n} jeux différents aujourd'hui : +{c} pièces Bubzi", tourDone: 'Fait ! Reviens demain.' },
+    ar: { exch: 'صرّاف بوبزي', hint: 'لكل لعبة عملتها الخاصة. اصرفها هنا مقابل عملات بوبزي. الأسعار تتغير كل يوم ولعبة واحدة هي الأقوى (x2)!', hot: 'الأقوى x2', none: 'العب', open: 'أغلق اللعبة لتصرف', tour: 'جولة بوبزي', tourTxt: 'العب {n} ألعاب مختلفة اليوم: +{c} عملة بوبزي', tourDone: 'تم اليوم! عد غداً.' }
+  }[BZ.lang] || {};
+  function num(v) { return typeof v === 'number' && isFinite(v) && v >= 0 ? Math.floor(v) : 0; }
+  function curBal(id) { if (id === 'pocket-grove') { var g = store.get('grove', null); return g ? num(g.gold) : 0; } return num(store.get('cur:' + id, 0)); }
+  function curSet(id, v) { if (id === 'pocket-grove') { var g = store.get('grove', null); if (g) { g.gold = v; store.set('grove', g); } return; } store.set('cur:' + id, v); }
+  function liveGame() { var st = $('#stage'); return st && $('iframe', st) ? st.getAttribute('data-id') : ''; }
+  function exchange(id) {
+    if (liveGame() === id) { toast(X.open); return; }
+    var c = BubziCur.get(id), h = curBal(id), got = BubziCur.quote(id, h); if (got < 1) return;
+    var used = Math.min(h, Math.ceil(got * (c.rate || 1) / BubziCur.mult(id) - 1e-6));
+    curSet(id, h - used); store.set('coins', wallet() + got); toast('+' + fmt(got) + ' ' + T.coins); paintCoins(); renderRewards();
+  }
+  function exchangeHTML() {
+    var hot = BubziCur.hot(), t = store.get('tour', null), n = BubziCur.TOUR_GAMES;
+    if (!t || t.day !== BubziCur.day() || !Array.isArray(t.g)) t = { g: [], paid: false };
+    var rows = BubziCur.ids.filter(function (id) { return byId[id]; }).map(function (id) {
+      var c = BubziCur.get(id), h = curBal(id), q = BubziCur.quote(id, h), tr0 = BubziCur.trend(id), g = byId[id];
+      return '<div class="xr' + (id === hot ? ' hot' : '') + '">' + BubziCur.svg(c, 30) + '<div class="xn"><b>' + esc(g.title) + '</b><span>' + fmt(h) + ' ' + esc(c.n[BZ.lang] || c.n.en) + '</span></div>' +
+        '<div class="xq">' + (id === hot ? '<em>🔥 ' + esc(X.hot) + '</em>' : '') + '<span>' + fmt((c.rate || 1) * 10) + ' = ' + fmt(Math.floor(10 * BubziCur.mult(id) + 1e-6)) + ' ' + BubziCur.svg('bubzi', 14) +
+        (tr0 ? '<i class="' + (tr0 > 0 ? 'up">▲' : 'down">▼') + '</i>' : '') + '</span></div>' +
+        (q >= 1 ? '<button class="xb" type="button" data-exch="' + id + '">+' + fmt(q) + '</button>' : '<a class="xb off" href="' + esc(g.url) + '">' + esc(X.none) + '</a>') + '</div>';
+    }).join('');
+    var dots = '';
+    for (var i = 0; i < n; i++) { var g2 = t.g[i]; dots += g2 && byId[g2] ? '<span class="td on">' + BubziCur.svg(g2, 22) + '</span>' : '<span class="td"></span>'; }
+    return '<section><div class="sh"><h2>' + esc(X.tour) + '</h2></div><div class="tour"><div class="tds">' + dots + '</div><p>' + esc(t.paid ? X.tourDone : tr(X.tourTxt, { n: n, c: BubziCur.TOUR_COINS })) + '</p></div></section>' +
+      '<section><div class="sh"><h2>' + esc(X.exch) + '</h2></div><p class="lead" style="margin:-6px 0 10px">' + esc(X.hint) + '</p><div class="xlist">' + rows + '</div></section>';
+  }
+  /* HOT badge on today's hot game card */
+  (function () {
+    var hot = BubziCur.hot(), g = byId[hot]; if (!g) return;
+    $$('a.card').forEach(function (a) {
+      var h = a.getAttribute('href') || '';
+      if (h.indexOf('/' + hot + '.html') < 0 && h !== g.url) return;
+      var th = $('.thumb', a); if (!th || $('.hotx', th)) return;
+      var b = document.createElement('span'); b.className = 'badge hotx'; b.textContent = '🔥 x2'; th.appendChild(b);
+    });
+  })();
   function renderRewards() {
     var out = $('#rewOut'); if (!out) return;
     var d = dailyInfo(), cells = '', o = owned(), cur = store.get('skin', 'grape');
     for (var i = 1; i <= 7; i++) cells += '<div class="' + ((i < d.day || (!d.can && i === d.day)) ? 'done' : (d.can && i === d.day ? 'today' : '')) + '">' + esc(T.day) + ' ' + i + '<b>' + DAILY[i - 1] + '</b></div>';
     out.innerHTML = '<div class="bigcoins">' +
-      '<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#FFC93C" stroke="#E07A00" stroke-width="2"/><path d="M12 7v10" stroke="#C46A00" stroke-width="2.2" stroke-linecap="round"/></svg><span data-coins>' + fmt(wallet()) + '</span></div>' +
+      BubziCur.svg('bubzi', 34) + '<span data-coins>' + fmt(wallet()) + '</span></div>' +
+      exchangeHTML() +
       '<section><div class="sh"><h2>' + esc(T.daily) + '</h2></div><div class="days">' + cells + '</div>' +
       (d.can ? '<button class="play" id="claim2" type="button" style="margin-top:14px">' + esc(T.claim) + ' +' + DAILY[d.day - 1] + '</button>' : '<p class="empty">' + esc(tr(T.dailyDone, { d: (d.day % 7) + 1 })) + '</p>') + '</section>' +
       '<section><div class="sh"><h2>' + esc(T.skins) + '</h2></div><p class="lead" style="margin:-6px 0 10px">' + esc(T.skinsNote) + '</p><div class="skins">' +
       SKINS.map(function (s) { var own = o.indexOf(s[0]) >= 0; return '<button class="skin' + (s[0] === cur ? ' sel' : '') + (own ? '' : ' locked') + '" type="button" data-skin="' + s[0] + '">' + blob(s[1], s[2]) + '<span>' + (s[0] === cur ? esc(T.using) : own ? esc(T.use) : s[3]) + '</span></button>'; }).join('') + '</div></section>';
     var c2 = $('#claim2'); if (c2) c2.addEventListener('click', claim);
+    $$('[data-exch]', out).forEach(function (b) { b.addEventListener('click', function () { exchange(b.getAttribute('data-exch')); }); });
     $$('.skin', out).forEach(function (b) {
       b.addEventListener('click', function () {
         var id = b.getAttribute('data-skin'), s = SKINS.filter(function (x) { return x[0] === id; })[0], o2 = owned();

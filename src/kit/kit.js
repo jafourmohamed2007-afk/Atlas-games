@@ -26,21 +26,24 @@
       adReward: 'Rewarded ad placeholder', adBanner: 'AD PLACEHOLDER · banner 320×50', skip: 'Close', reward: 'Reward unlocked!', select: 'Select',
       selected: 'Selected', back: 'Back', lang: 'Language', earned: 'Coins', playAgain: 'Play again', level: 'Level', lives: 'Lives', time: 'Time',
       notEnough: 'Not enough coins', unlocked: 'Skin unlocked!', moreGames: 'More games', pause: 'Pause', soundOn: 'Sound on', soundOff: 'Sound off',
-      goal: 'Daily goal', goalTxt: 'Score {n}', goalDone: 'Daily goal done!', toBeat: '{n} more to beat your best', goalNew: 'New goal tomorrow' },
+      goal: 'Daily goal', goalTxt: 'Score {n}', goalDone: 'Daily goal done!', toBeat: '{n} more to beat your best', goalNew: 'New goal tomorrow',
+      exch: 'Bubzi Exchange', exchShort: 'Exchange', exchAll: 'Exchange all', rate: '{a} {c} = {b} Bubzi Coins today', hot: 'HOT today ×2', exchHint: 'Rates change every day. One game is HOT each day and pays double!', exchNone: 'Play to earn {c}', tour: 'Bubzi Tour', tourTxt: 'Play {n} different games today', tourDone: 'Bubzi Tour done!', code: 'Code', codeTitle: 'Enter a code', ok: 'OK', got: 'You got' },
     fr: { play: 'Jouer', best: 'Record', score: 'Score', coins: 'Pièces', paused: 'Pause', resume: 'Reprendre', restart: 'Recommencer', home: 'Menu',
       over: 'Partie terminée', newBest: 'Nouveau record !', cont: 'Regarder une pub pour continuer', noThanks: 'Non merci', daily: 'Bonus du jour',
       claim: 'Récupérer', claimed: 'Reviens demain !', day: 'Jour', skins: 'Skins', sound: 'Son', ad: 'Publicité', adInter: 'Emplacement pub interstitielle',
       adReward: 'Emplacement pub récompensée', adBanner: 'EMPLACEMENT PUB · bannière 320×50', skip: 'Fermer', reward: 'Récompense débloquée !',
       select: 'Choisir', selected: 'Choisi', back: 'Retour', lang: 'Langue', earned: 'Pièces', playAgain: 'Rejouer', level: 'Niveau', lives: 'Vies',
       time: 'Temps', notEnough: 'Pas assez de pièces', unlocked: 'Skin débloqué !', moreGames: 'Plus de jeux', pause: 'Pause', soundOn: 'Son activé', soundOff: 'Son coupé',
-      goal: 'Objectif du jour', goalTxt: 'Marque {n}', goalDone: 'Objectif du jour atteint !', toBeat: 'Encore {n} pour battre ton record', goalNew: 'Nouvel objectif demain' },
+      goal: 'Objectif du jour', goalTxt: 'Marque {n}', goalDone: 'Objectif du jour atteint !', toBeat: 'Encore {n} pour battre ton record', goalNew: 'Nouvel objectif demain',
+      exch: 'Bureau de change Bubzi', exchShort: 'Échange', exchAll: 'Tout échanger', rate: "{a} {c} = {b} pièces Bubzi aujourd'hui", hot: "EN FEU aujourd'hui ×2", exchHint: 'Les taux changent chaque jour. Un jeu est EN FEU chaque jour et paie double !', exchNone: 'Joue pour gagner des {c}', tour: 'Tour Bubzi', tourTxt: "Joue à {n} jeux différents aujourd'hui", tourDone: 'Tour Bubzi terminé !', code: 'Code', codeTitle: 'Entre un code', ok: 'OK', got: 'Tu reçois' },
     ar: { play: 'العب', best: 'الأفضل', score: 'النقاط', coins: 'العملات', paused: 'إيقاف مؤقت', resume: 'متابعة', restart: 'إعادة', home: 'القائمة',
       over: 'انتهت اللعبة', newBest: 'رقم قياسي جديد!', cont: 'شاهد إعلاناً للمتابعة', noThanks: 'لا شكراً', daily: 'مكافأة اليوم', claim: 'استلم',
       claimed: 'عد غداً!', day: 'يوم', skins: 'الشخصيات', sound: 'الصوت', ad: 'إعلان', adInter: 'مكان إعلان بيني', adReward: 'مكان إعلان بمكافأة',
       adBanner: 'مكان إعلان · بانر 320×50', skip: 'إغلاق', reward: 'حصلت على المكافأة!', select: 'اختر', selected: 'مختار', back: 'رجوع', lang: 'اللغة',
       earned: 'العملات', playAgain: 'العب مجدداً', level: 'المستوى', lives: 'المحاولات', time: 'الوقت', notEnough: 'لا تكفي العملات',
       unlocked: 'تم فتح الشخصية!', moreGames: 'ألعاب أخرى', pause: 'إيقاف', soundOn: 'الصوت يعمل', soundOff: 'الصوت مغلق',
-      goal: 'هدف اليوم', goalTxt: 'سجّل {n}', goalDone: 'أنجزت هدف اليوم!', toBeat: 'باقي {n} لتحطيم رقمك', goalNew: 'هدف جديد غداً' }
+      goal: 'هدف اليوم', goalTxt: 'سجّل {n}', goalDone: 'أنجزت هدف اليوم!', toBeat: 'باقي {n} لتحطيم رقمك', goalNew: 'هدف جديد غداً',
+      exch: 'صرّاف بوبزي', exchShort: 'صرف', exchAll: 'صرف الكل', rate: '{a} {c} = {b} عملات بوبزي اليوم', hot: 'الأقوى اليوم ×2', exchHint: 'الأسعار تتغير كل يوم. لعبة واحدة هي الأقوى كل يوم وتدفع الضعف!', exchNone: 'العب لتكسب {c}', tour: 'جولة بوبزي', tourTxt: 'العب {n} ألعاب مختلفة اليوم', tourDone: 'أكملت جولة بوبزي!', code: 'رمز', codeTitle: 'أدخل الرمز', ok: 'حسناً', got: 'ستحصل على' }
   };
   var LANGS = ['en', 'fr', 'ar'];
 
@@ -187,6 +190,7 @@
   }
   function drawCoin(ctx, x, y, r, t) {
     var sx = t === undefined ? 1 : Math.max(0.15, Math.abs(Math.cos(t * 3)));
+    if (cfg && typeof Path2D !== 'undefined') { BubziCur.draw(ctx, CUR(), x, y, r * 1.08, sx); return; }
     ctx.save(); ctx.translate(x, y); ctx.scale(sx, 1);
     ctx.fillStyle = '#FFC93C'; ctx.strokeStyle = '#E07A00'; ctx.lineWidth = Math.max(1.2, r * 0.18);
     ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.stroke();
@@ -216,6 +220,7 @@
       '<ellipse cx="13" cy="46" rx="4" ry="2.5" fill="#FF8FC4"/><ellipse cx="51" cy="46" rx="4" ry="2.5" fill="#FF8FC4"/>' + face + '</svg>';
   }
   var ICON = {
+    key: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 7l2.5 2.5M14 9l2 2"/></svg>', // CREATOR
     pause: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="2"/><rect x="14" y="4" width="5" height="16" rx="2"/></svg>',
     soundOn: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
     soundOff: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9Z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6"/></svg>',
@@ -272,21 +277,21 @@
   K.setScore = function (n) { if (n !== K.score) { K.score = n; updateHud(true); checkGoal(); } };
   K.addCoins = function (n, x, y) {
     if (n <= 0) return;
-    store.set('coins', wallet() + n); K.coinsRound += n; updateHud(false);
+    setWallet(wallet() + n); K.coinsRound += n; updateHud(false);
     if (x !== undefined) { floatText(x, y, '+' + n, '#FFC93C', 22); sfx('coin'); }
   };
   K.wallet = function () { return wallet(); };
   K.synth = { tone: function () { tone.apply(null, arguments); }, noise: function () { noise.apply(null, arguments); }, muted: function () { return muted; } };
   /* Rewarded ad from inside a game (e.g. "watch ad for coins") — goes through the same AD PLACEHOLDER hook */
   K.rewarded = function (done) { Ads.rewarded(function (ok) { done(!!ok); }); };
-  K.spend = function (n) { if (K.creator) { creatorTopUp(); return true; } /* CREATOR */ if (wallet() < n) return false; store.set('coins', wallet() - n); updateHud(false); return true; };
+  K.spend = function (n) { if (K.creator) { creatorTopUp(); return true; } /* CREATOR */ if (wallet() < n) return false; setWallet(wallet() - n); updateHud(false); return true; };
 
   /* ---------------- CREATOR CODE — TEMPORARY, REMOVE BEFORE LAUNCH (delete every line marked CREATOR) ----------------
      Type "creator" on the keyboard, or tap the game title 5 times on the menu and enter it.
      Turns on creator mode for THIS game only: coins never run out, all skins, and each game's own unlocks (cfg.creator). */
   var CREATOR_CODE = 'creator', CREATOR_COINS = 9999999, typed = '', titleTaps = 0, titleT = 0; // CREATOR
   K.creator = false; // CREATOR
-  function creatorTopUp() { if (wallet() < CREATOR_COINS) store.set('coins', CREATOR_COINS); if (ui.coins) updateHud(false); } // CREATOR
+  function creatorTopUp() { if (wallet() < CREATOR_COINS) setWallet(CREATOR_COINS); if (bubzi() < CREATOR_COINS) setBubzi(CREATOR_COINS); if (ui.coins) updateHud(false); } // CREATOR
   function creatorApply() { K.creator = true; creatorTopUp(); store.set('skins', SKINS.map(function (s) { return s.id; })); if (game.creator) game.creator(K); } // CREATOR
   function creatorEnter(code) { // CREATOR
     if (String(code || '').trim().toLowerCase() !== CREATOR_CODE) { if (code) { sfx('wrong'); toast('✗'); } return false; }
@@ -347,7 +352,26 @@
   }
 
   /* ---------------- wallet / daily / skins ---------------- */
-  function wallet() { var c = store.get('coins', 0); return typeof c === 'number' && isFinite(c) && c >= 0 ? Math.floor(c) : 0; }
+  /* Each game has its own currency (BubziCur, src/kit/currency.js). Bubzi Coins ('coins') are shared with the website. */
+  function num(c) { return typeof c === 'number' && isFinite(c) && c >= 0 ? Math.floor(c) : 0; }
+  function wallet() { return num(cfg && cfg.wallet ? cfg.wallet.get() : store.get('cur:' + (cfg ? cfg.id : '-'), 0)); }
+  function setWallet(v) { v = Math.max(0, Math.floor(v)); if (cfg.wallet) cfg.wallet.set(v); else store.set('cur:' + cfg.id, v); }
+  function bubzi() { return num(store.get('coins', 0)); }
+  function setBubzi(v) { store.set('coins', Math.max(0, Math.floor(v))); }
+  function CUR() { return BubziCur.get(cfg ? cfg.id : ''); }
+  function curName() { var c = CUR(); return c.n[K.lang] || c.n.en; }
+  function curIcon(sz) { return BubziCur.svg(CUR(), sz); }
+  function bzIcon(sz) { return BubziCur.svg('bubzi', sz); }
+  function bzName() { return BubziCur.bubzi.n[K.lang] || BubziCur.bubzi.n.en; }
+  function tourInfo() { var t = store.get('tour', null); return t && t.day === today() && Array.isArray(t.g) ? t : { day: today(), g: [], paid: false }; }
+  function tourMark() {
+    var t = tourInfo(); if (t.g.indexOf(cfg.id) < 0) t.g.push(cfg.id);
+    if (!t.paid && t.g.length >= BubziCur.TOUR_GAMES) {
+      t.paid = true; setBubzi(bubzi() + BubziCur.TOUR_COINS);
+      setTimeout(function () { toast(K.t('tourDone') + ' +' + BubziCur.TOUR_COINS + ' ' + bzName()); sfx('reward'); }, 700);
+    }
+    store.set('tour', t);
+  }
   function dailyInfo() {
     var s = store.get('daily', null), t = today();
     if (!s || typeof s.last !== 'string' || !(s.streak >= 1)) return { can: true, day: 1, streak: 0 };
@@ -398,7 +422,7 @@
     var hud = el('div', { 'class': 'hud hidden', id: 'hud' },
       '<button class="btn icon" id="bPause"></button>' +
       '<div class="mid"><span class="best" id="hBest"></span><span class="score" id="hScore" aria-live="polite">0</span><span class="info" id="hInfo"></span></div>' +
-      '<div class="side"><span class="pill" id="hCoins">' + ICON.coin + '<b>0</b></span><button class="btn icon" id="bSound"></button></div>');
+      '<div class="side"><span class="pill" id="hCoins"' + (cfg.noHudCoins ? ' hidden' : '') + '>' + curIcon() + '<b>0</b></span><button class="btn icon" id="bSound"></button></div>');
     stage.appendChild(hud);
     app.appendChild(stage);
     /* ===== AD PLACEHOLDER: BANNER 320x50 — paste your banner tag (AdSense / AdinPlay) inside .slot ===== */
@@ -441,7 +465,8 @@
     var di = dailyInfo();
     var s = screen('menu',
       '<div class="topbar"><a class="brand" target="_top" href="../' + (K.lang === 'en' ? '' : K.lang + '/') + 'index.html" aria-label="Bubzi">' + (cfg.mascot ? '' : bubziSVG('happy', 34)) + '<span>bubzi</span></a>' +
-      '<span class="pill">' + ICON.coin + '<b>' + fmt(wallet()) + '</b></span></div>' +
+      '<span class="pills"><button class="pill" id="mCur" aria-label="' + esc(curName()) + '">' + curIcon() + '<b>' + fmt(wallet()) + '</b></button>' +
+      '<button class="pill" id="mBz" aria-label="' + esc(bzName()) + '">' + bzIcon() + '<b>' + fmt(bubzi()) + '</b></button></span></div>' +
       bubziSVG('happy').replace('class="mascot-svg"', 'class="mascot"') +
       '<h1 class="title" id="gTitle">' + esc(cfg.title[K.lang] || cfg.title.en) + (K.creator ? ' <small style="font-size:.45em;color:#FFB020">CREATOR</small>' : '') + '</h1>' + /* CREATOR badge */
       '<p class="tag">' + esc(K.t('tagline')) + '</p>' +
@@ -449,13 +474,17 @@
       '<p class="tag">' + esc(K.t('best')) + ': <b>' + fmt(bestScore()) + '</b></p>' + goalHTML() +
       '<div class="bottom">' +
       '<button class="btn ghost" id="bDaily">' + ICON.gift + esc(K.t('daily')) + (di.can ? '<span class="dot"></span>' : '') + '</button>' +
+      '<button class="btn ghost" id="bExch">' + curIcon() + esc(K.t('exchShort')) + (BubziCur.hot() === cfg.id ? '<span class="dot"></span>' : '') + '</button>' +
       (cfg.noSkins ? '' : '<button class="btn ghost" id="bSkins">' + ICON.shirt + esc(K.t('skins')) + '</button>') +
       '<button class="btn icon" id="bSoundM"></button>' +
+      '<button class="btn ghost" id="bCode">' + ICON.key + esc(K.t('code')) + '</button>' + /* CREATOR */
       '<select class="lang" id="selLang" aria-label="' + esc(K.t('lang')) + '"><option value="en">English</option><option value="fr">Français</option><option value="ar">العربية</option></select>' +
       '</div>');
     $('bPlay').onclick = function () { unlockAudio(); sfx('click'); startRound(); };
     $('bDaily').onclick = function () { sfx('click'); showDaily(); };
-    $('gTitle').onclick = function () { var t = Date.now(); titleTaps = t - titleT < 800 ? titleTaps + 1 : 1; titleT = t; if (titleTaps >= 5) { titleTaps = 0; var c = window.prompt('Code'); if (c) creatorEnter(c); } }; // CREATOR
+    $('bExch').onclick = $('mCur').onclick = $('mBz').onclick = function () { sfx('click'); showExchange(); };
+    $('bCode').onclick = function () { sfx('click'); showCode(); }; // CREATOR
+    $('gTitle').onclick = function () { var t = Date.now(); titleTaps = t - titleT < 800 ? titleTaps + 1 : 1; titleT = t; if (titleTaps >= 5) { titleTaps = 0; showCode(); } }; // CREATOR
     if ($('bSkins')) $('bSkins').onclick = function () { sfx('click'); showSkins(); };
     $('bSoundM').onclick = toggleSound;
     var sel = $('selLang'); sel.value = K.lang;
@@ -466,8 +495,35 @@
   }
   function goalHTML() {
     var g = goalInfo(); if (!g) return '';
-    return '<p class="goal' + (g.done ? ' done' : '') + '" id="gGoal">' + ICON.coin + '<span>' + esc(K.t('goal')) + ': <b>' + esc(K.t('goalTxt').replace('{n}', fmt(g.target))) + '</b></span>' +
+    return '<p class="goal' + (g.done ? ' done' : '') + '" id="gGoal">' + curIcon() + '<span>' + esc(K.t('goal')) + ': <b>' + esc(K.t('goalTxt').replace('{n}', fmt(g.target))) + '</b></span>' +
       '<em>' + (g.done ? '✓ ' + esc(K.t('goalNew')) : '+' + GOAL_COINS) + '</em></p>';
+  }
+  function showExchange() {
+    var c = CUR(), have = wallet(), m = BubziCur.mult(cfg.id), tr = BubziCur.trend(cfg.id), isHot = BubziCur.hot() === cfg.id, q = BubziCur.quote(cfg.id, have);
+    var ra = (c.rate || 1) * 10, rb = Math.floor(10 * m + 1e-6), t = tourInfo(), tn = BubziCur.TOUR_GAMES;
+    screen('exchScr', '<div class="card exch"><h2>' + esc(K.t('exch')) + '</h2>' +
+      (isHot ? '<span class="badge">🔥 ' + esc(K.t('hot')) + '</span>' : '') +
+      '<div class="xrow"><div class="xbox">' + curIcon(34) + '<b>' + fmt(have) + '</b><span>' + esc(curName()) + '</span></div><div class="xarrow">➜</div>' +
+      '<div class="xbox">' + bzIcon(34) + '<b>' + fmt(bubzi()) + '</b><span>' + esc(bzName()) + '</span></div></div>' +
+      '<p class="xrate">' + esc(K.t('rate').replace('{a}', fmt(ra)).replace('{b}', fmt(rb)).replace('{c}', curName())) + (tr ? ' <i class="' + (tr > 0 ? 'up">▲' : 'down">▼') + '</i>' : '') + '</p>' +
+      '<div class="col">' + (q >= 1 ? '<button class="btn mint" id="bXall">' + esc(K.t('exchAll')) + ': +' + fmt(q) + ' ' + bzIcon(22) + '</button>' : '<p class="xnone">' + esc(K.t('exchNone').replace('{c}', curName())) + '</p>') +
+      '<p class="xhint">' + esc(K.t('exchHint')) + '</p>' +
+      '<p class="goal small">' + bzIcon() + '<span>' + esc(K.t('tour')) + ': ' + esc(K.t('tourTxt').replace('{n}', tn)) + ' <b>' + Math.min(t.g.length, tn) + '/' + tn + '</b></span><em>' + (t.paid ? '✓' : '+' + BubziCur.TOUR_COINS) + '</em></p>' +
+      '<button class="btn ghost" id="bXback">' + esc(K.t('back')) + '</button></div></div>', true);
+    if ($('bXall')) $('bXall').onclick = function () {
+      var h = wallet(), got = BubziCur.quote(cfg.id, h); if (got < 1) return;
+      var used = Math.min(h, Math.ceil(got * (c.rate || 1) / BubziCur.mult(cfg.id) - 1e-6));
+      setWallet(h - used); setBubzi(bubzi() + got); if (K.creator) creatorTopUp(); // CREATOR
+      sfx('reward'); confetti(50); haptic(30); toast('+' + fmt(got) + ' ' + bzName()); showExchange();
+    };
+    $('bXback').onclick = function () { sfx('click'); showMenu(); };
+  }
+  function showCode() { // CREATOR (whole screen)
+    screen('codeScr', '<div class="card"><h2>' + esc(K.t('codeTitle')) + '</h2><form class="col" id="codeForm"><input class="codein" id="codeIn" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="24" aria-label="' + esc(K.t('code')) + '">' +
+      '<button class="btn big" type="submit">' + esc(K.t('ok')) + '</button><button class="btn ghost" type="button" id="bCback">' + esc(K.t('back')) + '</button></form></div>', true);
+    $('codeForm').onsubmit = function (e) { e.preventDefault(); if (creatorEnter($('codeIn').value)) return; $('codeIn').value = ''; };
+    $('bCback').onclick = function () { sfx('click'); showMenu(); };
+    try { $('codeIn').focus(); } catch (e) { }
   }
   function showDaily() {
     var di = dailyInfo(), cells = '';
@@ -476,13 +532,13 @@
       cells += '<div class="' + cls + '">' + esc(K.t('day')) + ' ' + i + '<b>' + DAILY[i - 1] + '</b></div>';
     }
     screen('daily', '<div class="card"><h2>' + esc(K.t('daily')) + '</h2><div class="days">' + cells + '</div>' +
-      '<div class="col">' + (di.can ? '<button class="btn orange big" id="bClaim">' + ICON.coin + esc(K.t('claim')) + ' +' + DAILY[di.day - 1] + '</button>' : '<p>' + esc(K.t('claimed')) + '</p>') +
+      '<div class="col">' + (di.can ? '<button class="btn orange big" id="bClaim">' + bzIcon(24) + esc(K.t('claim')) + ' +' + DAILY[di.day - 1] + '</button>' : '<p>' + esc(K.t('claimed')) + '</p>') +
       '<button class="btn ghost" id="bBack">' + esc(K.t('back')) + '</button></div></div>', true);
     if ($('bClaim')) $('bClaim').onclick = function () {
       var d = dailyInfo(); if (!d.can) return;
       var amt = DAILY[d.day - 1];
-      store.set('coins', wallet() + amt); store.set('daily', { last: today(), streak: d.day });
-      sfx('reward'); confetti(60); toast('+' + amt + ' ' + K.t('coins')); showMenu();
+      setBubzi(bubzi() + amt); store.set('daily', { last: today(), streak: d.day });
+      sfx('reward'); confetti(60); toast('+' + amt + ' ' + bzName()); showMenu();
     };
     $('bBack').onclick = function () { sfx('click'); showMenu(); };
   }
@@ -494,7 +550,7 @@
         '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 14C50 14 59 27 59 39C59 52 47 59 32 59C17 59 5 52 5 39C5 27 14 14 32 14Z" fill="' + s.c + '" stroke="' + s.d + '" stroke-width="3"/><circle cx="23" cy="37" r="6" fill="#fff"/><circle cx="41" cy="37" r="6" fill="#fff"/><circle cx="24" cy="38" r="3" fill="#241B4D"/><circle cx="42" cy="38" r="3" fill="#241B4D"/></svg>' +
         '<span>' + esc(s.n[K.lang]) + '</span><span>' + (own ? (s.id === cur ? '✓' : esc(K.t('select'))) : s.p) + '</span></button>';
     });
-    screen('skinsScr', '<div class="card"><h2>' + esc(K.t('skins')) + '</h2><span class="pill">' + ICON.coin + '<b>' + fmt(wallet()) + '</b></span><div class="skins">' + html + '</div>' +
+    screen('skinsScr', '<div class="card"><h2>' + esc(K.t('skins')) + '</h2><span class="pill">' + bzIcon() + '<b>' + fmt(bubzi()) + '</b></span><div class="skins">' + html + '</div>' +
       '<button class="btn ghost" id="bBack2" style="width:100%">' + esc(K.t('back')) + '</button></div>', true);
     var btns = stage.querySelectorAll('.skin');
     for (var i = 0; i < btns.length; i++) btns[i].onclick = function () {
@@ -503,7 +559,7 @@
       if (!s) return;
       var o = ownedSkins();
       if (o.indexOf(id) >= 0) { store.set('skin', id); sfx('click'); }
-      else if (wallet() >= s.p) { store.set('coins', wallet() - s.p); o.push(id); store.set('skins', o); store.set('skin', id); sfx('reward'); confetti(40); toast(K.t('unlocked')); }
+      else if (bubzi() >= s.p) { setBubzi(bubzi() - s.p); o.push(id); store.set('skins', o); store.set('skin', id); sfx('reward'); confetti(40); toast(K.t('unlocked')); }
       else { sfx('wrong'); toast(K.t('notEnough')); return; }
       showSkins();
     };
@@ -521,6 +577,7 @@
     ui.hud.classList.remove('hidden');
     updateHud(false);
     state = 'playing'; Ads.gameplayStart();
+    tourMark();
     var pl = store.get('plays:' + cfg.id, 0); store.set('plays:' + cfg.id, (typeof pl === 'number' ? pl : 0) + 1);
     var rec = store.get('recent', []); if (!Array.isArray(rec)) rec = [];
     rec = rec.filter(function (r) { return r && r.id !== cfg.id; }); rec.unshift({ id: cfg.id, t: Date.now() }); store.set('recent', rec.slice(0, 12));
@@ -548,7 +605,7 @@
       h += '<div class="tobeat"><span>' + esc(K.t('toBeat').replace('{n}', fmt(best - K.score + 1))) + '</span><i><b style="width:' + pct + '%"></b></i></div>';
     }
     var g = goalInfo();
-    if (g && !g.done) h += '<p class="goal small">' + ICON.coin + '<span>' + esc(K.t('goal')) + ': <b>' + fmt(Math.min(K.score, g.target)) + ' / ' + fmt(g.target) + '</b></span><em>+' + GOAL_COINS + '</em></p>';
+    if (g && !g.done) h += '<p class="goal small">' + curIcon() + '<span>' + esc(K.t('goal')) + ': <b>' + fmt(Math.min(K.score, g.target)) + ' / ' + fmt(g.target) + '</b></span><em>+' + GOAL_COINS + '</em></p>';
     return h;
   }
   function showOver() {
@@ -563,7 +620,7 @@
       (isNew ? '<span class="badge">' + esc(K.t('newBest')) + '</span>' : '') +
       '<div class="row"><div class="stat"><b>' + fmt(K.score) + '</b><span>' + esc(K.t('score')) + '</span></div>' +
       '<div class="stat"><b>' + fmt(Math.max(best, K.score)) + '</b><span>' + esc(K.t('best')) + '</span></div>' +
-      '<div class="stat"><b>+' + fmt(K.coinsRound) + '</b><span>' + esc(K.t('earned')) + '</span></div></div>' + overExtra(isNew, best) +
+      '<div class="stat"><b>+' + fmt(K.coinsRound) + '</b><span>' + esc(curName()) + '</span></div></div>' + overExtra(isNew, best) +
       '<div class="col">' + (canRevive ? '<button class="btn mint" id="bCont">' + ICON.tv + esc(K.t('cont')) + '</button>' : '') +
       '<button class="btn big" id="bAgain">' + ICON.redo + esc(K.t('playAgain')) + '</button>' +
       '<button class="btn ghost" id="bMenu">' + ICON.home + esc(K.t('home')) + '</button></div></div>', true);
@@ -632,7 +689,7 @@
     var GAMEKEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'];
     window.addEventListener('keydown', function (e) {
       unlockAudio();
-      if (e.key && e.key.length === 1) { typed = (typed + e.key.toLowerCase()).slice(-CREATOR_CODE.length); if (typed === CREATOR_CODE) { typed = ''; creatorEnter(CREATOR_CODE); } } // CREATOR
+      if (e.key && e.key.length === 1 && !(e.target && e.target.tagName === 'INPUT')) { typed = (typed + e.key.toLowerCase()).slice(-CREATOR_CODE.length); if (typed === CREATOR_CODE) { typed = ''; creatorEnter(CREATOR_CODE); } } // CREATOR
       var c = e.code;
       if (state === 'playing') {
         if (c === 'Escape' || c === 'KeyP') { e.preventDefault(); pause(); return; }
