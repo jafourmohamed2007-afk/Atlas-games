@@ -25,7 +25,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
     await hold(null);
   };
-  await p.goto(URL); await ev(() => localStorage.setItem('bubzi:coins', '500'));
+  await p.goto(URL); await ev(() => localStorage.setItem('bubzi:cur:ink-heroes', '500'));
   await p.click('#bPlay'); await sleep(200);
   let s = await d();
   if (s.mode !== 'pick' || !s.storyMode) F('story should be the default mode on the pick screen'); else ok.push('pick screen defaults to STORY');

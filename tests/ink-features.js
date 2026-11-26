@@ -9,15 +9,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1000, height: 600 } });
   const errs = [], fails = [], ok = []; p.on('pageerror', (e) => errs.push(e.message));
   const F = (m) => fails.push(m), d = () => p.evaluate(() => window.__bubzi.K.dbg()), ev = (f, a) => p.evaluate(f, a);
-  await p.goto(URL); await ev(() => localStorage.setItem('bubzi:coins', '20000'));
+  await p.goto(URL); await ev(() => localStorage.setItem('bubzi:cur:ink-heroes', '20000'));
   await p.click('#bPlay'); await sleep(200);
   if ((await d()).storyMode) await p.keyboard.press('KeyT'); // Infinity
   // ---- shop: open, buy a gun, equip, buy items ----
   await p.keyboard.press('KeyS'); if ((await d()).mode !== 'shop') F('shop did not open');
   for (let i = 0; i < 5; i++) await p.keyboard.press('ArrowRight');           // select Longshot Sniper (index 5)
-  const c0 = await ev(() => JSON.parse(localStorage.getItem('bubzi:coins')));
+  const c0 = await ev(() => JSON.parse(localStorage.getItem('bubzi:cur:ink-heroes')));
   await p.keyboard.press('Enter'); await sleep(50);
-  const c1 = await ev(() => JSON.parse(localStorage.getItem('bubzi:coins')));
+  const c1 = await ev(() => JSON.parse(localStorage.getItem('bubzi:cur:ink-heroes')));
   const guns = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:guns')));
   if (c0 - c1 !== 1200 || !guns.includes('longshot')) F('buying Longshot failed (' + c0 + '→' + c1 + ')'); else ok.push('bought Longshot for 1200');
   if ((await ev(() => localStorage.getItem('bubzi:ink:gun'))) !== '"longshot"') F('bought gun not equipped');

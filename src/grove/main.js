@@ -111,7 +111,7 @@ function orders() { const k = dayKey(now()); if (!S.orders || S.orders.day !== k
 function claimable() { return orders().list.filter((o) => !o.claimed && o.have >= o.need).length; }
 function claim(K, k) {
   const o = orders().list[k]; if (!o || o.claimed || o.have < o.need) return false;
-  o.claimed = true; S.gold += o.gold; S.earned = (S.earned || 0) + o.gold; addXp(K, o.xp); K.sfx('reward'); K.confetti(40); K.addCoins(2);
+  o.claimed = true; S.gold += o.gold; S.earned = (S.earned || 0) + o.gold; addXp(K, o.xp); K.sfx('reward'); K.confetti(40);
   const od = orders();
   if (!od.bonus && od.list.every((x) => x.claimed)) { od.bonus = true; const rare = S.lv >= 8 ? 'goldpump' : 'pumpkin'; S.seeds[rare] = (S.seeds[rare] || 0) + 2; S.gold += 200; K.toast(K.t('ordersDone') + ' 2× ' + L(K, SEED[rare].name) + ' + 200'); K.confetti(90); }
   K.setScore(S.earned || 0); save(); return true;
@@ -627,7 +627,7 @@ function harvest(K, i, double) {
   fx.push({ x: sp.x, y: sp.y, txt: '+' + v, col: p.mut.length ? '#FFE15A' : '#FFFFFF', t: 0, big: p.mut.length > 0 });
   if (p.mut.length) fx.push({ x: sp.x, y: sp.y - 30, txt: p.mut.map((m) => L(K, MUTS[m].name)).join(' · '), col: MUTS[p.mut[p.mut.length - 1]].col, t: 0 });
   K.sfx(p.mut.length ? 'reward' : 'coin'); K.haptic(20);
-  if (v >= 50) K.addCoins(Math.max(1, Math.min(5, Math.floor(v / 300))), sp.x, sp.y);
+  // (harvest gold is shown by the +gold popup; no separate coin bonus now that Grove Gold is this game's currency)
   const rare = p.mut.some((m) => m === 'rainbow' || m === 'golden' || m === 'moonlit' || m === 'giant');
   S.plots[i] = null; syncPlot(i);
   if (rare && !double) popup = { kind: 'rare', seed: sd, mut: p.mut, v: v, t: 0 };
