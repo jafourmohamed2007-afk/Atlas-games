@@ -17,6 +17,7 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `memo-match.html` | Memory cards | Tap cards · arrows + Enter |
 | `wiggle-snake.html` | Snake | Swipe / tap · arrows |
 | `ink-heroes.html` | 2.5D stickman brawler: 40-level story + Infinity | On-screen buttons · arrows, W, J, K, L, R, 1-7 |
+| `pocket-grove.html` | 3D idle garden (three.js) | Tap plots · arrows + Enter, S shop, A album, H pets, B boost |
 
 Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
 coins, 8 unlockable skins (shared across all games), a daily bonus streak, a "show, don't tell" tutorial, and ad placeholders.
@@ -43,6 +44,11 @@ node tests/run.js                         # browser tests: menus, ads, saving, l
 node tests/bots.js                        # gameplay bots that play each game and check the rules
 node tests/ink-features.js                # Ink Heroes: shop, all 11 guns, all 8 items, heart revive
 node tests/ink-story.js                   # Ink Heroes story: 40 levels, cutscenes, 5 bosses, stars, unlocks, Nightmare
+node tests/grove.js                       # Pocket Grove (3D): grow, harvest, shop, events, pets, offline growth
 ```
 Source: `src/kit/` (shared engine and styles), `src/games/*.js` (one file per game), `src/games.json` (titles, SEO text, keywords in 3 languages).
 URL flags: `?lang=en|fr|ar`, `?test` (instant ads plus debug hooks), `?speed=N`.
+
+### Pocket Grove (3D)
+`npm install` once (three.js, esbuild, glTF tools), then `node tools/build.js` as usual. `node tests/grove.js` tests it.
+3D models: [KayKit](https://kaylousberg.com) by Kay Lousberg, CC0. See `docs/pocket-grove-design.md`.

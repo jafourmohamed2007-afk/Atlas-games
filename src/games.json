@@ -26,6 +26,32 @@
     }
   },
   {
+    "id": "pocket-grove",
+    "category": "farm",
+    "color": "#4CAF50",
+    "isNew": true,
+    "title": {
+      "en": "Pocket Grove",
+      "fr": "Pocket Grove : Jardin Magique",
+      "ar": "بستان الجيب"
+    },
+    "desc": {
+      "en": "A cozy 3D garden that keeps growing while you are away. Plant seeds, water them, harvest rare Golden, Rainbow and Moonlit crops, hatch pets and fill your album. Free online, no download.",
+      "fr": "Un jardin 3D douillet qui continue de pousser quand tu n’es pas là. Plante, arrose, récolte des légumes Dorés, Arc-en-ciel et Lunaires, fais éclore des animaux et complète ton album. Gratuit, sans téléchargement.",
+      "ar": "حديقة ثلاثية الأبعاد مريحة تواصل النمو وأنت بعيد. ازرع البذور واسقِها واحصد محاصيل ذهبية وقوس قزح وقمرية نادرة، وافقس الحيوانات واملأ ألبومك. مجاناً وبدون تحميل."
+    },
+    "keywords": {
+      "en": "garden game, farming game, idle game, grow a garden, 3D games, relaxing games",
+      "fr": "jeu de jardin, jeu de ferme, jeu idle, jeux 3D, jeux relaxants",
+      "ar": "لعبة حديقة, لعبة مزرعة, ألعاب زراعة, ألعاب ثلاثية الأبعاد, ألعاب هادئة"
+    },
+    "howto": {
+      "en": "Tap an empty plot to plant a seed, tap a growing plant to water it (20% faster), and tap a ready plant to harvest it for gold. Buy new seeds in the shop (new stock every hour), unlock more plots, and come back for Ink Rain (every 2 hours), Golden Hour (7 pm) and Moonlight (9 pm) to get rare mutations worth up to 8x. Drag to turn the camera.",
+      "fr": "Touche une parcelle vide pour planter, une plante qui pousse pour l’arroser (20 % plus vite) et une plante prête pour la récolter. Achète des graines (nouveau stock chaque heure), débloque des parcelles et reviens pour la Pluie d’encre (toutes les 2 h), l’Heure dorée (19 h) et le Clair de lune (21 h) pour des mutations rares jusqu’à x8. Glisse pour tourner la caméra.",
+      "ar": "المس حوضاً فارغاً لتزرع، والمس نبتة تنمو لتسقيها (أسرع بـ20%)، والمس نبتة جاهزة لتحصدها مقابل الذهب. اشترِ بذوراً من المتجر (مخزون جديد كل ساعة)، وافتح أحواضاً جديدة، وعد في مطر الحبر (كل ساعتين) والساعة الذهبية (7 مساءً) وضوء القمر (9 مساءً) لتحصل على تحوّلات نادرة حتى x8. اسحب لتدوير الكاميرا."
+    }
+  },
+  {
     "id": "rooftop-rush",
     "category": "running",
     "color": "#FF8A1F",

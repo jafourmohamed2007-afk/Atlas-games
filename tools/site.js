@@ -15,14 +15,14 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const tr = (s, o) => String(s).replace(/\{(\w+)\}/g, (m, k) => (o[k] !== undefined ? o[k] : m));
 const lp = (lang, p) => (lang === 'en' ? '' : lang + '/') + p;
 const abs = (p) => SITE + '/' + p.replace(/(^|\/)index\.html$/, '$1');
-const HOT = ['ink-heroes', 'rooftop-rush', 'block-bloom'];
-const ORDER = ['ink-heroes', 'rooftop-rush', 'block-bloom', 'jelly-drop', 'hop-hook', 'hill-hopper', 'number-pop', 'wiggle-snake', 'memo-match'];
-const CATS = ['action', 'puzzle', 'running', 'skill', 'learning', 'cars'];
-const MOODS = { quick: ['wiggle-snake', 'number-pop', 'hop-hook', 'rooftop-rush', 'memo-match'], brain: ['block-bloom', 'memo-match', 'number-pop', 'jelly-drop'], chill: ['block-bloom', 'jelly-drop', 'memo-match', 'wiggle-snake'] };
+const HOT = ['pocket-grove', 'ink-heroes', 'rooftop-rush'];
+const ORDER = ['pocket-grove', 'ink-heroes', 'rooftop-rush', 'block-bloom', 'jelly-drop', 'hop-hook', 'hill-hopper', 'number-pop', 'wiggle-snake', 'memo-match'];
+const CATS = ['action', 'farm', 'puzzle', 'running', 'skill', 'learning', 'cars'];
+const MOODS = { quick: ['wiggle-snake', 'number-pop', 'hop-hook', 'rooftop-rush', 'memo-match'], brain: ['block-bloom', 'memo-match', 'number-pop', 'jelly-drop'], chill: ['pocket-grove', 'block-bloom', 'jelly-drop', 'memo-match', 'wiggle-snake'] };
 const TILE = { quick: ['#3B2A06', '#7A5200', '#FFD36B', 'clock'], brain: ['#0E3B3A', '#16665A', '#C6FF4D', 'bulb'], chill: ['#10284F', '#1F5296', '#9FD4FF', 'cloud'],
   puzzle: ['#24125E', '#4A2AB0', '#D9C9FF', 'puzzle'], running: ['#3D1A05', '#8A3B00', '#FFB35A', 'bolt'], skill: ['#3B0B19', '#8A1A36', '#FF9AB5', 'target'],
-  learning: ['#0B3A2C', '#0F7056', '#7FF0D0', 'learn'], cars: ['#0B2A3F', '#145C7A', '#8BE3FF', 'car'], action: ['#3B0A12', '#8A1A2E', '#FF8A6A', 'burst'] };
-const TILE_ORDER = ['action', 'quick', 'brain', 'chill', 'puzzle', 'running', 'skill', 'learning', 'cars'];
+  learning: ['#0B3A2C', '#0F7056', '#7FF0D0', 'learn'], cars: ['#0B2A3F', '#145C7A', '#8BE3FF', 'car'], action: ['#3B0A12', '#8A1A2E', '#FF8A6A', 'burst'], farm: ['#123B12', '#2E7D32', '#B9F27A', 'cloud'] };
+const TILE_ORDER = ['farm', 'action', 'quick', 'brain', 'chill', 'puzzle', 'running', 'skill', 'learning', 'cars'];
 const inCat = (slug) => (MOODS[slug] ? MOODS[slug].map((id) => games.find((g) => g.id === id)) : games.filter((g) => g.category === slug));
 const sorted = ORDER.map((id) => games.find((g) => g.id === id)).filter(Boolean);
 const hash = (s) => crypto.createHash('md5').update(s).digest('hex').slice(0, 8);
