@@ -1,0 +1,38 @@
+# Bubzi Games
+
+Original HTML5 casual games: mobile-first, in **English, French and Arabic (right-to-left)**, with no sign-up.
+
+## The games (`games/` folder: each one is a single self-contained HTML file)
+
+| Game | Genre | Controls |
+|---|---|---|
+| `block-bloom.html` | Block puzzle | Drag shapes · keys 1-3 + arrows + Enter |
+| `rooftop-rush.html` | 3-lane runner | Swipe / tap sides · arrows, Space |
+| `hop-hook.html` | One-touch swing | Hold to grab, release to fly · Space |
+| `number-pop.html` | Math learning | Tap the right bubble · type the number |
+| `hill-hopper.html` | Physics driving | Hold right = gas, left = brake · arrows |
+| `jelly-drop.html` | Drop & merge | Aim and release · arrows + Space |
+| `memo-match.html` | Memory cards | Tap cards · arrows + Enter |
+| `wiggle-snake.html` | Snake | Swipe / tap · arrows |
+
+Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
+coins, 8 unlockable skins (shared across all games), a daily bonus streak, a "show, don't tell" tutorial, and ad placeholders.
+
+## Ads: where to plug in your network
+All ad calls live in **one place**: the `Ads` object in `src/kit/kit.js` (search for `AD PLACEHOLDER`).
+- **Interstitial** between rounds (every 2nd restart): `Ads.interstitial(done)`
+- **Rewarded** "watch ad to continue" (once per round): `Ads.rewarded(done)`. Call `done(true)` only when the reward is earned.
+- **Banner 320×50** below the game: the `#bannerSlot` element. Add `?embed` to the URL to hide it on partner portals.
+- Portal hooks `gameplayStart/Stop` for Poki and CrazyGames.
+
+Example calls for GameDistribution, Poki, CrazyGames and AdSense H5 are in the comments.
+
+## Develop
+```bash
+node tools/build.js                       # build games/*.html from src/
+SITE_URL=https://yourdomain.com node tools/build.js   # set canonical/SEO URLs
+node tests/run.js                         # browser tests: menus, ads, saving, languages, touch, 8x-speed stress
+node tests/bots.js                        # gameplay bots that play each game and check the rules
+```
+Source: `src/kit/` (shared engine and styles), `src/games/*.js` (one file per game), `src/games.json` (titles, SEO text, keywords in 3 languages).
+URL flags: `?lang=en|fr|ar`, `?test` (instant ads plus debug hooks), `?speed=N`.

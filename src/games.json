@@ -1,0 +1,114 @@
+[
+  {
+    "id": "block-bloom", "category": "puzzle", "color": "#7B4DFF", "isNew": false,
+    "title": { "en": "Block Bloom", "fr": "Block Bloom", "ar": "بلوك بلوم" },
+    "desc": {
+      "en": "Drag colorful blocks onto the grid, fill rows and columns and make flowers bloom. A relaxing free block puzzle game for all ages, no download.",
+      "fr": "Glisse des blocs colorés sur la grille, complète lignes et colonnes et fais éclore des fleurs. Un jeu de blocs gratuit et relaxant, sans téléchargement.",
+      "ar": "اسحب المكعبات الملونة إلى الشبكة وأكمل الصفوف والأعمدة لتتفتح الأزهار. لعبة ألغاز بلوك مجانية ومريحة لكل الأعمار بدون تحميل."
+    },
+    "keywords": {
+      "en": "block puzzle, block games, free puzzle game, brain games, online puzzle",
+      "fr": "jeux de blocs, puzzle gratuit, jeu de réflexion, casse-tête en ligne",
+      "ar": "ألعاب ذكاء, ألعاب ألغاز, لعبة بلوك, ألعاب مجانية بدون تحميل"
+    }
+  },
+  {
+    "id": "rooftop-rush", "category": "running", "color": "#FF8A1F", "isNew": false,
+    "title": { "en": "Rooftop Rush", "fr": "Course sur les Toits", "ar": "سباق الأسطح" },
+    "desc": {
+      "en": "Run across the city rooftops, switch lanes, jump and slide past obstacles and grab every coin in this free endless runner game.",
+      "fr": "Cours sur les toits de la ville, change de voie, saute et glisse sous les obstacles et ramasse les pièces dans ce jeu de course infini gratuit.",
+      "ar": "اركض فوق أسطح المدينة، غيّر المسار، اقفز وانزلق تحت العوائق واجمع كل العملات في لعبة الجري اللانهائية المجانية."
+    },
+    "keywords": {
+      "en": "running games, endless runner, run game online, free running game",
+      "fr": "jeux de course, jeu de course infini, jeux de course à pied, jeux gratuits",
+      "ar": "ألعاب جري, ألعاب ركض, لعبة جري لا نهائية, ألعاب مجانية"
+    }
+  },
+  {
+    "id": "hop-hook", "category": "skill", "color": "#38B6FF", "isNew": true,
+    "title": { "en": "Hop Hook", "fr": "Hop Hook", "ar": "هوب هوك" },
+    "desc": {
+      "en": "Hold to grab a hook, release to fly! Swing as far as you can in this free one-tap skill game.",
+      "fr": "Maintiens pour attraper un crochet, relâche pour voler ! Balance-toi le plus loin possible dans ce jeu d'adresse gratuit à une touche.",
+      "ar": "اضغط مطولاً لتمسك الخطاف وارفع إصبعك لتطير! تأرجح لأبعد مسافة في لعبة المهارة المجانية بلمسة واحدة."
+    },
+    "keywords": {
+      "en": "skill games, one tap games, swing game, hook game, arcade games",
+      "fr": "jeux d'adresse, jeu à une touche, jeu de balancement, jeux d'arcade",
+      "ar": "ألعاب مهارة, ألعاب تحدي, ألعاب لمسة واحدة, ألعاب أركيد"
+    }
+  },
+  {
+    "id": "number-pop", "category": "learning", "color": "#FF5FA2", "isNew": false,
+    "title": { "en": "Number Pop", "fr": "Bulles de Calcul", "ar": "فقاعات الأرقام" },
+    "desc": {
+      "en": "Pop the bubble with the right answer before it floats away! A fun free math game for kids: addition, subtraction and times tables.",
+      "fr": "Éclate la bulle avec la bonne réponse avant qu'elle s'envole ! Un jeu de maths gratuit et amusant : additions, soustractions et tables de multiplication.",
+      "ar": "افقع الفقاعة التي تحمل الإجابة الصحيحة قبل أن تطير! لعبة رياضيات تعليمية مجانية للأطفال: جمع وطرح وجدول الضرب."
+    },
+    "keywords": {
+      "en": "math games for kids, math games, times tables game, educational games",
+      "fr": "jeux de maths, calcul mental, tables de multiplication, jeux éducatifs",
+      "ar": "ألعاب رياضيات, ألعاب تعليمية للأطفال, جدول الضرب, ألعاب حساب"
+    }
+  },
+  {
+    "id": "hill-hopper", "category": "cars", "color": "#14C8A0", "isNew": false,
+    "title": { "en": "Hill Hopper", "fr": "Saute-Collines", "ar": "قافز التلال" },
+    "desc": {
+      "en": "Drive a bouncy car over wild hills, do flips for bonus coins and keep your fuel up in this free physics driving game.",
+      "fr": "Conduis une voiture rebondissante sur des collines folles, fais des saltos pour gagner des pièces dans ce jeu de voiture gratuit.",
+      "ar": "قُد سيارة نطاطة فوق تلال مجنونة، نفّذ الشقلبات لتربح عملات إضافية وحافظ على الوقود في لعبة السيارات المجانية."
+    },
+    "keywords": {
+      "en": "car games, driving games, hill climb game, physics car game",
+      "fr": "jeux de voiture, jeux de conduite, jeu de voiture gratuit",
+      "ar": "ألعاب سيارات, ألعاب قيادة, ألعاب سيارات مجانية"
+    }
+  },
+  {
+    "id": "jelly-drop", "category": "puzzle", "color": "#FFC93C", "isNew": true,
+    "title": { "en": "Jelly Drop", "fr": "Jelly Drop", "ar": "جيلي دروب" },
+    "desc": {
+      "en": "Drop jelly friends into the jar and merge two of the same to make a bigger one. A satisfying free merge game, no download.",
+      "fr": "Lâche des gelées dans le bocal et fusionne-les deux par deux pour en créer une plus grosse. Un jeu de fusion gratuit et satisfaisant.",
+      "ar": "أسقط أصدقاء الجيلي في البرطمان وادمج كل اثنين متشابهين لتصنع جيلي أكبر. لعبة دمج مجانية وممتعة بدون تحميل."
+    },
+    "keywords": {
+      "en": "merge games, drop and merge, fruit merge game, physics puzzle",
+      "fr": "jeux de fusion, jeu de fusion gratuit, puzzle physique",
+      "ar": "ألعاب دمج, لعبة الدمج, ألعاب ألغاز فيزيائية"
+    }
+  },
+  {
+    "id": "memo-match", "category": "learning", "color": "#14C8A0", "isNew": true,
+    "title": { "en": "Memo Match", "fr": "Mémo Match", "ar": "ذاكرة التطابق" },
+    "desc": {
+      "en": "Flip the cards and find all the matching pairs before time runs out. A free memory game that trains your brain, for kids and adults.",
+      "fr": "Retourne les cartes et trouve toutes les paires avant la fin du temps. Un jeu de mémoire gratuit pour enfants et adultes.",
+      "ar": "اقلب البطاقات واعثر على كل الأزواج المتطابقة قبل انتهاء الوقت. لعبة ذاكرة مجانية تنمي الذكاء للصغار والكبار."
+    },
+    "keywords": {
+      "en": "memory games, matching game, memory card game, brain training",
+      "fr": "jeux de mémoire, jeu de paires, memory gratuit, jeux de cartes",
+      "ar": "ألعاب ذاكرة, لعبة تطابق الصور, ألعاب ذكاء للأطفال"
+    }
+  },
+  {
+    "id": "wiggle-snake", "category": "skill", "color": "#FF5FA2", "isNew": true,
+    "title": { "en": "Wiggle Snake", "fr": "Serpent Wiggle", "ar": "الثعبان المتمايل" },
+    "desc": {
+      "en": "Guide the wiggly snake, eat the fruit and grow as long as you can without bumping into yourself. The classic snake game, free online.",
+      "fr": "Guide le serpent, mange les fruits et grandis sans te mordre la queue. Le jeu du serpent classique, gratuit en ligne.",
+      "ar": "وجّه الثعبان المتمايل، كُل الفاكهة وكبر قدر ما تستطيع دون أن تصطدم بنفسك. لعبة الثعبان الكلاسيكية مجاناً."
+    },
+    "keywords": {
+      "en": "snake game, snake games online, classic snake, free arcade game",
+      "fr": "jeu du serpent, snake gratuit, jeux d'arcade",
+      "ar": "لعبة الثعبان, لعبة الدودة, ألعاب أركيد مجانية"
+    }
+  }
+]

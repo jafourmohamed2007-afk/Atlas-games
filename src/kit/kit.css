@@ -1,0 +1,115 @@
+/* Bubzi Kit — shared "Jelly Pop" styles for every game */
+:root{
+  --bg:#F2EEFF; --panel:#FFFFFF; --ink:#241B4D; --muted:#5E5689; --line:#DCD3FF; --soft:#ECE6FF;
+  --violet:#5A2EE8; --violet-d:#3A17B0; --orange:#FF8A1F; --orange-d:#C25400; --mint:#14C8A0; --mint-d:#0A9475;
+  --pink:#FF5FA2; --pink-d:#D43D80; --gold:#FFC93C; --shade:rgba(36,27,77,.55);
+  --font: ui-rounded, "Baloo 2", "Nunito", "Varela Round", "Arial Rounded MT Bold", "Segoe UI", system-ui, -apple-system, Roboto, Tahoma, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#140F2E; --panel:#221A4A; --ink:#F3F0FF; --muted:#B9B2E6; --line:#120C2B; --soft:#2E2560; --shade:rgba(5,3,15,.7); }
+}
+:root[data-theme="dark"]{ --bg:#140F2E; --panel:#221A4A; --ink:#F3F0FF; --muted:#B9B2E6; --line:#120C2B; --soft:#2E2560; --shade:rgba(5,3,15,.7); }
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden;
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+#app{position:fixed;inset:0;display:flex;flex-direction:column}
+#stage{position:relative;flex:1;min-height:0;overflow:hidden}
+#game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+/* ---------- AD PLACEHOLDER: BANNER (320x50) ---------- */
+#banner{flex:0 0 auto;height:62px;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+#banner .slot{width:320px;max-width:calc(100% - 16px);height:50px;border:2px dashed #9A90C9;border-radius:10px;display:flex;
+  align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);background:var(--panel)}
+#banner.off{display:none}
+
+/* ---------- HUD ---------- */
+.hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between;padding:10px 12px;
+  pointer-events:none;z-index:5}
+.hud > *{pointer-events:auto}
+.hud .mid{display:flex;flex-direction:column;align-items:center;line-height:1;pointer-events:none;text-shadow:0 2px 0 rgba(255,255,255,.6)}
+.hud .best{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--muted)}
+.hud .score{font-size:40px;font-weight:800;color:var(--violet)}
+.hud .info{margin-top:4px;padding:2px 10px;border-radius:12px;background:var(--panel);font-size:14px;font-weight:800;color:var(--ink);box-shadow:0 3px 0 var(--line)}
+.hud .info:empty{display:none}
+.hud .side{display:flex;gap:8px;align-items:center}
+.hidden{display:none !important}
+
+/* ---------- Buttons ---------- */
+.btn{font-family:inherit;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-weight:800;color:#fff;background:var(--violet);box-shadow:0 5px 0 var(--violet-d);border-radius:22px;min-height:48px;padding:0 20px;font-size:18px;
+  transition:transform .08s ease, box-shadow .08s ease, filter .15s}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:translateY(4px) scale(.98);box-shadow:0 1px 0 var(--violet-d)}
+.btn:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.btn.big{min-height:72px;font-size:28px;padding:0 44px;border-radius:30px;box-shadow:0 7px 0 var(--violet-d)}
+.btn.big:active{box-shadow:0 2px 0 var(--violet-d)}
+.btn.mint{background:var(--mint);box-shadow:0 5px 0 var(--mint-d)} .btn.mint:active{box-shadow:0 1px 0 var(--mint-d)}
+.btn.orange{background:var(--orange);box-shadow:0 5px 0 var(--orange-d)} .btn.orange:active{box-shadow:0 1px 0 var(--orange-d)}
+.btn.pink{background:var(--pink);box-shadow:0 5px 0 var(--pink-d)} .btn.pink:active{box-shadow:0 1px 0 var(--pink-d)}
+.btn.ghost{background:var(--panel);color:var(--ink);box-shadow:0 5px 0 var(--line)} .btn.ghost:active{box-shadow:0 1px 0 var(--line)}
+.btn.icon{width:48px;min-width:48px;padding:0;border-radius:16px;background:var(--panel);color:var(--violet);box-shadow:0 4px 0 var(--line)}
+.btn.icon:active{box-shadow:0 1px 0 var(--line)}
+.btn svg{flex:0 0 auto}
+.pill{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:16px;background:var(--panel);
+  box-shadow:0 4px 0 var(--line);font-weight:800;font-size:16px;color:var(--ink)}
+.dot{position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--pink);border:2px solid var(--panel)}
+[dir="rtl"] .dot{right:auto;left:-4px}
+
+/* ---------- Screens / overlays ---------- */
+.screen{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;
+  text-align:center;animation:fadeIn .18s ease}
+.screen.dim{background:var(--shade)}
+.card{background:var(--panel);border-radius:28px;box-shadow:0 8px 0 var(--line), 0 18px 40px rgba(0,0,0,.18);padding:22px 20px;width:min(360px,100%);
+  display:flex;flex-direction:column;align-items:center;gap:12px;animation:popIn .28s cubic-bezier(.2,1.6,.4,1)}
+.card h2{margin:0;font-size:30px;line-height:1.1}
+.card p{margin:0;color:var(--muted);font-weight:700}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px;width:100%}
+.col .btn{width:100%}
+.stat{display:flex;flex-direction:column;align-items:center;padding:6px 14px;border-radius:16px;background:var(--soft);line-height:1.1;min-width:84px}
+.stat b{font-size:24px} .stat span{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.badge{display:inline-block;padding:4px 14px;border-radius:14px;background:var(--pink);color:#fff;font-weight:800;animation:wiggle 1s ease-in-out infinite}
+
+/* Menu */
+#menu{background:var(--bg)}
+#menu .mascot{width:150px;height:150px;animation:bob 2.2s ease-in-out infinite}
+#menu .title{margin:0;font-size:clamp(38px,11vw,60px);line-height:1;color:var(--violet);font-weight:800;letter-spacing:-1px;
+  text-shadow:0 4px 0 var(--line)}
+#menu .tag{margin:0;font-weight:700;color:var(--muted);font-size:17px;max-width:320px}
+#menu .topbar{position:absolute;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center}
+#menu .brand{display:flex;align-items:center;gap:6px;font-weight:800;font-size:22px;color:var(--violet);text-decoration:none}
+#menu .bottom{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#menu .bottom .btn{position:relative}
+select.lang{font-family:inherit;font-weight:800;font-size:15px;height:44px;border-radius:16px;border:none;padding:0 10px;
+  background:var(--panel);color:var(--ink);box-shadow:0 4px 0 var(--line);cursor:pointer}
+
+/* Daily */
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;width:100%}
+.days div{border-radius:12px;background:var(--soft);padding:6px 0;font-size:12px;font-weight:800;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+.days div.done{background:var(--mint);color:#fff}
+.days div.today{background:var(--orange);color:#fff;transform:scale(1.08);box-shadow:0 3px 0 var(--orange-d)}
+
+/* Skins */
+.skins{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%}
+.skin{font-family:inherit;border:none;border-radius:16px;background:var(--soft);padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;
+  color:var(--ink);font-weight:800;font-size:12px}
+.skin svg{width:44px;height:44px}
+.skin.sel{outline:3px solid var(--mint)}
+.skin.locked svg{filter:grayscale(.7) opacity(.6)}
+
+/* Ad placeholder modal */
+#ad{background:rgba(10,8,25,.88);z-index:50;color:#fff}
+#ad .adbox{width:min(340px,92%);aspect-ratio:4/3;border:3px dashed #9A90C9;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px}
+#ad .adbox b{font-size:20px} #ad .adbox span{opacity:.8;font-weight:700}
+#ad .count{font-size:44px;font-weight:800}
+
+.toast{position:absolute;left:50%;top:72px;transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:16px;font-weight:800;
+  animation:popIn .25s cubic-bezier(.2,1.6,.4,1)}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes bob{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-10px) scale(.97,1.03)}}
+@keyframes wiggle{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important;transition:none !important} }
+@media (max-height:560px){ #menu .mascot{width:90px;height:90px} .btn.big{min-height:60px;font-size:24px} }
