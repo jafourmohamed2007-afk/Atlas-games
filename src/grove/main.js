@@ -71,7 +71,7 @@ function nextEvent(ms) {
 let S = null;
 function freshState() {
   const plots = []; for (let i = 0; i < GRID * GRID; i++) plots.push(null);
-  return { v: 1, gold: 40, xp: 0, lv: 1, seeds: { carrot: 4, lettuce: 1 }, plots: plots, open: START_PLOTS, album: {}, stock: null, pets: [], egg: null, last: now(), day: '', boostAt: 0, harvested: 0, tut: 0, orders: null, streak: 0, sprinkler: false };
+  return { v: 1, gold: 40, xp: 0, lv: 1, seeds: { carrot: 4, lettuce: 1 }, plots: plots, open: START_PLOTS, album: {}, stock: null, pets: [], egg: null, last: now(), day: '', boostAt: 0, harvested: 0, tut: 0, orders: null, streak: 0, sprinkler: false, decor: {} };
 }
 function load() {
   let s = K0.store.get('grove', null);
@@ -139,7 +139,7 @@ function finalize(p) { // roll mutations once, when a plant first becomes ready
 }
 function valueOf(p) {
   let v = SEED[p.seed].sell; (p.mut || []).forEach((m) => { v *= MUTS[m].m; });
-  if (hasPet('hedgehog')) v *= 1.15; v *= 1 + 0.05 * Math.max(0, S.pets.length - 1);
+  if (hasPet('hedgehog')) v *= 1.15; v *= 1 + 0.05 * Math.max(0, S.pets.length - 1); v *= charm();
   return Math.round(v);
 }
 function addXp(K, n) {
@@ -200,7 +200,7 @@ function buildScene(K) {
   const buf = PACK.buffer.slice(PACK.byteOffset, PACK.byteOffset + PACK.byteLength);
   new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parse(buf, '', (gltf) => {
     gltf.scene.children.slice().forEach((c) => { M[c.name] = c; });
-    decorate(); ready3d = true; syncAll(); buildSprinkler();
+    decorate(); ready3d = true; syncAll(); buildSprinkler(); syncDecor();
   }, (err) => { console.error('grove models', err); ready3d = true; });
 }
 function decorate() {
@@ -291,6 +291,197 @@ function syncPlot(i) {
   if (key !== pg.key) { pg.key = key; if (ready3d || !p) buildPlant(pg, open ? p : null); else pg.key = ''; }
 }
 function syncAll() { for (let i = 0; i < GRID * GRID; i++) syncPlot(i); syncPets(); }
+
+/* ---------------- garden decorations (bought once with gold; each adds +3% harvest gold) ---------------- */
+const DECOR = [
+  { id: 'flowers', price: 150, lvl: 1, col: '#FF6FB5', name: { en: 'Flower Beds', fr: 'Parterres de fleurs', ar: 'أحواض الزهور' }, desc: { en: 'Colorful flowers by the gate', fr: 'Des fleurs colorées près du portail', ar: 'زهور ملوّنة عند البوابة' } },
+  { id: 'gnome', price: 350, lvl: 2, col: '#E8403A', name: { en: 'Garden Gnome', fr: 'Nain de jardin', ar: 'قزم الحديقة' }, desc: { en: 'A tiny friend who guards the carrots', fr: 'Un petit ami qui garde les carottes', ar: 'صديق صغير يحرس الجزر' } },
+  { id: 'lights', price: 700, lvl: 3, col: '#FFD23C', name: { en: 'Fairy Lights', fr: 'Guirlande lumineuse', ar: 'أضواء الزينة' }, desc: { en: 'They glow on the fence at night', fr: 'Elles brillent sur la clôture la nuit', ar: 'تتوهّج على السياج ليلاً' } },
+  { id: 'scarecrow', price: 1000, lvl: 4, col: '#D9534F', name: { en: 'Scarecrow', fr: 'Épouvantail', ar: 'فزّاعة' }, desc: { en: 'Keeps the crows away', fr: 'Fait fuir les corbeaux', ar: 'تُبعد الغربان' } },
+  { id: 'pumpkins', price: 1600, lvl: 5, col: '#F07A1E', name: { en: 'Pumpkin Pile', fr: 'Tas de citrouilles', ar: 'كومة يقطين' }, desc: { en: 'A cozy harvest corner', fr: 'Un coin de récolte douillet', ar: 'ركن حصاد دافئ' } },
+  { id: 'fountain', price: 2500, lvl: 6, col: '#58B7F0', name: { en: 'Stone Fountain', fr: 'Fontaine en pierre', ar: 'نافورة حجرية' }, desc: { en: 'Splashing water all day long', fr: 'De l’eau qui coule toute la journée', ar: 'ماء يتدفّق طوال اليوم' } },
+  { id: 'windmill', price: 4000, lvl: 7, col: '#F3E6CF', name: { en: 'Windmill', fr: 'Moulin à vent', ar: 'طاحونة هواء' }, desc: { en: 'Turns with the breeze. Tap it!', fr: 'Tourne avec le vent. Touche-le !', ar: 'تدور مع النسيم. المسها!' } },
+  { id: 'cactus', price: 6000, lvl: 9, col: '#3FAF6A', name: { en: 'Cactus Corner', fr: 'Coin des cactus', ar: 'ركن الصبار' }, desc: { en: 'A little desert on your island', fr: 'Un petit désert sur ton île', ar: 'صحراء صغيرة على جزيرتك' } },
+  { id: 'balloon', price: 10000, lvl: 10, col: '#FF5A5A', name: { en: 'Hot-Air Balloon', fr: 'Montgolfière', ar: 'منطاد' }, desc: { en: 'Floats in the sky over your island', fr: 'Flotte dans le ciel au-dessus de ton île', ar: 'يطفو في السماء فوق جزيرتك' } },
+  { id: 'crystal', price: 18000, lvl: 12, col: '#3EE0FF', name: { en: 'Ink Crystal', fr: 'Cristal d’encre', ar: 'بلّورة الحبر' }, desc: { en: 'A magic crystal glowing over the pond', fr: 'Un cristal magique qui brille sur la mare', ar: 'بلّورة سحرية تتوهّج فوق البركة' } }
+];
+const DEC = {}; DECOR.forEach((d) => { DEC[d.id] = d; });
+const CHARM = 0.03; // +3% harvest gold per decoration
+// spot: x, z, rotation, height (for the floating label)
+const DSPOT = { flowers: [-0.5, 3.75, 0, 0.5], gnome: [-2.5, 5.0, 0.5, 1.1], lights: [0, 0, 0, 0.9], scarecrow: [4.3, 0.9, 0.55, 1.7], pumpkins: [4.7, -1.7, 0.3, 0.8], fountain: [-5.7, 0.6, 0, 1.2], windmill: [-1.9, -5.9, 0.35, 2.8], cactus: [1.1, -5.9, 0.2, 1.1], balloon: [2.5, -5.3, 0, 3.6], crystal: [-5.3, 3.4, 0, 2.0] };
+const decorCount = () => DECOR.filter((d) => S.decor && S.decor[d.id]).length;
+const charm = () => 1 + CHARM * decorCount();
+function buyDecor(K, id) {
+  const d = DEC[id]; if (!d || S.decor[id]) return false;
+  if (S.lv < d.lvl) { K.sfx('wrong'); K.toast(K.t('needLv') + ' ' + d.lvl); return false; }
+  if (S.gold < d.price) { K.sfx('wrong'); K.toast(K.t('needGold')); return false; }
+  S.gold -= d.price; S.decor[id] = now(); sheet = null; syncDecor();
+  K.sfx('reward'); K.confetti(60); K.haptic(30);
+  const o = decorObjs[id], sp = DSPOT[id];
+  if (o) { const s = screenOf(new THREE.Vector3(sp[0], sp[3] + (id === 'lights' ? 0 : 0.2), id === 'lights' ? plotPos(0).z + 1.15 : sp[1])); fx.push({ x: s.x, y: s.y, txt: L(K, d.name), col: '#FFFFFF', t: 0, big: true }); fx.push({ x: s.x, y: s.y + 32, txt: '+3% ' + K.t('charm'), col: '#FFE15A', t: 0 }); }
+  K.setScore(S.earned || 0); save(); return true;
+}
+let decorObjs = {}, decorHit = [], _glow = null;
+function glowTex() {
+  if (_glow) return _glow; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 2, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  _glow = new THREE.CanvasTexture(c); return _glow;
+}
+function decorMesh(id) {
+  const g = new THREE.Group(), u = g.userData;
+  const add = (geo, m, x, y, z, o) => { const k = new THREE.Mesh(geo, m); k.position.set(x, y, z); if (o && o.r) k.rotation.set(o.r[0], o.r[1], o.r[2]); if (o && o.s) k.scale.set(o.s[0], o.s[1], o.s[2]); (o && o.to || g).add(k); return k; };
+  const model = (name, x, z, h, rot, y) => { if (!M[name]) return null; const o = modelClone(name, h); o.position.set(x, (y || 0) - o.userData.minY, z); o.rotation.y = rot || 0; g.add(o); return o; };
+  if (id === 'flowers') {
+    const soil = mat('#6E432A'), stem = mat('#3E9E45'), cols = ['#FF6FB5', '#FFD23C', '#FFFFFF', '#B06CFF', '#FF8A5B'].map((c) => mat(c)), stemG = new THREE.CylinderGeometry(0.02, 0.02, 0.3, 4), headG = new THREE.SphereGeometry(0.09, 6, 4), bedG = new THREE.BoxGeometry(1.5, 0.12, 0.5), leafG = new THREE.SphereGeometry(0.08, 5, 3);
+    [-2.1, 2.1].forEach((bx, b) => {
+      add(bedG, soil, bx, 0.06, 0);
+      for (let i = 0; i < 8; i++) { const x = bx - 0.6 + i * 0.17, z = i % 2 ? 0.1 : -0.1, h = 0.2 + ((i * 7 + b) % 3) * 0.06; add(stemG, stem, x, 0.12 + h / 2, z, { s: [1, h / 0.3, 1] }); add(leafG, stem, x + 0.04, 0.16, z, { s: [1, 0.4, 0.6] }); add(headG, cols[(i + b * 2) % 5], x, 0.14 + h, z, { s: [1, 0.7, 1] }); }
+    });
+  } else if (id === 'gnome') {
+    add(new THREE.CylinderGeometry(0.08, 0.17, 0.32, 8), mat('#3B6FD6'), 0, 0.16, 0);
+    add(new THREE.SphereGeometry(0.11, 8, 6), mat('#F6C9A0'), 0, 0.38, 0);
+    add(new THREE.ConeGeometry(0.1, 0.22, 7), mat('#FFFFFF'), 0, 0.28, 0.07, { r: [Math.PI - 0.35, 0, 0] });
+    add(new THREE.ConeGeometry(0.12, 0.34, 8), mat('#E8403A'), 0, 0.6, -0.02, { r: [-0.18, 0, 0] });
+    add(new THREE.SphereGeometry(0.035, 5, 4), mat('#F0907A'), 0, 0.38, 0.11);
+    [-0.04, 0.04].forEach((x) => add(new THREE.SphereGeometry(0.016, 4, 3), mat('#222222'), x, 0.42, 0.1));
+    add(new THREE.CylinderGeometry(0.015, 0.015, 0.4, 4), mat('#8A6A44'), 0.17, 0.22, 0.05, { r: [0, 0, 0.15] });
+    add(new THREE.BoxGeometry(0.09, 0.11, 0.02), mat('#9AA3AD'), 0.2, 0.04, 0.05);
+  } else if (id === 'lights') {
+    const fx0 = plotPos(0).x - 1.15, fx1 = plotPos(GRID - 1).x + 1.15, fz0 = plotPos(GRID * (GRID - 1)).z - 1.15, fz1 = plotPos(0).z + 1.15;
+    const cols = ['#FFD23C', '#FF5FA2', '#5AD1FF', '#8CFF6A'], bm = cols.map((c) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1, roughness: 0.4 })), bg = new THREE.SphereGeometry(0.055, 6, 4), wire = new THREE.LineBasicMaterial({ color: '#3B2A1A' });
+    const run = (ax, az, bx, bz) => {
+      const len = Math.hypot(bx - ax, bz - az), n = Math.round(len / 0.28), seg = len / Math.max(1, Math.round(len / 1.1)), pts = [];
+      for (let i = 0; i <= n; i++) { const k = i / n, dd = k * len, y = 0.68 - 0.1 * Math.sin(Math.PI * ((dd % seg) / seg)), x = lerp(ax, bx, k), z = lerp(az, bz, k); pts.push(new THREE.Vector3(x, y + 0.05, z)); add(bg, bm[i % 4], x, y, z); }
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), wire));
+    };
+    run(fx0, fz1, fx1, fz1); run(fx0, fz0, fx0, fz1); run(fx1, fz0, fx1, fz1);
+    u.bulbs = bm;
+  } else if (id === 'scarecrow') {
+    const wood = mat('#8A6A44'), straw = mat('#E9C55A'), shirt = mat('#D9534F');
+    add(new THREE.CylinderGeometry(0.05, 0.05, 1.3, 5), wood, 0, 0.65, 0);
+    add(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 5), wood, 0, 1.0, 0, { r: [0, 0, Math.PI / 2] });
+    add(new THREE.BoxGeometry(0.42, 0.46, 0.22), shirt, 0, 0.92, 0);
+    [-1, 1].forEach((sx) => { add(new THREE.BoxGeometry(0.3, 0.14, 0.15), shirt, sx * 0.34, 1.0, 0); add(new THREE.ConeGeometry(0.07, 0.16, 5), straw, sx * 0.55, 1.0, 0, { r: [0, 0, -sx * Math.PI / 2] }); });
+    add(new THREE.BoxGeometry(0.4, 0.2, 0.2), mat('#3F6FB0'), 0, 0.6, 0);
+    add(new THREE.ConeGeometry(0.09, 0.18, 5), straw, 0, 0.42, 0, { r: [Math.PI, 0, 0] });
+    add(new THREE.SphereGeometry(0.17, 8, 6), mat('#E6C99A'), 0, 1.32, 0);
+    [-0.06, 0.06].forEach((x) => add(new THREE.BoxGeometry(0.04, 0.04, 0.02), mat('#2A2A2A'), x, 1.36, 0.16));
+    add(new THREE.ConeGeometry(0.03, 0.1, 5), mat('#FF8A1F'), 0, 1.3, 0.2, { r: [Math.PI / 2, 0, 0] });
+    add(new THREE.CylinderGeometry(0.3, 0.3, 0.03, 12), straw, 0, 1.45, 0);
+    add(new THREE.CylinderGeometry(0.13, 0.16, 0.18, 8), straw, 0, 1.55, 0);
+    add(new THREE.CylinderGeometry(0.162, 0.162, 0.05, 8), shirt, 0, 1.49, 0);
+  } else if (id === 'pumpkins') {
+    add(new THREE.BoxGeometry(0.75, 0.34, 0.45), mat('#E3C15A'), 0.15, 0.17, -0.45);
+    [-0.12, 0.12].forEach((x) => add(new THREE.BoxGeometry(0.77, 0.04, 0.47), mat('#B8923A'), 0.15, 0.17 + x, -0.45));
+    model('pumpkin_orange', 0, 0.05, 0.42, 0.3); model('pumpkin_yellow', 0.48, 0.25, 0.32, 1.1); model('pumpkin_orange_small', -0.4, 0.3, 0.24, 2); model('pumpkin_orange_small', 0.2, -0.45, 0.24, 0.6, 0.34);
+  } else if (id === 'fountain') {
+    const stone = mat('#B8B2A6'), dark = mat('#9A9488'), water = mat('#58B7F0', { roughness: 0.15, emissive: '#10304a', emissiveIntensity: 0.3 });
+    add(new THREE.CylinderGeometry(0.75, 0.82, 0.3, 12), stone, 0, 0.15, 0); add(new THREE.CylinderGeometry(0.64, 0.64, 0.05, 12), water, 0, 0.29, 0);
+    add(new THREE.CylinderGeometry(0.09, 0.13, 0.6, 8), dark, 0, 0.55, 0); add(new THREE.CylinderGeometry(0.32, 0.12, 0.14, 10), stone, 0, 0.88, 0); add(new THREE.CylinderGeometry(0.26, 0.26, 0.03, 10), water, 0, 0.95, 0);
+    const n = 60, geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    u.drops = new THREE.Points(geo, new THREE.PointsMaterial({ color: '#9FDCFF', size: 0.07, transparent: true, opacity: 0.9, depthWrite: false })); u.n = n; g.add(u.drops);
+  } else if (id === 'windmill') {
+    const wall = mat('#F3E6CF'), red = mat('#D9534F'), wood = mat('#8A5A3C');
+    add(new THREE.CylinderGeometry(0.45, 0.72, 2.0, 8), wall, 0, 1.0, 0); add(new THREE.ConeGeometry(0.62, 0.65, 8), red, 0, 2.32, 0);
+    add(new THREE.BoxGeometry(0.32, 0.48, 0.06), wood, 0, 0.24, 0.68); add(new THREE.BoxGeometry(0.2, 0.22, 0.05), mat('#3B5A7A'), 0, 1.3, 0.56, { r: [-0.13, 0, 0] });
+    const bl = new THREE.Group(); bl.position.set(0, 1.78, 0.62); g.add(bl);
+    add(new THREE.SphereGeometry(0.1, 8, 6), red, 0, 0, 0.02, { to: bl });
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2, arm = new THREE.Group(); arm.rotation.z = a; bl.add(arm); add(new THREE.BoxGeometry(0.05, 1.0, 0.03), wood, 0, 0.55, 0, { to: arm }); add(new THREE.BoxGeometry(0.22, 0.78, 0.02), wall, 0.12, 0.62, 0.01, { to: arm }); }
+    u.spin = bl; u.boost = 0;
+  } else if (id === 'cactus') {
+    add(new THREE.CylinderGeometry(0.85, 0.92, 0.06, 14), mat('#E8D3A0'), 0, 0.03, 0);
+    model('cactus_medium_A', 0, 0, 0.9, 0.4, 0.05); model('cactus_small_A', 0.48, 0.25, 0.45, 1.3, 0.05); model('cactus_small_A', -0.42, 0.32, 0.34, 2.4, 0.05); model('rock_single_B', 0.32, -0.42, 0.2, 0.7, 0.04);
+    const fm = mat('#FF6FB5', { emissive: '#ff6fb5', emissiveIntensity: 0.2 }); [[0.02, 0.97, 0.02], [0.5, 0.53, 0.25]].forEach((q) => add(new THREE.SphereGeometry(0.07, 6, 4), fm, q[0], q[1], q[2], { s: [1, 0.6, 1] }));
+  } else if (id === 'balloon') {
+    const cv = document.createElement('canvas'); cv.width = 128; cv.height = 8; const x = cv.getContext('2d'), sc = ['#FF5A5A', '#FFD23C', '#FF5A5A', '#4AA3FF'];
+    for (let i = 0; i < 12; i++) { x.fillStyle = sc[i % 4]; x.fillRect(i * 128 / 12, 0, 128 / 12 + 1, 8); }
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; const env = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, flatShading: true });
+    add(new THREE.SphereGeometry(1.0, 12, 10), env, 0, 1.75, 0, { s: [1, 1.12, 1] }); add(new THREE.CylinderGeometry(0.42, 0.22, 0.45, 12, 1, true), env, 0, 0.62, 0);
+    add(new THREE.BoxGeometry(0.46, 0.34, 0.46), mat('#9C6B3E'), 0, 0, 0); add(new THREE.BoxGeometry(0.5, 0.06, 0.5), mat('#6E4530'), 0, 0.17, 0);
+    const rope = mat('#5E4230'); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach((q) => { const k = add(new THREE.CylinderGeometry(0.012, 0.012, 0.42, 3), rope, q[0] * 0.2, 0.38, q[1] * 0.2); k.rotation.set(q[1] * 0.1, 0, -q[0] * 0.1); });
+    const fl = add(new THREE.ConeGeometry(0.07, 0.2, 6), new THREE.MeshBasicMaterial({ color: '#FFB020' }), 0, 0.4, 0); fl.name = 'flame';
+  } else if (id === 'crystal') {
+    model('rock_single_A', 0, 0, 0.28, 0.5, 0.02);
+    const cm = new THREE.MeshStandardMaterial({ color: '#7FE7FF', emissive: '#3EC8FF', emissiveIntensity: 0.8, roughness: 0.2, metalness: 0.1, flatShading: true, transparent: true, opacity: 0.92 });
+    u.gem = add(new THREE.OctahedronGeometry(0.34, 0), cm, 0, 1.3, 0, { s: [1, 1.7, 1] }); u.cm = cm;
+    u.orbit = new THREE.Group(); u.orbit.position.y = 1.3; g.add(u.orbit); const sm = mat('#B06CFF', { emissive: '#B06CFF', emissiveIntensity: 0.8 });
+    for (let i = 0; i < 3; i++) { const a = i / 3 * TAU; add(new THREE.OctahedronGeometry(0.09, 0), sm, Math.cos(a) * 0.62, Math.sin(i * 2) * 0.15, Math.sin(a) * 0.62, { to: u.orbit, s: [1, 1.6, 1] }); }
+    u.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: '#7FE7FF', transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending })); u.glow.position.y = 1.3; u.glow.scale.setScalar(2.2); g.add(u.glow);
+  }
+  shadowAll(g, true, false);
+  if (id === 'lights' || id === 'crystal') g.traverse((m) => { if (m.isMesh && m.geometry.type !== 'BufferGeometry' && m.geometry.type !== 'Geometry') m.castShadow = id === 'crystal' && m === u.gem; });
+  const sp = DSPOT[id]; g.position.set(sp[0], id === 'balloon' ? 1.4 : 0, sp[1]); g.rotation.y = sp[2]; if (id === 'gnome') g.userData.base = 1.7;
+  return g;
+}
+function syncDecor() {
+  if (!R || !ready3d) return;
+  for (const id in decorObjs) if (!S.decor[id]) { scene.remove(decorObjs[id].g); delete decorObjs[id]; }
+  DECOR.forEach((d) => { if (S.decor[d.id] && !decorObjs[d.id]) { const g = decorMesh(d.id); scene.add(g); decorObjs[d.id] = { g: g, id: d.id, born: now() - S.decor[d.id] < 3000 ? 0 : 1, wig: 0 }; g.scale.setScalar(g.userData.base || 1); } });
+  decorHit = []; for (const id in decorObjs) if (id !== 'lights') decorObjs[id].g.traverse((m) => { if (m.isMesh) { m.userData.decor = id; decorHit.push(m); } });
+}
+function pickDecor(x, y) {
+  if (!decorHit.length) return null; const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(x / W * 2 - 1, -(y / H) * 2 + 1), cam);
+  const h = ray.intersectObjects(decorHit, false)[0]; return h ? h.object.userData.decor : null;
+}
+function pokeDecor(K, id) {
+  const d = decorObjs[id]; if (!d) return; d.wig = 0.6; K.haptic(10);
+  if (id === 'windmill') { d.g.userData.boost = 9; K.sfx('whoosh'); }
+  else if (id === 'crystal') K.sfx('star');
+  else if (id === 'balloon') K.sfx('whoosh');
+  else if (id === 'fountain') { K.sfx('pop'); const s = screenOf(d.g.position.clone().setY(1)); for (let k = 0; k < 10; k++) fx.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 160, vy: -120 - Math.random() * 100, drop: true, t: 0 }); }
+  else K.sfx('pop');
+}
+function updateDecor(dt, t, ms) {
+  const night = 1 - dayLight(ms);
+  for (const id in decorObjs) {
+    const d = decorObjs[id], g = d.g, u = g.userData;
+    if (d.born < 1) { d.born = Math.min(1, d.born + dt * 1.6); const k = d.born - 1; g.scale.setScalar((u.base || 1) * Math.max(0.001, 1 + 2.70158 * k * k * k + 1.70158 * k * k)); }
+    let rz = 0; if (d.wig > 0) { d.wig -= dt; rz = Math.sin(d.wig * 28) * d.wig * 0.25; }
+    if (id !== 'lights') g.rotation.z = rz + (id === 'scarecrow' ? Math.sin(t * 1.3) * 0.03 : 0);
+    if (id === 'windmill') { u.spin.rotation.z -= dt * (0.9 + u.boost); u.boost = Math.max(0, u.boost - dt * 3); }
+    else if (id === 'fountain') {
+      const a = u.drops.geometry.attributes.position;
+      for (let i = 0; i < u.n; i++) { const k = (t * 0.9 + i / u.n * 3) % 1, ang = i * 2.39; if (i % 3 === 0) { a.array[i * 3] = Math.cos(ang) * 0.04 * k; a.array[i * 3 + 1] = 0.95 + Math.sin(k * Math.PI) * 0.55; a.array[i * 3 + 2] = Math.sin(ang) * 0.04 * k; } else { const r = 0.26 + k * 0.34; a.array[i * 3] = Math.cos(ang) * r; a.array[i * 3 + 1] = 0.95 + Math.sin(k * Math.PI) * 0.12 - k * 0.64; a.array[i * 3 + 2] = Math.sin(ang) * r; } }
+      a.needsUpdate = true;
+    } else if (id === 'balloon') { const sp = DSPOT.balloon; g.position.set(sp[0] + Math.sin(t * 0.13) * 0.25, 1.4 + Math.sin(t * 0.6) * 0.25, sp[1] + Math.cos(t * 0.11) * 0.2); g.rotation.y += dt * 0.12; const f = g.getObjectByName('flame'); if (f) f.scale.setScalar(0.8 + Math.sin(t * 17) * 0.25); }
+    else if (id === 'crystal') { u.gem.rotation.y += dt * 0.8; u.gem.position.y = 1.3 + Math.sin(t * 1.5) * 0.1; u.orbit.rotation.y -= dt * 1.2; u.orbit.position.y = u.gem.position.y; u.glow.position.y = u.gem.position.y; u.cm.emissiveIntensity = 0.6 + night * 1.1 + Math.sin(t * 3) * 0.15 + d.wig * 2; u.glow.material.opacity = 0.35 + night * 0.4 + Math.sin(t * 3) * 0.08; }
+    else if (id === 'lights') u.bulbs.forEach((m, k) => { m.emissiveIntensity = 0.3 + night * 1.9 * (0.7 + 0.3 * Math.sin(t * 2.6 + k * 1.7)); });
+  }
+}
+function decorIcon(c, id, x, y, r) {
+  const ci = (cx, cy, rr, col) => { c.fillStyle = col; c.beginPath(); c.arc(cx, cy, rr, 0, TAU); c.fill(); };
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  if (id === 'flowers') { c.fillStyle = '#6E432A'; c.fillRect(x - r, y + r * 0.45, r * 2, r * 0.5); c.strokeStyle = '#3E9E45'; c.lineWidth = r * 0.12; [[-0.55, '#FF6FB5'], [0, '#FFD23C'], [0.55, '#B06CFF']].forEach((q, i) => { c.beginPath(); c.moveTo(x + q[0] * r, y + r * 0.5); c.lineTo(x + q[0] * r, y - r * (0.1 + (i % 2) * 0.3)); c.stroke(); ci(x + q[0] * r, y - r * (0.15 + (i % 2) * 0.3), r * 0.28, q[1]); ci(x + q[0] * r, y - r * (0.15 + (i % 2) * 0.3), r * 0.1, '#FFF6B0'); }); }
+  else if (id === 'gnome') { c.fillStyle = '#3B6FD6'; c.beginPath(); c.moveTo(x - r * 0.6, y + r); c.lineTo(x + r * 0.6, y + r); c.lineTo(x + r * 0.25, y + r * 0.1); c.lineTo(x - r * 0.25, y + r * 0.1); c.fill(); ci(x, y - r * 0.05, r * 0.36, '#F6C9A0'); c.fillStyle = '#FFFFFF'; c.beginPath(); c.moveTo(x - r * 0.3, y + r * 0.05); c.lineTo(x + r * 0.3, y + r * 0.05); c.lineTo(x, y + r * 0.7); c.fill(); c.fillStyle = '#E8403A'; c.beginPath(); c.moveTo(x - r * 0.4, y - r * 0.2); c.lineTo(x + r * 0.4, y - r * 0.2); c.lineTo(x + r * 0.1, y - r * 1.05); c.fill(); }
+  else if (id === 'lights') { c.strokeStyle = '#3B2A1A'; c.lineWidth = r * 0.08; c.beginPath(); c.moveTo(x - r, y - r * 0.4); c.quadraticCurveTo(x, y + r * 0.6, x + r, y - r * 0.4); c.stroke(); ['#FFD23C', '#FF5FA2', '#5AD1FF', '#8CFF6A', '#FFD23C'].forEach((col, i) => { const k = i / 4, px = x - r + k * 2 * r, py = y - r * 0.4 + 4 * k * (1 - k) * r * 0.5 + r * 0.2; ci(px, py, r * 0.32, col + '55'); ci(px, py, r * 0.17, col); }); }
+  else if (id === 'scarecrow') { c.strokeStyle = '#8A6A44'; c.lineWidth = r * 0.14; c.beginPath(); c.moveTo(x, y + r); c.lineTo(x, y - r * 0.3); c.moveTo(x - r * 0.85, y - r * 0.05); c.lineTo(x + r * 0.85, y - r * 0.05); c.stroke(); c.fillStyle = '#D9534F'; c.fillRect(x - r * 0.35, y - r * 0.2, r * 0.7, r * 0.6); ci(x, y - r * 0.45, r * 0.28, '#E6C99A'); c.fillStyle = '#E9C55A'; c.fillRect(x - r * 0.5, y - r * 0.72, r, r * 0.1); c.fillRect(x - r * 0.25, y - r * 0.98, r * 0.5, r * 0.28); }
+  else if (id === 'pumpkins') { [[-0.42, 0.35, 0.42, '#F07A1E'], [0.45, 0.4, 0.36, '#F5C342'], [0, 0.05, 0.55, '#F07A1E']].forEach((q) => { c.fillStyle = q[3]; c.beginPath(); c.ellipse(x + q[0] * r, y + q[1] * r, q[2] * r * 1.15, q[2] * r * 0.9, 0, 0, TAU); c.fill(); c.strokeStyle = 'rgba(0,0,0,0.15)'; c.lineWidth = 1.5; c.beginPath(); c.ellipse(x + q[0] * r, y + q[1] * r, q[2] * r * 0.45, q[2] * r * 0.9, 0, 0, TAU); c.stroke(); c.fillStyle = '#3E9E45'; c.fillRect(x + q[0] * r - 1.5, y + (q[1] - q[2] * 0.9) * r - 4, 3, 5); }); }
+  else if (id === 'fountain') { c.fillStyle = '#B8B2A6'; c.beginPath(); c.ellipse(x, y + r * 0.6, r, r * 0.32, 0, 0, TAU); c.fill(); c.fillRect(x - r * 0.12, y - r * 0.3, r * 0.24, r * 0.9); c.beginPath(); c.ellipse(x, y - r * 0.3, r * 0.45, r * 0.15, 0, 0, TAU); c.fill(); c.fillStyle = '#58B7F0'; c.beginPath(); c.ellipse(x, y + r * 0.55, r * 0.8, r * 0.18, 0, 0, TAU); c.fill(); c.strokeStyle = '#7FC4FF'; c.lineWidth = r * 0.1; c.beginPath(); c.moveTo(x, y - r * 0.4); c.quadraticCurveTo(x - r * 0.1, y - r * 1.05, x - r * 0.6, y - r * 0.2); c.moveTo(x, y - r * 0.4); c.quadraticCurveTo(x + r * 0.1, y - r * 1.05, x + r * 0.6, y - r * 0.2); c.stroke(); }
+  else if (id === 'windmill') { c.fillStyle = '#F3E6CF'; c.beginPath(); c.moveTo(x - r * 0.5, y + r); c.lineTo(x + r * 0.5, y + r); c.lineTo(x + r * 0.3, y - r * 0.2); c.lineTo(x - r * 0.3, y - r * 0.2); c.fill(); c.fillStyle = '#D9534F'; c.beginPath(); c.moveTo(x - r * 0.4, y - r * 0.2); c.lineTo(x + r * 0.4, y - r * 0.2); c.lineTo(x, y - r * 0.6); c.fill(); c.strokeStyle = '#8A5A3C'; c.lineWidth = r * 0.16; c.beginPath(); c.moveTo(x - r * 0.75, y - r * 1.0); c.lineTo(x + r * 0.75, y + r * 0.2); c.moveTo(x + r * 0.75, y - r * 1.0); c.lineTo(x - r * 0.75, y + r * 0.2); c.stroke(); }
+  else if (id === 'cactus') { c.fillStyle = '#E8D3A0'; c.beginPath(); c.ellipse(x, y + r * 0.85, r, r * 0.25, 0, 0, TAU); c.fill(); c.strokeStyle = '#3FAF6A'; c.lineWidth = r * 0.38; c.beginPath(); c.moveTo(x, y + r * 0.8); c.lineTo(x, y - r * 0.7); c.moveTo(x, y + r * 0.2); c.lineTo(x - r * 0.5, y + r * 0.2); c.lineTo(x - r * 0.5, y - r * 0.25); c.moveTo(x, y); c.lineTo(x + r * 0.5, y); c.lineTo(x + r * 0.5, y - r * 0.45); c.stroke(); ci(x, y - r * 0.85, r * 0.16, '#FF6FB5'); }
+  else if (id === 'balloon') { c.save(); c.beginPath(); c.ellipse(x, y - r * 0.25, r * 0.72, r * 0.78, 0, 0, TAU); c.clip(); ['#FF5A5A', '#FFD23C', '#4AA3FF', '#FFD23C', '#FF5A5A'].forEach((col, i) => { c.fillStyle = col; c.fillRect(x - r * 0.72 + i * r * 0.29, y - r * 1.1, r * 0.3, r * 1.8); }); c.restore(); c.strokeStyle = '#5E4230'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x - r * 0.35, y + r * 0.45); c.lineTo(x - r * 0.2, y + r * 0.7); c.moveTo(x + r * 0.35, y + r * 0.45); c.lineTo(x + r * 0.2, y + r * 0.7); c.stroke(); c.fillStyle = '#9C6B3E'; c.fillRect(x - r * 0.24, y + r * 0.68, r * 0.48, r * 0.34); }
+  else if (id === 'crystal') { const gl = c.createRadialGradient(x, y, 2, x, y, r * 1.1); gl.addColorStop(0, 'rgba(126,231,255,0.8)'); gl.addColorStop(1, 'rgba(126,231,255,0)'); c.fillStyle = gl; c.beginPath(); c.arc(x, y, r * 1.1, 0, TAU); c.fill(); c.fillStyle = '#3EC8FF'; c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r * 0.45, y); c.lineTo(x, y + r); c.lineTo(x - r * 0.45, y); c.fill(); c.fillStyle = '#B8F4FF'; c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r * 0.45, y); c.lineTo(x, y); c.fill(); }
+}
+function drawDecor(c, K) {
+  const box = panel(c, K, K.t('decorT')), n = decorCount();
+  c.fillStyle = '#7A6448'; c.font = K.font(12, 800); c.fillText(K.t('charm') + ': +' + Math.round(n * CHARM * 100) + '% ' + K.t('charmGold') + '  ·  ' + n + ' / ' + DECOR.length, K.W / 2, box.y + 2, box.w - 20);
+  const rh = 62, y0 = box.y + 26 - (sheet.scroll || 0), view = { y: box.y + 22, h: box.h - 10 };
+  c.save(); c.beginPath(); c.rect(box.x, view.y, box.w, view.h + 30); c.clip();
+  DECOR.forEach((d, k) => {
+    const y = y0 + k * (rh + 6), lock = S.lv < d.lvl, own = !!S.decor[d.id]; if (y + rh < view.y || y > view.y + view.h + 30) return;
+    c.fillStyle = own ? '#E3F4DC' : lock ? '#E6DED0' : '#F1E4C8'; K.roundRect(c, box.x + 10, y, box.w - 20, rh, 14); c.fill();
+    const rtl = K.rtl, ix = rtl ? box.x + box.w - 40 : box.x + 40; c.globalAlpha = lock ? 0.45 : 1; decorIcon(c, d.id, ix, y + rh / 2, 17); c.globalAlpha = 1;
+    c.textAlign = rtl ? 'right' : 'left'; const tx = rtl ? box.x + box.w - 70 : box.x + 70, tw = box.w - 200;
+    c.fillStyle = '#3B2A1A'; c.font = K.font(14); c.fillText(L(K, d.name), tx, y + rh * 0.34, tw);
+    c.fillStyle = '#7A6448'; c.font = K.font(11, 700); c.fillText(lock ? K.t('needLv') + ' ' + d.lvl : L(K, d.desc) + ' · +3%', tx, y + rh * 0.7, tw);
+    c.textAlign = 'center';
+    const bw = 92, bx = rtl ? box.x + 18 : box.x + box.w - bw - 18;
+    if (own) { c.fillStyle = '#22A06B'; c.font = K.font(13); c.fillText('✓ ' + K.t('owned'), bx + bw / 2, y + rh / 2); }
+    else if (!lock) btn(c, K, bx, y + rh / 2 - 18, bw, 36, String(d.price), S.gold >= d.price ? '#14B8A6' : '#B9A88C', 'buyDecor', { id: d.id });
+  });
+  c.restore();
+  sheet.maxScroll = Math.max(0, DECOR.length * (rh + 6) - view.h + 10);
+}
 
 /* ---------------- pets ---------------- */
 let sprinklerObj = null;
@@ -473,7 +664,7 @@ function boost(K) {
 }
 function levelUp(K) {
   const unlocked = SEEDS.filter((s) => s.lvl === S.lv); K.confetti(60); K.sfx('combo');
-  popup = { kind: 'level', lv: S.lv, seeds: unlocked, t: 0 };
+  popup = { kind: 'level', lv: S.lv, seeds: unlocked, decor: DECOR.filter((d) => d.lvl === S.lv), t: 0 };
 }
 function tapPlot(K, i) {
   if (i < 0) return;
@@ -611,6 +802,7 @@ function drawPopup(c, K) {
     c.fillStyle = '#22A06B'; c.font = K.font(28); c.fillText(K.t('levelUp') + ' ' + p.lv, K.W / 2, y + 44);
     c.fillStyle = '#3B2A1A'; c.font = K.font(14, 700); c.fillText(p.seeds.length ? K.t('newSeed') + ': ' + p.seeds.map((s) => L(K, s.name)).join(', ') : K.t('keepGrowing'), K.W / 2, y + 92);
     if (p.lv === EGG_LVL) c.fillText(K.t('eggUnlocked'), K.W / 2, y + 118);
+    else if (p.decor && p.decor.length) { c.fillStyle = '#0F8A7E'; c.fillText(K.t('newDecor') + ': ' + p.decor.map((d) => L(K, d.name)).join(', '), K.W / 2, y + 118, w - 24); }
     p.seeds.forEach((s, i) => seedIcon(c, s, K.W / 2 + (i - (p.seeds.length - 1) / 2) * 50, y + 150, 18));
     btn(c, K, K.W / 2 - 80, y + h - 56, 160, 42, K.t('ok'), '#FF8A1F', 'closePop');
   } else if (p.kind === 'rare') {
@@ -648,7 +840,7 @@ function drawHud(c, K) {
   c.fillStyle = 'rgba(255,255,255,0.88)'; c.font = K.font(16); const gt = String(S.gold), gw = c.measureText(gt).width + 50; K.roundRect(c, 10, top + 48, gw, 34, 17); c.fill();
   K.drawCoin(c, 28, top + 65, 10, K.time); c.fillStyle = '#3B2A1A'; c.textAlign = 'left'; c.fillText(gt, 44, top + 66); c.textAlign = 'center';
   // bottom buttons
-  const n = 5, bs = Math.min(74, (W2 - 20) / n - 8), by = K.H - bs - 12, labels = [['shop', K.t('shop'), '#FF8A1F'], ['orders', K.t('orders'), '#3B82F6'], ['album', K.t('album'), '#7B4DFF'], ['pets', K.t('pets'), '#E85D9A'], ['boost', K.t('boost'), '#22A06B']];
+  const n = 6, bs = Math.min(74, (W2 - 20) / n - 8), by = K.H - bs - 12, labels = [['shop', K.t('shop'), '#FF8A1F'], ['orders', K.t('orders'), '#3B82F6'], ['album', K.t('album'), '#7B4DFF'], ['pets', K.t('pets'), '#E85D9A'], ['decor', K.t('decor'), '#14B8A6'], ['boost', K.t('boost'), '#22A06B']];
   labels.forEach((b, i) => {
     const x = W2 / 2 + (i - (n - 1) / 2) * (bs + 8) - bs / 2, cool = b[0] === 'boost' && now() < S.boostAt + BOOST_CD;
     c.fillStyle = 'rgba(0,0,0,0.25)'; K.roundRect(c, x, by + 4, bs, bs, 20); c.fill(); c.fillStyle = cool ? '#9BB5A3' : b[2]; K.roundRect(c, x, by, bs, bs, 20); c.fill();
@@ -667,6 +859,7 @@ function iconFor(c, k, x, y, r) {
   if (k === 'shop') { c.beginPath(); c.moveTo(x - r, y - r * 0.4); c.lineTo(x + r, y - r * 0.4); c.lineTo(x + r * 0.7, y + r); c.lineTo(x - r * 0.7, y + r); c.closePath(); c.fill(); c.beginPath(); c.arc(x, y - r * 0.4, r * 0.55, Math.PI, 0); c.stroke(); }
   else if (k === 'orders') { c.fillRect(x - r * 0.8, y - r, r * 1.6, r * 2); c.fillStyle = '#3B82F6'; for (let j = 0; j < 3; j++) c.fillRect(x - r * 0.5, y - r * 0.5 + j * r * 0.55, r, r * 0.16); }
   else if (k === 'album') { c.fillRect(x - r, y - r, r * 0.9, r * 2); c.fillRect(x + r * 0.1, y - r, r * 0.9, r * 2); }
+  else if (k === 'decor') { c.beginPath(); for (let j = 0; j < 5; j++) { const a = j / 5 * TAU - Math.PI / 2; c.moveTo(x, y - r * 0.15); c.arc(x + Math.cos(a) * r * 0.5, y - r * 0.15 + Math.sin(a) * r * 0.5, r * 0.38, 0, TAU); } c.fill(); c.fillStyle = '#FFD23C'; c.beginPath(); c.arc(x, y - r * 0.15, r * 0.3, 0, TAU); c.fill(); c.fillStyle = '#FFFFFF'; c.fillRect(x - r * 0.08, y + r * 0.4, r * 0.16, r * 0.7); }
   else if (k === 'pets') { c.beginPath(); c.ellipse(x, y + r * 0.3, r * 0.55, r * 0.45, 0, 0, TAU); c.fill(); [[-0.7, -0.4], [-0.25, -0.85], [0.25, -0.85], [0.7, -0.4]].forEach((q) => { c.beginPath(); c.arc(x + q[0] * r, y + q[1] * r, r * 0.22, 0, TAU); c.fill(); }); }
   else { c.beginPath(); c.moveTo(x - r * 0.3, y - r); c.lineTo(x + r * 0.5, y - r * 0.1); c.lineTo(x, y - r * 0.1); c.lineTo(x + r * 0.3, y + r); c.lineTo(x - r * 0.5, y + r * 0.1); c.lineTo(x, y + r * 0.1); c.closePath(); c.fill(); }
 }
@@ -726,7 +919,7 @@ function adapt(dt) { // drop resolution (then shadows) on slow devices
 }
 function render3d(dt, K) {
   if (!R || !webglOk) return; if (!TEST || window.__groveAdapt) adapt(dt); const t = K.time, ms = now(), ev = eventNow(ms);
-  updateSky(ms, ev || ''); updateRain(dt); placeCam(t); updatePets(dt, t); updateSprinkler(t);
+  updateSky(ms, ev || ''); updateRain(dt); placeCam(t); updatePets(dt, t); updateSprinkler(t); updateDecor(dt, t, ms);
   clouds.forEach((cl) => { cl.a += cl.s * dt; cl.o.position.set(Math.cos(cl.a) * cl.r, cl.y, Math.sin(cl.a) * cl.r); });
   for (let i = 0; i < GRID * GRID; i++) {
     const p = S.plots[i], pg = plotG[i]; if (!p || i >= S.open || !pg.plant.userData.leaves) continue;
@@ -759,7 +952,7 @@ function startSession(K) {
   const readyN = S.plots.filter((p) => p && plotProgress(p, t) >= 1).length;
   if (away > 5 * 60000 || gift) popup = { kind: 'welcome', away: away, ready: readyN, gift: gift && S.harvested ? gift : '', streak: S.streak, t: 0 };
   if (!S.harvested) popup = null; // brand-new players go straight to planting
-  syncAll(); buildSprinkler(); K.setScore(S.earned || 0); save();
+  syncAll(); buildSprinkler(); syncDecor(); K.setScore(S.earned || 0); save();
 }
 function hit(x, y) { for (let i = ui.length - 1; i >= 0; i--) { const u = ui[i]; if (x >= u.x && x <= u.x + u.w && y >= u.y && y <= u.y + u.h) return u; } return null; }
 function act(K, u) {
@@ -774,6 +967,8 @@ function act(K, u) {
   else if (a === 'claim') claim(K, u.i);
   else if (a === 'harvestAll') harvestAll(K);
   else if (a === 'sprinkler') buySprinkler(K);
+  else if (a === 'decor') { sheet = { kind: 'decor', scroll: 0 }; K.sfx('click'); }
+  else if (a === 'buyDecor') buyDecor(K, u.id);
   else if (a === 'plant') plant(K, sheet.plot, u.id);
   else if (a === 'buy') buySeed(K, u.id);
   else if (a === 'egg') buyEgg(K);
@@ -789,17 +984,17 @@ BubziKit.run({
   id: 'pocket-grove', coinRate: 0, noSkins: true, mascot: mascot,
   title: { en: 'Pocket Grove', fr: 'Pocket Grove', ar: 'بستان الجيب' },
   strings: {
-    en: { orders: 'ORDERS', ordersT: 'Daily Orders', newOrders: 'New orders in', claim: 'CLAIM', wants: 'wants', ordersDone: 'All orders done! Bonus:', harvestAll: 'Harvest all', streak: 'in a row!', dayN: 'Day', sprinkler: 'Sprinkler', sprinklerD: 'Waters every new plant for you', owned: 'Owned', tagline: 'A tiny 3D garden that grows while you sleep.', shop: 'SEEDS', album: 'ALBUM', pets: 'PETS', boost: '+15 MIN', plantWhat: 'What do you want to plant?', noSeeds: 'No seeds left. Buy some!', shopT: 'Seed Shop', restock: 'New seeds in', restockAd: 'Restock now · AD', sells: 'sells', stock: 'left', soldOut: 'Sold out', needLv: 'Level', needGold: 'Not enough gold yet', albumT: 'Harvest Album', petsT: 'Pets', buyEgg: 'Pet egg: hatches into a helper', eggHatch: 'Your egg hatches in', eggReady: 'Your egg is ready!', eggTip: 'Plants and pets keep growing while you are away', hatch: 'HATCH', hatched: 'You got a', levelUp: 'Level', newSeed: 'New seed', keepGrowing: 'Keep growing!', eggUnlocked: 'Pet eggs unlocked!', ok: 'OK', double: 'x2 · AD', welcome: 'Welcome back!', grewAway: 'Your garden grew for', readyCount: 'plants are ready to harvest', dailyGift: 'Daily gift', lockedPlot: 'Unlock the plots in order', boostWait: 'Boost ready soon', boosted: 'Everything grew 15 minutes!', in: 'in', ev_rain: 'Ink Rain', ev_golden: 'Golden Hour', ev_moon: 'Moonlight', evTip_rain: 'Ink Rain: plants growing in the rain can turn Wet (x2)', evTip_golden: 'Golden Hour (7–8 pm): harvests can turn Golden (x5)', evTip_moon: 'Moonlight (9–10 pm): harvests can turn Moonlit (x4)' },
-    fr: { orders: 'COMMANDES', ordersT: 'Commandes du jour', newOrders: 'Nouvelles commandes dans', claim: 'PRENDRE', wants: 'veut', ordersDone: 'Toutes les commandes faites ! Bonus :', harvestAll: 'Tout récolter', streak: 'd’affilée !', dayN: 'Jour', sprinkler: 'Arroseur', sprinklerD: 'Arrose chaque nouvelle plante pour toi', owned: 'Acquis', tagline: 'Un petit jardin 3D qui pousse pendant que tu dors.', shop: 'GRAINES', album: 'ALBUM', pets: 'ANIMAUX', boost: '+15 MIN', plantWhat: 'Que veux-tu planter ?', noSeeds: 'Plus de graines. Achètes-en !', shopT: 'Boutique de graines', restock: 'Nouvelles graines dans', restockAd: 'Réassort · PUB', sells: 'vaut', stock: 'en stock', soldOut: 'Épuisé', needLv: 'Niveau', needGold: 'Pas encore assez d’or', albumT: 'Album des récoltes', petsT: 'Animaux', buyEgg: 'Œuf : éclot en un compagnon', eggHatch: 'Ton œuf éclot dans', eggReady: 'Ton œuf est prêt !', eggTip: 'Les plantes et les animaux grandissent même quand tu es absent', hatch: 'ÉCLORE', hatched: 'Tu as un', levelUp: 'Niveau', newSeed: 'Nouvelle graine', keepGrowing: 'Continue à cultiver !', eggUnlocked: 'Œufs débloqués !', ok: 'OK', double: 'x2 · PUB', welcome: 'Bon retour !', grewAway: 'Ton jardin a poussé pendant', readyCount: 'plantes sont prêtes', dailyGift: 'Cadeau du jour', lockedPlot: 'Débloque les parcelles dans l’ordre', boostWait: 'Boost bientôt prêt', boosted: 'Tout a poussé de 15 minutes !', in: 'dans', ev_rain: 'Pluie d’encre', ev_golden: 'Heure dorée', ev_moon: 'Clair de lune', evTip_rain: 'Pluie d’encre : les plantes sous la pluie peuvent devenir Mouillées (x2)', evTip_golden: 'Heure dorée (19–20 h) : les récoltes peuvent devenir Dorées (x5)', evTip_moon: 'Clair de lune (21–22 h) : les récoltes peuvent devenir Lunaires (x4)' },
-    ar: { orders: 'الطلبات', ordersT: 'طلبات اليوم', newOrders: 'طلبات جديدة بعد', claim: 'استلم', wants: 'يريد', ordersDone: 'أنجزت كل الطلبات! مكافأة:', harvestAll: 'احصد الكل', streak: 'على التوالي!', dayN: 'اليوم', sprinkler: 'رشاش ماء', sprinklerD: 'يسقي كل نبتة جديدة عنك', owned: 'مملوك', tagline: 'حديقة صغيرة ثلاثية الأبعاد تنمو وأنت نائم.', shop: 'البذور', album: 'الألبوم', pets: 'الحيوانات', boost: '+15 دقيقة', plantWhat: 'ماذا تريد أن تزرع؟', noSeeds: 'لا توجد بذور. اشترِ بعضها!', shopT: 'متجر البذور', restock: 'بذور جديدة بعد', restockAd: 'تجديد الآن · إعلان', sells: 'يُباع بـ', stock: 'متبقٍ', soldOut: 'نفد', needLv: 'المستوى', needGold: 'الذهب لا يكفي بعد', albumT: 'ألبوم المحاصيل', petsT: 'الحيوانات', buyEgg: 'بيضة: يفقس منها مساعد', eggHatch: 'بيضتك تفقس بعد', eggReady: 'بيضتك جاهزة!', eggTip: 'النباتات والحيوانات تنمو حتى وأنت بعيد', hatch: 'افقس', hatched: 'حصلت على', levelUp: 'المستوى', newSeed: 'بذرة جديدة', keepGrowing: 'واصل الزراعة!', eggUnlocked: 'فُتحت البيوض!', ok: 'حسناً', double: 'x2 · إعلان', welcome: 'مرحباً بعودتك!', grewAway: 'نمت حديقتك لمدة', readyCount: 'نباتات جاهزة للحصاد', dailyGift: 'هدية اليوم', lockedPlot: 'افتح الأحواض بالترتيب', boostWait: 'التسريع جاهز قريباً', boosted: 'نما كل شيء 15 دقيقة!', in: 'بعد', ev_rain: 'مطر الحبر', ev_golden: 'الساعة الذهبية', ev_moon: 'ضوء القمر', evTip_rain: 'مطر الحبر: النباتات التي تنمو تحت المطر قد تصبح مبلّلة (x2)', evTip_golden: 'الساعة الذهبية (7–8 مساءً): المحاصيل قد تصبح ذهبية (x5)', evTip_moon: 'ضوء القمر (9–10 مساءً): المحاصيل قد تصبح قمرية (x4)' }
+    en: { decor: 'DECOR', decorT: 'Garden Decorations', charm: 'Garden charm', charmGold: 'harvest gold', newDecor: 'New decoration', orders: 'ORDERS', ordersT: 'Daily Orders', newOrders: 'New orders in', claim: 'CLAIM', wants: 'wants', ordersDone: 'All orders done! Bonus:', harvestAll: 'Harvest all', streak: 'in a row!', dayN: 'Day', sprinkler: 'Sprinkler', sprinklerD: 'Waters every new plant for you', owned: 'Owned', tagline: 'A tiny 3D garden that grows while you sleep.', shop: 'SEEDS', album: 'ALBUM', pets: 'PETS', boost: '+15 MIN', plantWhat: 'What do you want to plant?', noSeeds: 'No seeds left. Buy some!', shopT: 'Seed Shop', restock: 'New seeds in', restockAd: 'Restock now · AD', sells: 'sells', stock: 'left', soldOut: 'Sold out', needLv: 'Level', needGold: 'Not enough gold yet', albumT: 'Harvest Album', petsT: 'Pets', buyEgg: 'Pet egg: hatches into a helper', eggHatch: 'Your egg hatches in', eggReady: 'Your egg is ready!', eggTip: 'Plants and pets keep growing while you are away', hatch: 'HATCH', hatched: 'You got a', levelUp: 'Level', newSeed: 'New seed', keepGrowing: 'Keep growing!', eggUnlocked: 'Pet eggs unlocked!', ok: 'OK', double: 'x2 · AD', welcome: 'Welcome back!', grewAway: 'Your garden grew for', readyCount: 'plants are ready to harvest', dailyGift: 'Daily gift', lockedPlot: 'Unlock the plots in order', boostWait: 'Boost ready soon', boosted: 'Everything grew 15 minutes!', in: 'in', ev_rain: 'Ink Rain', ev_golden: 'Golden Hour', ev_moon: 'Moonlight', evTip_rain: 'Ink Rain: plants growing in the rain can turn Wet (x2)', evTip_golden: 'Golden Hour (7–8 pm): harvests can turn Golden (x5)', evTip_moon: 'Moonlight (9–10 pm): harvests can turn Moonlit (x4)' },
+    fr: { decor: 'DÉCO', decorT: 'Décorations du jardin', charm: 'Charme du jardin', charmGold: 'd’or par récolte', newDecor: 'Nouvelle décoration', orders: 'COMMANDES', ordersT: 'Commandes du jour', newOrders: 'Nouvelles commandes dans', claim: 'PRENDRE', wants: 'veut', ordersDone: 'Toutes les commandes faites ! Bonus :', harvestAll: 'Tout récolter', streak: 'd’affilée !', dayN: 'Jour', sprinkler: 'Arroseur', sprinklerD: 'Arrose chaque nouvelle plante pour toi', owned: 'Acquis', tagline: 'Un petit jardin 3D qui pousse pendant que tu dors.', shop: 'GRAINES', album: 'ALBUM', pets: 'ANIMAUX', boost: '+15 MIN', plantWhat: 'Que veux-tu planter ?', noSeeds: 'Plus de graines. Achètes-en !', shopT: 'Boutique de graines', restock: 'Nouvelles graines dans', restockAd: 'Réassort · PUB', sells: 'vaut', stock: 'en stock', soldOut: 'Épuisé', needLv: 'Niveau', needGold: 'Pas encore assez d’or', albumT: 'Album des récoltes', petsT: 'Animaux', buyEgg: 'Œuf : éclot en un compagnon', eggHatch: 'Ton œuf éclot dans', eggReady: 'Ton œuf est prêt !', eggTip: 'Les plantes et les animaux grandissent même quand tu es absent', hatch: 'ÉCLORE', hatched: 'Tu as un', levelUp: 'Niveau', newSeed: 'Nouvelle graine', keepGrowing: 'Continue à cultiver !', eggUnlocked: 'Œufs débloqués !', ok: 'OK', double: 'x2 · PUB', welcome: 'Bon retour !', grewAway: 'Ton jardin a poussé pendant', readyCount: 'plantes sont prêtes', dailyGift: 'Cadeau du jour', lockedPlot: 'Débloque les parcelles dans l’ordre', boostWait: 'Boost bientôt prêt', boosted: 'Tout a poussé de 15 minutes !', in: 'dans', ev_rain: 'Pluie d’encre', ev_golden: 'Heure dorée', ev_moon: 'Clair de lune', evTip_rain: 'Pluie d’encre : les plantes sous la pluie peuvent devenir Mouillées (x2)', evTip_golden: 'Heure dorée (19–20 h) : les récoltes peuvent devenir Dorées (x5)', evTip_moon: 'Clair de lune (21–22 h) : les récoltes peuvent devenir Lunaires (x4)' },
+    ar: { decor: 'زينة', decorT: 'زينة الحديقة', charm: 'جمال الحديقة', charmGold: 'ذهب الحصاد', newDecor: 'زينة جديدة', orders: 'الطلبات', ordersT: 'طلبات اليوم', newOrders: 'طلبات جديدة بعد', claim: 'استلم', wants: 'يريد', ordersDone: 'أنجزت كل الطلبات! مكافأة:', harvestAll: 'احصد الكل', streak: 'على التوالي!', dayN: 'اليوم', sprinkler: 'رشاش ماء', sprinklerD: 'يسقي كل نبتة جديدة عنك', owned: 'مملوك', tagline: 'حديقة صغيرة ثلاثية الأبعاد تنمو وأنت نائم.', shop: 'البذور', album: 'الألبوم', pets: 'الحيوانات', boost: '+15 دقيقة', plantWhat: 'ماذا تريد أن تزرع؟', noSeeds: 'لا توجد بذور. اشترِ بعضها!', shopT: 'متجر البذور', restock: 'بذور جديدة بعد', restockAd: 'تجديد الآن · إعلان', sells: 'يُباع بـ', stock: 'متبقٍ', soldOut: 'نفد', needLv: 'المستوى', needGold: 'الذهب لا يكفي بعد', albumT: 'ألبوم المحاصيل', petsT: 'الحيوانات', buyEgg: 'بيضة: يفقس منها مساعد', eggHatch: 'بيضتك تفقس بعد', eggReady: 'بيضتك جاهزة!', eggTip: 'النباتات والحيوانات تنمو حتى وأنت بعيد', hatch: 'افقس', hatched: 'حصلت على', levelUp: 'المستوى', newSeed: 'بذرة جديدة', keepGrowing: 'واصل الزراعة!', eggUnlocked: 'فُتحت البيوض!', ok: 'حسناً', double: 'x2 · إعلان', welcome: 'مرحباً بعودتك!', grewAway: 'نمت حديقتك لمدة', readyCount: 'نباتات جاهزة للحصاد', dailyGift: 'هدية اليوم', lockedPlot: 'افتح الأحواض بالترتيب', boostWait: 'التسريع جاهز قريباً', boosted: 'نما كل شيء 15 دقيقة!', in: 'بعد', ev_rain: 'مطر الحبر', ev_golden: 'الساعة الذهبية', ev_moon: 'ضوء القمر', evTip_rain: 'مطر الحبر: النباتات التي تنمو تحت المطر قد تصبح مبلّلة (x2)', evTip_golden: 'الساعة الذهبية (7–8 مساءً): المحاصيل قد تصبح ذهبية (x5)', evTip_moon: 'ضوء القمر (9–10 مساءً): المحاصيل قد تصبح قمرية (x4)' }
   },
   init: function (K) { K0 = K; TEST = !!K.test; buildScene(K); S = load(); layoutCam(K); syncAll(); },
   resize: function (K) { layoutCam(K); },
   reset: function (K) {
     K0 = K; sheet = null; popup = null; fx = []; startSession(K); layoutCam(K);
     if (K.test) {
-      window.__grove = { state: () => S, skip: (sec) => { window.__groveOffset = (window.__groveOffset || 0) + sec * 1000; }, setClock: (ms) => { window.__groveOffset = ms - Date.now(); }, tap: (i) => tapPlot(K, i), plant: (i, id) => plant(K, i, id), harvest: (i) => harvest(K, i), give: (g) => { S.gold += g; K.setScore(S.earned || 0); }, xp: (n) => addXp(K, n), seeds: (id, n) => { S.seeds[id] = (S.seeds[id] || 0) + n; }, mut: (i, m) => { const p = S.plots[i]; if (p) { p.mut = m; syncPlot(i); } }, reload: () => startSession(K), egg: (ms) => { S.egg = { t0: now(), dur: ms }; syncPets(); }, orders: () => orders(), claim: (k) => claim(K, k), harvestAll: () => harvestAll(K), sprinkler: () => buySprinkler(K), ready: () => ready3d, screen: (i) => screenOf(plotPos(i).setY(0.3)), camYaw: (y) => { camYawT = y; } };
-      K.dbg = () => ({ gold: S.gold, lv: S.lv, xp: S.xp, open: S.open, seeds: S.seeds, plots: S.plots.map((p) => (p ? { seed: p.seed, g: plotProgress(p, now()), w: p.w, mut: p.mut } : null)), sheet: sheet && sheet.kind, popup: popup && popup.kind, pets: S.pets.map((p) => p.type), egg: !!S.egg, album: Object.keys(S.album).length, stock: stock().left, ev: eventNow(now()), tut: S.tut, ready3d: ready3d, webgl: webglOk, streak: S.streak, sprinkler: S.sprinkler, orders: orders().list.map((o) => [o.seed, o.have, o.need, o.claimed]) });
+      window.__grove = { state: () => S, skip: (sec) => { window.__groveOffset = (window.__groveOffset || 0) + sec * 1000; }, setClock: (ms) => { window.__groveOffset = ms - Date.now(); }, tap: (i) => tapPlot(K, i), plant: (i, id) => plant(K, i, id), harvest: (i) => harvest(K, i), give: (g) => { S.gold += g; K.setScore(S.earned || 0); }, xp: (n) => addXp(K, n), seeds: (id, n) => { S.seeds[id] = (S.seeds[id] || 0) + n; }, mut: (i, m) => { const p = S.plots[i]; if (p) { p.mut = m; syncPlot(i); } }, reload: () => startSession(K), egg: (ms) => { S.egg = { t0: now(), dur: ms }; syncPets(); }, orders: () => orders(), claim: (k) => claim(K, k), harvestAll: () => harvestAll(K), sprinkler: () => buySprinkler(K), decor: (id) => buyDecor(K, id), poke: (id) => pokeDecor(K, id), decorScreen: (id) => { const o = decorObjs[id]; return o ? screenOf(o.g.position.clone().setY(DSPOT[id][3] * 0.5)) : null; }, ready: () => ready3d, screen: (i) => screenOf(plotPos(i).setY(0.3)), camYaw: (y) => { camYawT = y; } };
+      K.dbg = () => ({ gold: S.gold, lv: S.lv, xp: S.xp, open: S.open, seeds: S.seeds, plots: S.plots.map((p) => (p ? { seed: p.seed, g: plotProgress(p, now()), w: p.w, mut: p.mut } : null)), sheet: sheet && sheet.kind, popup: popup && popup.kind, pets: S.pets.map((p) => p.type), egg: !!S.egg, album: Object.keys(S.album).length, stock: stock().left, ev: eventNow(now()), tut: S.tut, ready3d: ready3d, webgl: webglOk, streak: S.streak, sprinkler: S.sprinkler, decor: Object.keys(S.decor), decor3d: Object.keys(decorObjs), charm: charm(), orders: orders().list.map((o) => [o.seed, o.have, o.need, o.claimed]) });
     }
   },
   update: function (dt, K) { tick(dt, K); },
@@ -811,19 +1006,20 @@ BubziKit.run({
     if (W !== K.W || H !== K.H) layoutCam(K);
     render3d(dt, K); c.drawImage(R.domElement, 0, 0, K.W, K.H);
     ui = []; if (SHOT) return; drawPlotLabels(c, K); drawHud(c, K); drawFx(c, K, dt);
-    if (sheet) { if (sheet.kind === 'plant') drawPlantSheet(c, K); else if (sheet.kind === 'shop') drawShop(c, K); else if (sheet.kind === 'album') drawAlbum(c, K); else if (sheet.kind === 'pets') drawPets(c, K); else if (sheet.kind === 'orders') drawOrders(c, K); }
+    if (sheet) { if (sheet.kind === 'plant') drawPlantSheet(c, K); else if (sheet.kind === 'shop') drawShop(c, K); else if (sheet.kind === 'album') drawAlbum(c, K); else if (sheet.kind === 'pets') drawPets(c, K); else if (sheet.kind === 'orders') drawOrders(c, K); else if (sheet.kind === 'decor') drawDecor(c, K); }
     if (popup) { ui = []; drawPopup(c, K); }
     if (!ready3d) { c.fillStyle = 'rgba(255,255,255,0.9)'; c.font = K.font(16); c.textAlign = 'center'; c.fillText('…', K.W / 2, K.H / 2); }
   },
   pointerDown: function (x, y, K, id) { drag = { x: x, y: y, x0: x, y0: y, yaw: camYawT, s0: sheet ? sheet.scroll || 0 : 0, moved: false, id: id }; },
   pointerMove: function (x, y, K, id, down) {
     if (!drag || !down || drag.id !== id || popup) return;
-    if (sheet) { if (sheet.kind === 'shop' && Math.abs(y - drag.y0) > 10) { drag.moved = true; sheet.scroll = clamp(drag.s0 - (y - drag.y0), 0, sheet.maxScroll || 0); } return; } if (Math.abs(x - drag.x0) > 10) drag.moved = true; if (drag.moved) camYawT = clamp(drag.yaw - (x - drag.x0) * 0.006, -0.3, 1.4); },
+    if (sheet) { if ((sheet.kind === 'shop' || sheet.kind === 'decor') && Math.abs(y - drag.y0) > 10) { drag.moved = true; sheet.scroll = clamp(drag.s0 - (y - drag.y0), 0, sheet.maxScroll || 0); } return; } if (Math.abs(x - drag.x0) > 10) drag.moved = true; if (drag.moved) camYawT = clamp(drag.yaw - (x - drag.x0) * 0.006, -0.3, 1.4); },
   pointerUp: function (x, y, K, id) {
     if (!drag || drag.id !== id) return; const moved = drag.moved; drag = null; if (moved) return;
     if (act(K, hit(x, y))) return;
     if (sheet || popup) return;
-    tapPlot(K, pickPlot(x, y));
+    const pi = pickPlot(x, y); if (pi < 0) { const dh = pickDecor(x, y); if (dh) { pokeDecor(K, dh); return; } }
+    tapPlot(K, pi);
   },
   pointerCancel: function () { drag = null; },
   key: function (code, down, K, rep) {
@@ -832,13 +1028,13 @@ BubziKit.run({
     if (sheet) {
       if (code === 'Backspace') { sheet = null; return; }
       const d = /^Digit([1-9])$/.exec(code); if (d && sheet.kind === 'plant') { const u = ui.filter((q) => q.act === 'plant')[+d[1] - 1]; if (u) act(K, u); return; }
-      if (sheet.kind === 'shop' && (code === 'ArrowDown' || code === 'ArrowUp')) sheet.scroll = clamp((sheet.scroll || 0) + (code === 'ArrowDown' ? 60 : -60), 0, sheet.maxScroll || 0);
+      if ((sheet.kind === 'shop' || sheet.kind === 'decor') && (code === 'ArrowDown' || code === 'ArrowUp')) sheet.scroll = clamp((sheet.scroll || 0) + (code === 'ArrowDown' ? 60 : -60), 0, sheet.maxScroll || 0);
       return;
     }
     const mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -GRID, ArrowDown: GRID }[code];
     if (mv) { sel = sel < 0 ? 0 : clamp(sel + mv, 0, S.open - 1); K.sfx('tick'); return; }
     if ((code === 'Enter' || code === 'Space') && sel >= 0) tapPlot(K, sel);
-    else if (code === 'KeyS') act(K, { act: 'shop' }); else if (code === 'KeyA') act(K, { act: 'album' }); else if (code === 'KeyH') act(K, { act: 'pets' }); else if (code === 'KeyO') act(K, { act: 'orders' }); else if (code === 'KeyX') harvestAll(K); else if (code === 'KeyB') boost(K);
+    else if (code === 'KeyS') act(K, { act: 'shop' }); else if (code === 'KeyA') act(K, { act: 'album' }); else if (code === 'KeyH') act(K, { act: 'pets' }); else if (code === 'KeyO') act(K, { act: 'orders' }); else if (code === 'KeyD') act(K, { act: 'decor' }); else if (code === 'KeyX') harvestAll(K); else if (code === 'KeyB') boost(K);
     else if (code === 'KeyQ') camYawT = clamp(camYawT - 0.3, -0.3, 1.4); else if (code === 'KeyE') camYawT = clamp(camYawT + 0.3, -0.3, 1.4);
   }
 });

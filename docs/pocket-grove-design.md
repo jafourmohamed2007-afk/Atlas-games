@@ -35,6 +35,7 @@ Tap an empty plot → pick a seed → tap to water (+20% growth) → it grows in
 - **Daily seed gift + login streak:** the gift grows every 3 days in a row, and every 7th day adds a rare seed.
 - **Daily Orders:** 3 villager orders a day (the same for everyone), for example "Tom wants 3× Tomato", paying gold and XP. Finishing all 3 gives a bonus of 2 rare seeds and 200 gold. They reset at midnight.
 - **Sprinkler** (2500 gold, level 5): automatically waters every new plant.
+- **Garden decorations** (DECOR button, key D): 10 one-time purchases that appear in the 3D garden with a bounce, and each adds +3% harvest gold ("garden charm", up to +30%). Flower Beds 150 (lv 1), Garden Gnome 350 (2), Fairy Lights 700 (3, glow at night), Scarecrow 1000 (4), Pumpkin Pile 1600 (5), Stone Fountain 2500 (6), Windmill 4000 (7), Cactus Corner 6000 (9), Hot-Air Balloon 10000 (10), Ink Crystal 18000 (12, glows over the pond). Tap a decoration and it wiggles (the windmill spins faster, the fountain splashes). The level-up popup announces newly unlocked decorations.
 - **Harvest all** button when 2 or more plants are ready.
 - **Day/night** follows the player's clock, with lanterns at night.
 

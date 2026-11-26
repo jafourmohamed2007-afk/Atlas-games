@@ -117,6 +117,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await ev(() => { const st = window.__grove.state(), K = window.__bubzi.K, t = Date.now() + window.__groveOffset; st.day = new Date(t - 864e5).toDateString(); st.streak = 6; K.store.set('grove', st); window.__grove.reload(); });
   s = await d(); if (s.streak !== 7) F('streak did not grow (' + s.streak + ')'); else ok.push('day streak 6 → 7 (bonus rare seed on day 7)');
   await sleep(200); await shot('g17-streak'); await p.keyboard.press('Backspace');
+  // garden decorations: shop sheet, level lock, purchase → 3D object + charm bonus, survives reload
+  await p.keyboard.press('KeyD'); await sleep(200); s = await d();
+  if (s.sheet !== 'decor') F('decor sheet did not open (D)'); else ok.push('decorations sheet opens (D)');
+  await shot('g18-decor-sheet'); await p.keyboard.press('Backspace');
+  await ev(() => { window.__grove.state().lv = 6; window.__grove.give(30000); });
+  const gd0 = (await d()).gold, lockedBuy = await ev(() => window.__grove.decor('crystal'));
+  if (lockedBuy || (await d()).gold !== gd0) F('a level-12 decoration was sold at level 6');
+  const boughtF = await ev(() => window.__grove.decor('flowers')), boughtW = await ev(() => window.__grove.decor('fountain')); s = await d();
+  if (!boughtF || !boughtW || gd0 - s.gold !== 150 + 2500 || !s.decor3d.includes('fountain') || Math.abs(s.charm - 1.06) > 1e-9) F('buying decorations failed ' + JSON.stringify([gd0 - s.gold, s.decor, s.decor3d, s.charm]));
+  else ok.push('bought Flower Beds + Stone Fountain → placed in 3D, harvest gold +' + Math.round((s.charm - 1) * 100) + '%');
+  if (await ev(() => window.__grove.decor('flowers'))) F('a decoration was bought twice');
+  const fs0 = await ev(() => window.__grove.decorScreen('fountain')); await p.mouse.click(fs0.x, fs0.y); await sleep(200); s = await d();
+  if (s.sheet || s.popup) F('tapping a decoration opened something'); else ok.push('tap a decoration → it wiggles');
+  await sleep(1200); await shot('g19-decor');
+  await ev(() => { const st = window.__grove.state(); window.__bubzi.K.store.set('grove', st); window.__grove.reload(); }); await sleep(300); s = await d();
+  if (!s.decor3d.includes('flowers') || !s.decor3d.includes('fountain')) F('decorations lost after reload ' + JSON.stringify(s.decor3d)); else ok.push('decorations stay after reload');
+  await p.keyboard.press('Backspace');
   // frame rate
   await p.keyboard.press('Enter');
   const fps = await ev(() => new Promise((res) => { let n = 0; const t = performance.now(); (function f() { n++; if (performance.now() - t < 2000) requestAnimationFrame(f); else res(n / 2); })(); }));
