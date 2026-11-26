@@ -22,7 +22,7 @@ for (const g of games) {
   const src = path.join(ROOT, 'src/games', g.id + '.js');
   if (!fs.existsSync(src)) { console.log('skip (no source yet):', g.id); continue; }
   const code = fs.readFileSync(src, 'utf8');
-  const url = `${SITE}/games/${g.id}.html`;
+  const url = `${SITE}/play/${g.id}.html`;
   const title = `${g.title.en} – Play Free Online | Bubzi`;
   const ld = {
     '@context': 'https://schema.org', '@type': 'VideoGame', name: g.title.en, alternateName: [g.title.fr, g.title.ar],
@@ -41,15 +41,15 @@ for (const g of games) {
 <meta name="theme-color" content="#5A2EE8">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="${esc(url)}">
-<link rel="alternate" hreflang="en" href="${esc(url)}?lang=en">
-<link rel="alternate" hreflang="fr" href="${esc(url)}?lang=fr">
-<link rel="alternate" hreflang="ar" href="${esc(url)}?lang=ar">
+<link rel="alternate" hreflang="en" href="${esc(url)}">
+<link rel="alternate" hreflang="fr" href="${esc(SITE)}/fr/play/${g.id}.html">
+<link rel="alternate" hreflang="ar" href="${esc(SITE)}/ar/play/${g.id}.html">
 <link rel="alternate" hreflang="x-default" href="${esc(url)}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(g.desc.en)}">
 <meta property="og:url" content="${esc(url)}">
-<meta property="og:image" content="${esc(SITE)}/thumbs/${g.id}.png">
+<meta property="og:image" content="${esc(SITE)}/thumbs/${g.id}-og.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="${ICON}">
 <script type="application/ld+json">${safeScript(JSON.stringify(ld))}</script>

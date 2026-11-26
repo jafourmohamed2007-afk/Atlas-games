@@ -1,7 +1,14 @@
 [
   {
-    "id": "block-bloom", "category": "puzzle", "color": "#7B4DFF", "isNew": false,
-    "title": { "en": "Block Bloom", "fr": "Block Bloom", "ar": "بلوك بلوم" },
+    "id": "block-bloom",
+    "category": "puzzle",
+    "color": "#7B4DFF",
+    "isNew": false,
+    "title": {
+      "en": "Block Bloom",
+      "fr": "Block Bloom",
+      "ar": "بلوك بلوم"
+    },
     "desc": {
       "en": "Drag colorful blocks onto the grid, fill rows and columns and make flowers bloom. A relaxing free block puzzle game for all ages, no download.",
       "fr": "Glisse des blocs colorés sur la grille, complète lignes et colonnes et fais éclore des fleurs. Un jeu de blocs gratuit et relaxant, sans téléchargement.",
@@ -11,11 +18,23 @@
       "en": "block puzzle, block games, free puzzle game, brain games, online puzzle",
       "fr": "jeux de blocs, puzzle gratuit, jeu de réflexion, casse-tête en ligne",
       "ar": "ألعاب ذكاء, ألعاب ألغاز, لعبة بلوك, ألعاب مجانية بدون تحميل"
+    },
+    "howto": {
+      "en": "Drag a shape from the tray onto the grid. Fill a whole row or column to clear it and make flowers bloom. Clear several lines at once for combo points. The game ends when no shape fits. Keyboard: 1–3 pick a shape, arrows move it, Enter places it.",
+      "fr": "Fais glisser une forme sur la grille. Remplis une ligne ou une colonne entière pour la faire fleurir et disparaître. Plusieurs lignes à la fois donnent un combo. La partie se termine quand plus aucune forme ne rentre. Clavier : 1–3 pour choisir, flèches pour déplacer, Entrée pour poser.",
+      "ar": "اسحب شكلاً إلى الشبكة. أكمل صفاً أو عموداً كاملاً ليختفي وتتفتح الأزهار. مسح عدة خطوط معاً يعطي نقاط كومبو. تنتهي اللعبة عندما لا يتسع أي شكل. لوحة المفاتيح: 1–3 لاختيار الشكل، الأسهم للتحريك، Enter للوضع."
     }
   },
   {
-    "id": "rooftop-rush", "category": "running", "color": "#FF8A1F", "isNew": false,
-    "title": { "en": "Rooftop Rush", "fr": "Course sur les Toits", "ar": "سباق الأسطح" },
+    "id": "rooftop-rush",
+    "category": "running",
+    "color": "#FF8A1F",
+    "isNew": false,
+    "title": {
+      "en": "Rooftop Rush",
+      "fr": "Course sur les Toits",
+      "ar": "سباق الأسطح"
+    },
     "desc": {
       "en": "Run across the city rooftops, switch lanes, jump and slide past obstacles and grab every coin in this free endless runner game.",
       "fr": "Cours sur les toits de la ville, change de voie, saute et glisse sous les obstacles et ramasse les pièces dans ce jeu de course infini gratuit.",
@@ -25,11 +44,23 @@
       "en": "running games, endless runner, run game online, free running game",
       "fr": "jeux de course, jeu de course infini, jeux de course à pied, jeux gratuits",
       "ar": "ألعاب جري, ألعاب ركض, لعبة جري لا نهائية, ألعاب مجانية"
+    },
+    "howto": {
+      "en": "Swipe left or right to change lanes, swipe up to jump over vents and gaps, swipe down to slide under bars. Collect coins as you run. The run gets faster over time. Keyboard: arrow keys, Space to jump.",
+      "fr": "Glisse à gauche ou à droite pour changer de voie, vers le haut pour sauter par-dessus les obstacles et les vides, vers le bas pour glisser sous les barres. Ramasse les pièces. La course accélère avec le temps. Clavier : flèches, Espace pour sauter.",
+      "ar": "اسحب يميناً أو يساراً لتغيير المسار، للأعلى لتقفز فوق العوائق والفراغات، وللأسفل لتنزلق تحت الحواجز. اجمع العملات أثناء الجري. تزداد السرعة مع الوقت. لوحة المفاتيح: الأسهم، والمسافة للقفز."
     }
   },
   {
-    "id": "hop-hook", "category": "skill", "color": "#38B6FF", "isNew": true,
-    "title": { "en": "Hop Hook", "fr": "Hop Hook", "ar": "هوب هوك" },
+    "id": "hop-hook",
+    "category": "skill",
+    "color": "#38B6FF",
+    "isNew": true,
+    "title": {
+      "en": "Hop Hook",
+      "fr": "Hop Hook",
+      "ar": "هوب هوك"
+    },
     "desc": {
       "en": "Hold to grab a hook, release to fly! Swing as far as you can in this free one-tap skill game.",
       "fr": "Maintiens pour attraper un crochet, relâche pour voler ! Balance-toi le plus loin possible dans ce jeu d'adresse gratuit à une touche.",
@@ -39,11 +70,23 @@
       "en": "skill games, one tap games, swing game, hook game, arcade games",
       "fr": "jeux d'adresse, jeu à une touche, jeu de balancement, jeux d'arcade",
       "ar": "ألعاب مهارة, ألعاب تحدي, ألعاب لمسة واحدة, ألعاب أركيد"
+    },
+    "howto": {
+      "en": "Hold anywhere to grab the glowing hook and swing. Let go on the up-swing to fly forward, then grab the next hook. Do not fall into the water. Keyboard: hold Space.",
+      "fr": "Maintiens le doigt pour t’accrocher au crochet lumineux et te balancer. Relâche quand tu remontes pour t’envoler, puis attrape le crochet suivant. Ne tombe pas dans l’eau. Clavier : maintiens Espace.",
+      "ar": "اضغط مطولاً لتمسك الخطاف المضيء وتتأرجح. ارفع إصبعك أثناء الصعود لتطير للأمام ثم أمسك الخطاف التالي. لا تسقط في الماء. لوحة المفاتيح: اضغط مطولاً على المسافة."
     }
   },
   {
-    "id": "number-pop", "category": "learning", "color": "#FF5FA2", "isNew": false,
-    "title": { "en": "Number Pop", "fr": "Bulles de Calcul", "ar": "فقاعات الأرقام" },
+    "id": "number-pop",
+    "category": "learning",
+    "color": "#FF5FA2",
+    "isNew": false,
+    "title": {
+      "en": "Number Pop",
+      "fr": "Bulles de Calcul",
+      "ar": "فقاعات الأرقام"
+    },
     "desc": {
       "en": "Pop the bubble with the right answer before it floats away! A fun free math game for kids: addition, subtraction and times tables.",
       "fr": "Éclate la bulle avec la bonne réponse avant qu'elle s'envole ! Un jeu de maths gratuit et amusant : additions, soustractions et tables de multiplication.",
@@ -53,11 +96,23 @@
       "en": "math games for kids, math games, times tables game, educational games",
       "fr": "jeux de maths, calcul mental, tables de multiplication, jeux éducatifs",
       "ar": "ألعاب رياضيات, ألعاب تعليمية للأطفال, جدول الضرب, ألعاب حساب"
+    },
+    "howto": {
+      "en": "Read the sum at the top and tap the bubble with the right answer before it floats away. A wrong bubble costs a heart. Every 6 right answers you reach a new level: addition, subtraction, then times tables. Keyboard: type the answer.",
+      "fr": "Lis le calcul en haut et touche la bulle qui a la bonne réponse avant qu’elle s’envole. Une mauvaise bulle coûte un cœur. Tous les 6 bonnes réponses, tu passes au niveau suivant : additions, soustractions puis tables de multiplication. Clavier : tape la réponse.",
+      "ar": "اقرأ العملية في الأعلى والمس الفقاعة التي تحمل الإجابة الصحيحة قبل أن تطير. الفقاعة الخاطئة تكلفك قلباً. كل 6 إجابات صحيحة تنتقل لمستوى جديد: جمع ثم طرح ثم جدول الضرب. لوحة المفاتيح: اكتب الإجابة."
     }
   },
   {
-    "id": "hill-hopper", "category": "cars", "color": "#14C8A0", "isNew": false,
-    "title": { "en": "Hill Hopper", "fr": "Saute-Collines", "ar": "قافز التلال" },
+    "id": "hill-hopper",
+    "category": "cars",
+    "color": "#14C8A0",
+    "isNew": false,
+    "title": {
+      "en": "Hill Hopper",
+      "fr": "Saute-Collines",
+      "ar": "قافز التلال"
+    },
     "desc": {
       "en": "Drive a bouncy car over wild hills, do flips for bonus coins and keep your fuel up in this free physics driving game.",
       "fr": "Conduis une voiture rebondissante sur des collines folles, fais des saltos pour gagner des pièces dans ce jeu de voiture gratuit.",
@@ -67,11 +122,23 @@
       "en": "car games, driving games, hill climb game, physics car game",
       "fr": "jeux de voiture, jeux de conduite, jeu de voiture gratuit",
       "ar": "ألعاب سيارات, ألعاب قيادة, ألعاب سيارات مجانية"
+    },
+    "howto": {
+      "en": "Hold the right side of the screen to drive and the left side to brake. In the air, gas tilts the car back and brake tilts it forward: land a full flip for bonus coins. Grab red fuel cans and never land on your head. Keyboard: arrow keys.",
+      "fr": "Maintiens la droite de l’écran pour accélérer et la gauche pour freiner. En l’air, l’accélérateur penche la voiture en arrière : réussis un salto pour des pièces bonus. Ramasse les bidons d’essence rouges et n’atterris pas sur la tête. Clavier : flèches.",
+      "ar": "اضغط على يمين الشاشة للقيادة وعلى يسارها للفرملة. في الهواء يميل البنزين السيارة للخلف: أكمل شقلبة كاملة لتربح عملات إضافية. اجمع علب الوقود الحمراء ولا تهبط على رأسك. لوحة المفاتيح: الأسهم."
     }
   },
   {
-    "id": "jelly-drop", "category": "puzzle", "color": "#FFC93C", "isNew": true,
-    "title": { "en": "Jelly Drop", "fr": "Jelly Drop", "ar": "جيلي دروب" },
+    "id": "jelly-drop",
+    "category": "puzzle",
+    "color": "#FFC93C",
+    "isNew": true,
+    "title": {
+      "en": "Jelly Drop",
+      "fr": "Jelly Drop",
+      "ar": "جيلي دروب"
+    },
     "desc": {
       "en": "Drop jelly friends into the jar and merge two of the same to make a bigger one. A satisfying free merge game, no download.",
       "fr": "Lâche des gelées dans le bocal et fusionne-les deux par deux pour en créer une plus grosse. Un jeu de fusion gratuit et satisfaisant.",
@@ -81,11 +148,23 @@
       "en": "merge games, drop and merge, fruit merge game, physics puzzle",
       "fr": "jeux de fusion, jeu de fusion gratuit, puzzle physique",
       "ar": "ألعاب دمج, لعبة الدمج, ألعاب ألغاز فيزيائية"
+    },
+    "howto": {
+      "en": "Move to aim and release to drop a jelly into the jar. Two jellies of the same size merge into a bigger one. Keep the jar below the dashed line, and try to grow the biggest jelly of all. Keyboard: arrows to aim, Space to drop.",
+      "fr": "Vise puis relâche pour lâcher une gelée dans le bocal. Deux gelées de même taille fusionnent en une plus grosse. Ne dépasse pas la ligne pointillée et essaie de créer la plus grosse gelée. Clavier : flèches pour viser, Espace pour lâcher.",
+      "ar": "حرّك لتصوّب وارفع إصبعك لتسقط الجيلي في البرطمان. كل جيليين بنفس الحجم يندمجان في جيلي أكبر. لا تتجاوز الخط المتقطع وحاول صنع أكبر جيلي. لوحة المفاتيح: الأسهم للتصويب، والمسافة للإسقاط."
     }
   },
   {
-    "id": "memo-match", "category": "learning", "color": "#14C8A0", "isNew": true,
-    "title": { "en": "Memo Match", "fr": "Mémo Match", "ar": "ذاكرة التطابق" },
+    "id": "memo-match",
+    "category": "learning",
+    "color": "#14C8A0",
+    "isNew": true,
+    "title": {
+      "en": "Memo Match",
+      "fr": "Mémo Match",
+      "ar": "ذاكرة التطابق"
+    },
     "desc": {
       "en": "Flip the cards and find all the matching pairs before time runs out. A free memory game that trains your brain, for kids and adults.",
       "fr": "Retourne les cartes et trouve toutes les paires avant la fin du temps. Un jeu de mémoire gratuit pour enfants et adultes.",
@@ -95,11 +174,23 @@
       "en": "memory games, matching game, memory card game, brain training",
       "fr": "jeux de mémoire, jeu de paires, memory gratuit, jeux de cartes",
       "ar": "ألعاب ذاكرة, لعبة تطابق الصور, ألعاب ذكاء للأطفال"
+    },
+    "howto": {
+      "en": "Look at the cards when they show at the start, then flip two at a time to find matching pairs. Match several in a row for bonus points. Clear the board before the timer runs out to reach a bigger level. Keyboard: arrows and Enter.",
+      "fr": "Regarde bien les cartes au début, puis retourne-les deux par deux pour trouver les paires. Enchaîne les paires pour des points bonus. Termine avant la fin du chrono pour passer au niveau suivant. Clavier : flèches et Entrée.",
+      "ar": "انظر إلى البطاقات عند ظهورها في البداية، ثم اقلب بطاقتين في كل مرة لتجد الأزواج المتطابقة. تتابع الأزواج يعطي نقاطاً إضافية. أنهِ اللوحة قبل انتهاء الوقت لتنتقل لمستوى أكبر. لوحة المفاتيح: الأسهم وEnter."
     }
   },
   {
-    "id": "wiggle-snake", "category": "skill", "color": "#FF5FA2", "isNew": true,
-    "title": { "en": "Wiggle Snake", "fr": "Serpent Wiggle", "ar": "الثعبان المتمايل" },
+    "id": "wiggle-snake",
+    "category": "skill",
+    "color": "#FF5FA2",
+    "isNew": true,
+    "title": {
+      "en": "Wiggle Snake",
+      "fr": "Serpent Wiggle",
+      "ar": "الثعبان المتمايل"
+    },
     "desc": {
       "en": "Guide the wiggly snake, eat the fruit and grow as long as you can without bumping into yourself. The classic snake game, free online.",
       "fr": "Guide le serpent, mange les fruits et grandis sans te mordre la queue. Le jeu du serpent classique, gratuit en ligne.",
@@ -109,6 +200,11 @@
       "en": "snake game, snake games online, classic snake, free arcade game",
       "fr": "jeu du serpent, snake gratuit, jeux d'arcade",
       "ar": "لعبة الثعبان, لعبة الدودة, ألعاب أركيد مجانية"
+    },
+    "howto": {
+      "en": "Swipe or tap to turn the snake. Eat fruit to grow longer and grab the golden star for bonus points. The snake speeds up as it grows. Do not hit the walls or your own tail. Keyboard: arrow keys.",
+      "fr": "Glisse ou touche l’écran pour tourner. Mange les fruits pour grandir et attrape l’étoile dorée pour des points bonus. Le serpent accélère en grandissant. Évite les murs et ta propre queue. Clavier : flèches.",
+      "ar": "اسحب أو المس الشاشة لتدير الثعبان. كُل الفاكهة لتطول والتقط النجمة الذهبية لنقاط إضافية. يزداد الثعبان سرعة كلما طال. لا تصطدم بالجدران أو بذيلك. لوحة المفاتيح: الأسهم."
     }
   }
 ]

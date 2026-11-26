@@ -14,7 +14,8 @@
   var Q = new URLSearchParams(location.search);
   var TEST = Q.has('test');
   var SPEED = Math.max(1, Math.min(10, parseInt(Q.get('speed'), 10) || 1));
-  var EMBED = Q.has('embed'); // ?embed on partner portals hides our own banner
+  var EMBED = Q.has('embed'); // ?embed hides our own banner (partner portals, or our site which shows its own ad slot)
+  var AUTOSTART = Q.has('autostart'); // one-tap play from the website
   var FONT = 'ui-rounded, "Baloo 2", Nunito, "Varela Round", "Arial Rounded MT Bold", "Segoe UI", system-ui, -apple-system, Roboto, Tahoma, sans-serif';
 
   /* ---------------- i18n ---------------- */
@@ -216,6 +217,9 @@
     grid: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>'
   };
 
+  /* shared art helpers (used by the key-art renderer) */
+  window.BubziArt = { drawBubzi: drawBubzi, drawCoin: drawCoin, star: function (c, r) { star(c, r); }, roundRect: roundRect };
+
   /* ===================================================================
      ADS — every network call lives here. All are PLACEHOLDERS.
      =================================================================== */
@@ -388,7 +392,7 @@
     state = 'menu'; closeScreens(); ui.hud.classList.add('hidden'); Ads.gameplayStop();
     var di = dailyInfo();
     var s = screen('menu',
-      '<div class="topbar"><a class="brand" href="../index.html" aria-label="Bubzi">' + bubziSVG('happy', 34) + '<span>bubzi</span></a>' +
+      '<div class="topbar"><a class="brand" target="_top" href="../' + (K.lang === 'en' ? '' : K.lang + '/') + 'index.html" aria-label="Bubzi">' + bubziSVG('happy', 34) + '<span>bubzi</span></a>' +
       '<span class="pill">' + ICON.coin + '<b>' + fmt(wallet()) + '</b></span></div>' +
       bubziSVG('happy').replace('class="mascot-svg"', 'class="mascot"') +
       '<h1 class="title">' + esc(cfg.title[K.lang] || cfg.title.en) + '</h1>' +
@@ -461,6 +465,7 @@
     ui.hud.classList.remove('hidden');
     updateHud(false);
     state = 'playing'; Ads.gameplayStart();
+    var pl = store.get('plays:' + cfg.id, 0); store.set('plays:' + cfg.id, (typeof pl === 'number' ? pl : 0) + 1);
     var rec = store.get('recent', []); if (!Array.isArray(rec)) rec = [];
     rec = rec.filter(function (r) { return r && r.id !== cfg.id; }); rec.unshift({ id: cfg.id, t: Date.now() }); store.set('recent', rec.slice(0, 12));
   }
@@ -619,10 +624,12 @@
       game = g; cfg = g;
       var l = Q.get('lang') || store.get('lang', null) || (navigator.language || 'en').slice(0, 2).toLowerCase();
       K.lang = LANGS.indexOf(l) >= 0 ? l : 'en'; K.rtl = K.lang === 'ar';
+      var th = Q.get('theme') || store.get('theme', null); if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th);
       buildDom(); bindInput(); resize();
       if (game.init) game.init(K);
       game.reset(K);
       showMenu();
+      if (AUTOSTART) startRound();
       Ads.loadingFinished();
       requestAnimationFrame(frame);
       window.__bubzi = { K: K, game: game, start: startRound, menu: showMenu, pause: pause, resume: resume,

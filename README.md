@@ -1,5 +1,7 @@
 # Bubzi Games
 
+**Website:** open `index.html` through any web server (e.g. `npx serve .`). Pages exist in English (`/`), French (`/fr/`) and Arabic (`/ar/`, right-to-left).
+
 Original HTML5 casual games: mobile-first, in **English, French and Arabic (right-to-left)**, with no sign-up.
 
 ## The games (`games/` folder: each one is a single self-contained HTML file)
@@ -29,6 +31,11 @@ Example calls for GameDistribution, Poki, CrazyGames and AdSense H5 are in the c
 
 ## Develop
 ```bash
+node tools/render-art.js                  # original key art, icons, social images → thumbs/
+node tools/capture-previews.js            # record gameplay preview clips → thumbs/*-play.webp
+SITE_URL=https://yourdomain.com node tools/site.js   # generate the website (all pages, sitemap, robots)
+node tools/fetch-partners.js --source gamemonetize   # add licensed partner games (after signing up)
+node tests/site.js                        # website tests: every page, links, SEO tags, phone layout, features
 node tools/build.js                       # build games/*.html from src/
 SITE_URL=https://yourdomain.com node tools/build.js   # set canonical/SEO URLs
 node tests/run.js                         # browser tests: menus, ads, saving, languages, touch, 8x-speed stress

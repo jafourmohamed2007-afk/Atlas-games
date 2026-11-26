@@ -8,19 +8,19 @@
 <meta name="keywords" content="running games, endless runner, run game online, free running game, jeux de course, jeu de course infini, jeux de course à pied, jeux gratuits, ألعاب جري, ألعاب ركض, لعبة جري لا نهائية, ألعاب مجانية">
 <meta name="theme-color" content="#5A2EE8">
 <meta name="robots" content="index,follow">
-<link rel="canonical" href="https://www.example.com/games/rooftop-rush.html">
-<link rel="alternate" hreflang="en" href="https://www.example.com/games/rooftop-rush.html?lang=en">
-<link rel="alternate" hreflang="fr" href="https://www.example.com/games/rooftop-rush.html?lang=fr">
-<link rel="alternate" hreflang="ar" href="https://www.example.com/games/rooftop-rush.html?lang=ar">
-<link rel="alternate" hreflang="x-default" href="https://www.example.com/games/rooftop-rush.html">
+<link rel="canonical" href="https://www.example.com/play/rooftop-rush.html">
+<link rel="alternate" hreflang="en" href="https://www.example.com/play/rooftop-rush.html">
+<link rel="alternate" hreflang="fr" href="https://www.example.com/fr/play/rooftop-rush.html">
+<link rel="alternate" hreflang="ar" href="https://www.example.com/ar/play/rooftop-rush.html">
+<link rel="alternate" hreflang="x-default" href="https://www.example.com/play/rooftop-rush.html">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Rooftop Rush – Play Free Online | Bubzi">
 <meta property="og:description" content="Run across the city rooftops, switch lanes, jump and slide past obstacles and grab every coin in this free endless runner game.">
-<meta property="og:url" content="https://www.example.com/games/rooftop-rush.html">
-<meta property="og:image" content="https://www.example.com/thumbs/rooftop-rush.png">
+<meta property="og:url" content="https://www.example.com/play/rooftop-rush.html">
+<meta property="og:image" content="https://www.example.com/thumbs/rooftop-rush-og.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cpath%20d%3D%22M32%2014C50%2014%2059%2027%2059%2039C59%2052%2047%2059%2032%2059C17%2059%205%2052%205%2039C5%2027%2014%2014%2032%2014Z%22%20fill%3D%22%237B4DFF%22%2F%3E%3Ccircle%20cx%3D%2223%22%20cy%3D%2237%22%20r%3D%227%22%20fill%3D%22%23fff%22%2F%3E%3Ccircle%20cx%3D%2241%22%20cy%3D%2237%22%20r%3D%227%22%20fill%3D%22%23fff%22%2F%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2238%22%20r%3D%223.6%22%20fill%3D%22%23241B4D%22%2F%3E%3Ccircle%20cx%3D%2242%22%20cy%3D%2238%22%20r%3D%223.6%22%20fill%3D%22%23241B4D%22%2F%3E%3C%2Fsvg%3E">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Rooftop Rush","alternateName":["Course sur les Toits","سباق الأسطح"],"description":"Run across the city rooftops, switch lanes, jump and slide past obstacles and grab every coin in this free endless runner game.","url":"https://www.example.com/games/rooftop-rush.html","genre":"running","gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","inLanguage":["en","fr","ar"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Bubzi"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Rooftop Rush","alternateName":["Course sur les Toits","سباق الأسطح"],"description":"Run across the city rooftops, switch lanes, jump and slide past obstacles and grab every coin in this free endless runner game.","url":"https://www.example.com/play/rooftop-rush.html","genre":"running","gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","inLanguage":["en","fr","ar"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Bubzi"}}</script>
 <style>
 /* Bubzi Kit — shared "Jelly Pop" styles for every game */
 :root{
@@ -160,7 +160,8 @@ select.lang{font-family:inherit;font-weight:800;font-size:15px;height:44px;borde
   var Q = new URLSearchParams(location.search);
   var TEST = Q.has('test');
   var SPEED = Math.max(1, Math.min(10, parseInt(Q.get('speed'), 10) || 1));
-  var EMBED = Q.has('embed'); // ?embed on partner portals hides our own banner
+  var EMBED = Q.has('embed'); // ?embed hides our own banner (partner portals, or our site which shows its own ad slot)
+  var AUTOSTART = Q.has('autostart'); // one-tap play from the website
   var FONT = 'ui-rounded, "Baloo 2", Nunito, "Varela Round", "Arial Rounded MT Bold", "Segoe UI", system-ui, -apple-system, Roboto, Tahoma, sans-serif';
 
   /* ---------------- i18n ---------------- */
@@ -362,6 +363,9 @@ select.lang{font-family:inherit;font-weight:800;font-size:15px;height:44px;borde
     grid: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>'
   };
 
+  /* shared art helpers (used by the key-art renderer) */
+  window.BubziArt = { drawBubzi: drawBubzi, drawCoin: drawCoin, star: function (c, r) { star(c, r); }, roundRect: roundRect };
+
   /* ===================================================================
      ADS — every network call lives here. All are PLACEHOLDERS.
      =================================================================== */
@@ -534,7 +538,7 @@ select.lang{font-family:inherit;font-weight:800;font-size:15px;height:44px;borde
     state = 'menu'; closeScreens(); ui.hud.classList.add('hidden'); Ads.gameplayStop();
     var di = dailyInfo();
     var s = screen('menu',
-      '<div class="topbar"><a class="brand" href="../index.html" aria-label="Bubzi">' + bubziSVG('happy', 34) + '<span>bubzi</span></a>' +
+      '<div class="topbar"><a class="brand" target="_top" href="../' + (K.lang === 'en' ? '' : K.lang + '/') + 'index.html" aria-label="Bubzi">' + bubziSVG('happy', 34) + '<span>bubzi</span></a>' +
       '<span class="pill">' + ICON.coin + '<b>' + fmt(wallet()) + '</b></span></div>' +
       bubziSVG('happy').replace('class="mascot-svg"', 'class="mascot"') +
       '<h1 class="title">' + esc(cfg.title[K.lang] || cfg.title.en) + '</h1>' +
@@ -607,6 +611,7 @@ select.lang{font-family:inherit;font-weight:800;font-size:15px;height:44px;borde
     ui.hud.classList.remove('hidden');
     updateHud(false);
     state = 'playing'; Ads.gameplayStart();
+    var pl = store.get('plays:' + cfg.id, 0); store.set('plays:' + cfg.id, (typeof pl === 'number' ? pl : 0) + 1);
     var rec = store.get('recent', []); if (!Array.isArray(rec)) rec = [];
     rec = rec.filter(function (r) { return r && r.id !== cfg.id; }); rec.unshift({ id: cfg.id, t: Date.now() }); store.set('recent', rec.slice(0, 12));
   }
@@ -765,10 +770,12 @@ select.lang{font-family:inherit;font-weight:800;font-size:15px;height:44px;borde
       game = g; cfg = g;
       var l = Q.get('lang') || store.get('lang', null) || (navigator.language || 'en').slice(0, 2).toLowerCase();
       K.lang = LANGS.indexOf(l) >= 0 ? l : 'en'; K.rtl = K.lang === 'ar';
+      var th = Q.get('theme') || store.get('theme', null); if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th);
       buildDom(); bindInput(); resize();
       if (game.init) game.init(K);
       game.reset(K);
       showMenu();
+      if (AUTOSTART) startRound();
       Ads.loadingFinished();
       requestAnimationFrame(frame);
       window.__bubzi = { K: K, game: game, start: startRound, menu: showMenu, pause: pause, resume: resume,
