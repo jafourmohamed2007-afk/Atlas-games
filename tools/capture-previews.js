@@ -84,7 +84,7 @@ const ACT = {
     if (only.length && !only.includes(id)) continue;
     const ctx = await b.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1 });
     const p = await ctx.newPage();
-    await p.addInitScript((id) => { try { localStorage.setItem('bubzi:tut:' + id, 'true'); } catch (e) {} }, id);
+    await p.addInitScript((id) => { try { localStorage.setItem('bubzi:tut:' + id, 'true'); localStorage.setItem('bubzi:ink:mode', '"inf"'); } catch (e) {} }, id);
     await p.goto('file://' + path.join(ROOT, 'games', id + '.html') + '?test&embed&lang=en');
     await p.addStyleTag({ content: '.hud{display:none!important}' });
     await p.click('#bPlay');

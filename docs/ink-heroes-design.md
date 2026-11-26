@@ -72,3 +72,42 @@ Weapon crates now also drop shop guns, with double ammo, so players can try a gu
 
 New players get a starter pack: 1 heart, 2 grenades and 1 medkit.
 The **"+60 · AD"** button in the shop is a rewarded ad (placeholder) that gives 60 coins, available every 90 s.
+
+## Story mode: "The Inkfall" (40 levels + Nightmare)
+
+The pick screen has a **STORY | ∞ INFINITY** toggle (Story is the default for new players; the choice is remembered).
+Story opens a **chapter map**: 5 chapters × 8 levels, each with 3 stars. Levels unlock one by one; each chapter ends with a boss.
+
+### The plot (original)
+The world is a sketchbook drawn in ink. One night the ink spills and everything it touches gets *Smudged* (the zombies).
+Kai teams up with Rook, then Vex and Juno, and follows the ink upward: someone is erasing the world.
+The villain is **NULL**, the Author's very first drawing, erased because "he didn't look right". He survived in the Margin, found the Author's pen,
+and wants to erase the whole book so nobody is ever thrown away again. In the end Kai takes the pen and, instead of erasing NULL, **redraws** him:
+"Nobody deserves to be erased." A hand far above picks up a pencil again… and **Nightmare mode** unlocks.
+
+| # | Chapter | 2.5D world | Boss | Unlocks |
+|---|---|---|---|---|
+| 1 | Smudge Street | ruined city at sunset, night falls level by level | GRAVEMAW (charges, ground pounds) | Rook joins |
+| 2 | Platform Zero | metro tunnel, passing trains, rails | THE CONDUCTOR (train charges, calls Dashers aboard) | Vex joins |
+| 3 | Neon Erasure | neon night city with erased white buildings | TWIN HOLLOWS (two bosses; beat one and the other enrages) | Juno joins |
+| 4 | Desert of Mistakes | ink dunes, crumpled paper, a giant pencil | MOTHER GLOOP (goo volleys, summons Gloops) | +coins |
+| 5 | The Margin | white notebook paper, ruled lines, pencil sketches | NULL (combos, dashes, teleports; phase 2 draws clones of himself) | ending + Nightmare |
+
+Cutscenes (comic speech bubbles, typewriter text, skip button) play before levels 1, 4 and 8 of each chapter and after each boss, the first time only. All text is in EN/FR/AR.
+
+### Level types
+`clear` defeat every zombie · `rescue` break the cages to free 3–4 survivors · `survive` a timer · `defend` protect the Ink Lantern (zombies attack it; if it goes out you lose) · `boss`.
+Modifiers: **Swarm** (+50% zombies), **No guns** (fists only), **Elite night** (+30% gold elites), **Blackout** (darkness; only a light around the hero, zombie eyes glow).
+
+### Stars, rewards, difficulty
+★ win · ★ lose at most half your health without reviving · ★ reach the level's combo goal (10 + 4 per chapter, +5 on bosses).
+Coins: 12 + 6×chapter + 2×level (+40 on bosses) + 5 per star; ×2 on the first clear; ×1.5 in Nightmare; +1000 for finishing the story.
+Difficulty uses the Infinity threat curve: level threat = 1 + 3×chapter + 0.45×level (Nightmare +10).
+A failed level goes to the normal game-over screen (rewarded "continue" ad and interstitials work as in Infinity), and "Play again" returns to the map on the same level.
+Progress is saved in `bubzi:ink:story`.
+
+## 2.5D look
+Perspective floor with depth lines converging on a vanishing point, buildings and walls with 3D side and top faces, zombies spread across depth (farther ones are smaller and higher, drawn first),
+shaded "tube" limbs and lit heads, a camera zoom punch on finishers, quakes and boss kills, a vignette, and real darkness on Blackout levels. Controls stay 2D (left/right + jump), so it plays easily on phones.
+
+Test: `node tests/ink-story.js` (map, cutscenes, every objective, stars, unlocks, all 5 bosses, NULL phase 2, retry, Nightmare, every theme on desktop and phone).

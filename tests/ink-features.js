@@ -11,6 +11,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const F = (m) => fails.push(m), d = () => p.evaluate(() => window.__bubzi.K.dbg()), ev = (f, a) => p.evaluate(f, a);
   await p.goto(URL); await ev(() => localStorage.setItem('bubzi:coins', '20000'));
   await p.click('#bPlay'); await sleep(200);
+  if ((await d()).storyMode) await p.keyboard.press('KeyT'); // Infinity
   // ---- shop: open, buy a gun, equip, buy items ----
   await p.keyboard.press('KeyS'); if ((await d()).mode !== 'shop') F('shop did not open');
   for (let i = 0; i < 5; i++) await p.keyboard.press('ArrowRight');           // select Longshot Sniper (index 5)

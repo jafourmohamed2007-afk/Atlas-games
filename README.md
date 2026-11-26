@@ -16,6 +16,7 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `jelly-drop.html` | Drop & merge | Aim and release · arrows + Space |
 | `memo-match.html` | Memory cards | Tap cards · arrows + Enter |
 | `wiggle-snake.html` | Snake | Swipe / tap · arrows |
+| `ink-heroes.html` | 2.5D stickman brawler: 40-level story + Infinity | On-screen buttons · arrows, W, J, K, L, R, 1-7 |
 
 Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
 coins, 8 unlockable skins (shared across all games), a daily bonus streak, a "show, don't tell" tutorial, and ad placeholders.
@@ -41,6 +42,7 @@ SITE_URL=https://yourdomain.com node tools/build.js   # set canonical/SEO URLs
 node tests/run.js                         # browser tests: menus, ads, saving, languages, touch, 8x-speed stress
 node tests/bots.js                        # gameplay bots that play each game and check the rules
 node tests/ink-features.js                # Ink Heroes: shop, all 11 guns, all 8 items, heart revive
+node tests/ink-story.js                   # Ink Heroes story: 40 levels, cutscenes, 5 bosses, stars, unlocks, Nightmare
 ```
 Source: `src/kit/` (shared engine and styles), `src/games/*.js` (one file per game), `src/games.json` (titles, SEO text, keywords in 3 languages).
 URL flags: `?lang=en|fr|ar`, `?test` (instant ads plus debug hooks), `?speed=N`.

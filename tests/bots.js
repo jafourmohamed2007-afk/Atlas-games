@@ -198,6 +198,7 @@ const BOTS = {
   },
 
   'ink-heroes': async (page, fail, info) => {
+    if ((await dbg(page)).storyMode) await page.keyboard.press('KeyT'); // this bot plays Infinity (tests/ink-story.js covers Story)
     await page.keyboard.press('Enter');
     const t0 = Date.now(); let maxWave = 0, lastHp = 999, perks = 0, held = null;
     const hold = async (k) => { if (held === k) return; if (held) await page.keyboard.up(held); held = k; if (k) await page.keyboard.down(k); };

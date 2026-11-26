@@ -218,19 +218,19 @@
       "ar": "أبطال الحبر: ليلة الزومبي"
     },
     "desc": {
-      "en": "Survive the Infinity mode: endless zombie waves where every wave is harder. Stickman combos, weapon crates, buddies, elite zombies and giant bosses. Free online, no download.",
-      "fr": "Survis au mode Infini : des vagues de zombies sans fin, chacune plus dure que la précédente. Combos de stickman, armes, alliés, zombies d’élite et boss géants. Gratuit, sans téléchargement.",
-      "ar": "انجُ في الوضع اللانهائي: موجات زومبي لا تنتهي وكل موجة أصعب من سابقتها. ضربات ستيكمان وأسلحة وأصدقاء وزومبي نخبة وزعماء عمالقة. مجاناً وبدون تحميل."
+      "en": "A 2.5D stickman zombie brawler with a 40-level story, “The Inkfall”: 5 worlds, 5 giant bosses, rescue and defend missions, then Nightmare mode. Plus the endless Infinity mode where every wave is harder. Free online, no download.",
+      "fr": "Un jeu de combat stickman 2.5D contre des zombies avec une histoire de 40 niveaux, « La Chute d’encre » : 5 mondes, 5 boss géants, missions de sauvetage et de défense, puis le mode Cauchemar. Et le mode Infini où chaque vague est plus dure. Gratuit, sans téléchargement.",
+      "ar": "لعبة قتال ستيكمان ثنائية ونصف الأبعاد ضد الزومبي مع قصة من 40 مرحلة، «سقوط الحبر»: 5 عوالم و5 زعماء عمالقة ومهام إنقاذ ودفاع ثم وضع الكابوس. إضافة إلى الوضع اللانهائي حيث كل موجة أصعب. مجاناً وبدون تحميل."
     },
     "keywords": {
-      "en": "stickman games, zombie games, stickman fighting, beat em up, action games",
-      "fr": "jeux de stickman, jeux de zombie, jeux de combat, jeux d'action",
-      "ar": "ألعاب ستيكمان, ألعاب زومبي, ألعاب قتال, ألعاب أكشن"
+      "en": "stickman games, zombie games, stickman fighting, beat em up, story mode, action games",
+      "fr": "jeux de stickman, jeux de zombie, jeux de combat, mode histoire, jeux d'action",
+      "ar": "ألعاب ستيكمان, ألعاب زومبي, ألعاب قتال, وضع القصة, ألعاب أكشن"
     },
     "howto": {
-      "en": "Move with the arrows, tap HIT for a 3-hit combo (the third hit is a finisher), FIRE to shoot, JUMP to dodge shockwaves and HIT in the air for a dive kick. Fill the power bar and press POWER for your hero’s special. Grab crates for new weapons and pick a power-up after every wave. Keyboard: arrows, W jump, J hit, K fire, L power, R reload.",
-      "fr": "Bouge avec les flèches, touche FRAPPE pour un combo de 3 coups (le troisième est un coup final), TIR pour tirer, SAUT pour éviter les ondes de choc et FRAPPE en l’air pour un coup plongeant. Remplis la barre et appuie sur POUVOIR. Ramasse des caisses d’armes et choisis un bonus après chaque vague. Clavier : flèches, W, J, K, L, R.",
-      "ar": "تحرك بالأسهم، اضغط ضرب لسلسلة من 3 ضربات (الثالثة قاضية)، نار لإطلاق النار، قفز لتفادي الموجات الصادمة، وضرب في الهواء لركلة غاطسة. املأ شريط القوة واضغط قوة. التقط صناديق الأسلحة واختر قوة بعد كل موجة. لوحة المفاتيح: الأسهم، W، J، K، L، R."
+      "en": "Move with the arrows, tap HIT for a 3-hit combo (the third hit is a finisher), FIRE to shoot, JUMP to dodge shockwaves and HIT in the air for a dive kick. Fill the power bar and press POWER for your hero’s special. Grab crates for new weapons and pick a power-up after every wave. Keyboard: arrows, W jump, J hit, K fire, L power, R reload. Story: clear each level’s goal (defeat all, free survivors, survive, protect the lantern, beat the boss) and earn 3 stars.",
+      "fr": "Bouge avec les flèches, touche FRAPPE pour un combo de 3 coups (le troisième est un coup final), TIR pour tirer, SAUT pour éviter les ondes de choc et FRAPPE en l’air pour un coup plongeant. Remplis la barre et appuie sur POUVOIR. Ramasse des caisses d’armes et choisis un bonus après chaque vague. Clavier : flèches, W, J, K, L, R. Histoire : remplis l’objectif de chaque niveau (tout vaincre, libérer les survivants, survivre, protéger la lanterne, battre le boss) et gagne 3 étoiles.",
+      "ar": "تحرك بالأسهم، اضغط ضرب لسلسلة من 3 ضربات (الثالثة قاضية)، نار لإطلاق النار، قفز لتفادي الموجات الصادمة، وضرب في الهواء لركلة غاطسة. املأ شريط القوة واضغط قوة. التقط صناديق الأسلحة واختر قوة بعد كل موجة. لوحة المفاتيح: الأسهم، W، J، K، L، R. القصة: حقق هدف كل مرحلة (اهزم الجميع، حرّر الناجين، انجُ، احمِ الفانوس، اهزم الزعيم) واجمع 3 نجوم."
     }
   }
 ]
