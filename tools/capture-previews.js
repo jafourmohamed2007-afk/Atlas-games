@@ -8,7 +8,7 @@ const ROOT = path.join(__dirname, '..');
 const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/games.json'), 'utf8')).map((g) => g.id);
 const only = process.argv.slice(2);
 const FRAMES = 12, FW = 240, FH = 240, GAP = 190, VW = 360, VH = 640;
-const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170, 'ink-heroes': 250, 'pocket-grove': 200 };
+const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170, 'ink-heroes': 250, 'pocket-grove': 200, 'spear-hills': 200 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const dbg = (p) => p.evaluate(() => JSON.parse(JSON.stringify(window.__bubzi.K.dbg())));
 const playing = (p) => p.evaluate(() => window.__bubzi.state() === 'playing');
@@ -72,6 +72,11 @@ const ACT = {
       for (let i = 0; i < st.open; i++) { const pl = st.plots[i]; if (!pl) { const id = ids[(i + Math.floor(Math.random() * 5)) % 5]; g.seeds(id, 1); g.plant(i, id); } else if (Date.now() + (window.__groveOffset || 0) >= pl.t0 + pl.dur && Math.random() < 0.35) g.harvest(i); }
       g.skip(240); g.camYaw(0.4 + Math.sin(Date.now() / 2500) * 0.35); });
     await p.keyboard.press('Backspace'); await sleep(170);
+  },
+  'spear-hills': async (p, box, s) => {
+    const d = await dbg(p); if (d.phase !== 'aim' || !d.hint) { await sleep(60); return; }
+    const x = box.x + box.width * 0.5, y = box.y + box.height * 0.55, e = 1 + (Math.random() - 0.5) * 0.06;
+    await p.mouse.move(x, y); await p.mouse.down(); for (let k = 1; k <= 6; k++) { await p.mouse.move(x + d.hint.dx * e * k / 6, y + d.hint.dy * e * k / 6); await sleep(30); } await p.mouse.up(); await sleep(200);
   },
   'wiggle-snake': async (p, box, s) => {
     const D = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }, KEY = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };

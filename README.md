@@ -17,6 +17,7 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `memo-match.html` | Memory cards | Tap cards · arrows + Enter |
 | `wiggle-snake.html` | Snake | Swipe / tap · arrows |
 | `ink-heroes.html` | 2.5D stickman brawler: 40-level story + Infinity | On-screen buttons · arrows, W, J, K, L, R, 1-7 |
+| `spear-hills.html` | Turn-based spear duel | Pull back and let go · Up/Down angle, Left/Right power, Space |
 | `pocket-grove.html` | 3D idle garden (three.js) | Tap plots · arrows + Enter, S shop, A album, H pets, B boost |
 
 Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
@@ -52,6 +53,8 @@ node tests/grove.js                       # Pocket Grove (3D): grow, harvest, sh
 - Bright and colourful by default; the moon button switches to dark mode (remembered).
 - Home: a dense mosaic of square tiles (our HOT games are big 2×2 tiles, partner games fill around them), then colour bands that slide sideways: Bubzi Originals, Continue, New, Most played, one band per category.
 - Game pages (ours and partner `g/*.html`): the game in the middle, a column of game tiles on the left, an ad and more tiles on the right, and a tile mosaic underneath. Every tile opens and starts its game with one tap. On phones the tiles come right under the game.
+- Partner games, while you wait for the partner sign-up: they all live on ONE page, `more-games.html` (one per language), reached from the yellow "More free games" banner and chip. Their own pages are `noindex` and left out of the sitemap.
+  After you are approved, run `PARTNERS=live node tools/site.js` to mix them into the home page, categories and game pages.
 - Partner games show their network's own ads. If a partner picture cannot load, the tile shows the game name on a coloured background.
 
 Source: `src/kit/` (shared engine and styles), `src/games/*.js` (one file per game), `src/games.json` (titles, SEO text, keywords in 3 languages).

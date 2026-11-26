@@ -250,6 +250,44 @@
       for (var i = 0; i < 14; i++) { c.fillStyle = i % 2 ? '#8DB34E' : '#C3DC3E'; c.beginPath(); c.arc(ix + (R() - 0.1) * 60, iy + (R() - 0.5) * 50, 2 + R() * 5, 0, TAU); c.fill(); }
       vignette(c, W, H, 0.4);
     },
+    'spear-hills': function (c, W, H) {
+      c.fillStyle = lin(c, 0, 0, 0, H, [[0, '#5EC8FF'], [0.65, '#CFF0FF'], [1, '#FFF1C9']]); c.fillRect(0, 0, W, H);
+      rays(c, W * 0.8, H * 0.18, 14, W, 'rgba(255,255,255,0.12)', 0.1);
+      c.save(); shadowOn(c, 40, 0, 'rgba(255,220,90,0.9)'); c.fillStyle = '#FFE066'; c.beginPath(); c.arc(W * 0.8, H * 0.18, W * 0.09, 0, TAU); c.fill(); c.restore();
+      c.fillStyle = 'rgba(255,255,255,0.9)'; [[0.15, 0.14, 1], [0.48, 0.24, 0.8]].forEach(function (k) { var x = W * k[0], y = H * k[1], r = W * 0.045 * k[2]; c.beginPath(); c.arc(x, y, r, 0, TAU); c.arc(x + r * 1.1, y - r * 0.4, r * 1.2, 0, TAU); c.arc(x + r * 2.2, y, r * 0.9, 0, TAU); c.fill(); });
+      function hill(cx, cy, rx, col) { c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, rx, rx * 0.55, 0, Math.PI, 0); c.lineTo(cx + rx, H); c.lineTo(cx - rx, H); c.fill(); }
+      hill(W * 0.5, H * 0.95, W * 0.7, '#A8E6A1');
+      hill(W * 0.12, H * 0.8, W * 0.32, '#7ED957'); hill(W * 0.9, H * 0.84, W * 0.32, '#7ED957');
+      c.fillStyle = '#5BBF3A'; c.fillRect(0, H * 0.93, W, H * 0.07);
+      var s = W / 512;
+      function fighter(x, y, dir, col, throwing) {
+        var hip = [x, y - 34 * s], neck = [x + dir * 4 * s, y - 66 * s];
+        var J = { hip: hip, neck: neck, head: [neck[0] + dir * 3 * s, neck[1] - 17 * s], r: 15 * s,
+          fl: [hip, [x + dir * 12 * s, y - 16 * s], [x + dir * 18 * s, y]], bl: [hip, [x - dir * 10 * s, y - 16 * s], [x - dir * 16 * s, y]],
+          fa: throwing ? [neck, [neck[0] - dir * 18 * s, neck[1] - 14 * s], [neck[0] - dir * 30 * s, neck[1] - 24 * s]] : [neck, [neck[0] + dir * 14 * s, neck[1] + 10 * s], [neck[0] + dir * 24 * s, neck[1] - 4 * s]],
+          ba: throwing ? [neck, [neck[0] + dir * 18 * s, neck[1] + 2 * s], [neck[0] + dir * 32 * s, neck[1] - 8 * s]] : [neck, [neck[0] - dir * 12 * s, neck[1] + 18 * s], [neck[0] - dir * 18 * s, neck[1] + 30 * s]] };
+        c.save(); shadowOn(c, 14 * s, 6 * s, 'rgba(20,8,60,0.35)'); stickman(c, J, 9 * s, '#241B4D', '#3A2E70', '#FFFFFF'); c.restore();
+        c.fillStyle = '#FFFFFF'; c.beginPath(); c.arc(J.head[0], J.head[1], J.r - 4 * s, 0, TAU); c.fill();
+        c.fillStyle = '#241B4D'; [-1, 1].forEach(function (e) { c.beginPath(); c.arc(J.head[0] + dir * 4 * s + e * 4 * s, J.head[1] - 1 * s, 2.4 * s, 0, TAU); c.fill(); });
+        c.fillStyle = col; c.fillRect(J.head[0] - J.r, J.head[1] - J.r * 0.75, J.r * 2, J.r * 0.45);
+        c.beginPath(); c.moveTo(J.head[0] - dir * J.r, J.head[1] - J.r * 0.6); c.lineTo(J.head[0] - dir * (J.r + 18 * s), J.head[1] - J.r * 0.1); c.lineTo(J.head[0] - dir * (J.r + 16 * s), J.head[1] - J.r * 0.9); c.fill();
+        return J;
+      }
+      var J1 = fighter(W * 0.14, H * 0.78, 1, '#7B4DFF', true);
+      var J2 = fighter(W * 0.86, H * 0.8, -1, '#FF5E5B', false);
+      // flying spear with a dotted arc
+      c.fillStyle = 'rgba(255,255,255,0.9)';
+      for (var i = 0; i < 9; i++) { var t = i / 8, x = W * (0.22 + t * 0.4), y = H * (0.52 - Math.sin(t * Math.PI * 0.8) * 0.22); c.beginPath(); c.arc(x, y, (3 + t * 3) * s, 0, TAU); c.fill(); }
+      c.save(); c.translate(W * 0.7, H * 0.36); c.rotate(0.35); c.scale(s * 1.9, s * 1.9);
+      shadowOn(c, 10, 4, 'rgba(20,8,60,0.35)');
+      c.strokeStyle = '#8A5A2B'; c.lineWidth = 6; c.lineCap = 'round'; c.beginPath(); c.moveTo(-70, 0); c.lineTo(0, 0); c.stroke(); shadowOff(c);
+      c.fillStyle = '#DCE4EE'; c.beginPath(); c.moveTo(18, 0); c.lineTo(-4, -9); c.lineTo(-4, 9); c.closePath(); c.fill();
+      c.fillStyle = '#FF5FA2'; c.beginPath(); c.moveTo(-70, 0); c.lineTo(-84, -9); c.lineTo(-80, 0); c.lineTo(-84, 9); c.closePath(); c.fill();
+      c.restore();
+      speedLines(c, W * 0.5, H * 0.32, 4, 70 * s, 0.35, 'rgba(255,255,255,0.85)');
+      sparkle(c, W * 0.86, H * 0.5, 14 * s, '#FFD23F'); sparkle(c, W * 0.3, H * 0.3, 10 * s);
+      vignette(c, W, H, 0.25);
+    },
     'wiggle-snake': function (c, W, H) {
       bg(c, W, H, '#0C8F6E', '#8BEA5B', 'rgba(240,255,210,0.45)');
       c.globalAlpha = 0.08; c.fillStyle = '#FFFFFF'; var s = W / 8; for (var y = 0; y < 8; y++) for (var x = 0; x < 8; x++) if ((x + y) % 2) c.fillRect(x * s, y * s, s, s); c.globalAlpha = 1;
@@ -325,6 +363,7 @@
     cloud: function (c, W) { glossy(c, function (k) { k.beginPath(); k.arc(-22, 6, 24, 0, TAU); k.arc(6, -10, 30, 0, TAU); k.arc(30, 8, 22, 0, TAU); k.rect(-22, 6, 52, 24); }, W / 2, W / 2, W / 125, '#E2F2FF', '#6FA8FF'); }
   };
 
+  window.hasArt = function (name) { return typeof GAMES[name] === 'function'; };
   window.renderArt = function (kind, name, W, H, opts) {
     var cv = document.createElement('canvas'); cv.width = W; cv.height = H; var c = cv.getContext('2d');
     opts = opts || {};

@@ -13,6 +13,7 @@ const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/games.json'), 'utf
   fs.mkdirSync(path.join(ROOT, 'thumbs'), { recursive: true });
   const save = (name, dataUrl) => { fs.writeFileSync(path.join(ROOT, 'thumbs', name), Buffer.from(dataUrl.split(',')[1], 'base64')); };
   for (const g of games) {
+    if (!(await p.evaluate((id) => window.hasArt(id), g.id))) { console.log('no key art for', g.id, '(made by its own tool)'); continue; }
     save(g.id + '.webp', await p.evaluate((id) => window.renderArt('game', id, 512, 512), g.id));
     save(g.id + '-og.jpg', await p.evaluate(([id, t]) => window.renderArt('game', id, 1200, 630, { title: t, type: 'image/jpeg', q: 0.86 }), [g.id, g.title.en]));
   }

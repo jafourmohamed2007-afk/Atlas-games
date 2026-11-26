@@ -1,5 +1,31 @@
 [
   {
+    "id": "spear-hills",
+    "category": "action",
+    "color": "#FF5E5B",
+    "isNew": true,
+    "title": {
+      "en": "Spear Hills",
+      "fr": "Collines des Lances",
+      "ar": "تلال الرماح"
+    },
+    "desc": {
+      "en": "Pull back, aim and throw your spear across the hills! Knock out rival after rival in this free stick duel game. Mind the wind and the bumps.",
+      "fr": "Tire en arrière, vise et lance ta lance par-dessus les collines ! Mets KO rival après rival dans ce jeu de duel gratuit. Attention au vent et aux bosses.",
+      "ar": "اسحب للخلف، صوّب وارمِ رمحك فوق التلال! اهزم الخصوم واحداً تلو الآخر في لعبة المبارزة المجانية هذه. انتبه للرياح والمرتفعات."
+    },
+    "keywords": {
+      "en": "stick games, spear game, throwing game, duel game, free action game",
+      "fr": "jeux de bonhomme bâton, jeu de lancer, jeu de duel, jeu d'action gratuit",
+      "ar": "ألعاب رجل العصا, لعبة رمي, لعبة مبارزة, ألعاب أكشن مجانية"
+    },
+    "howto": {
+      "en": "Touch anywhere and pull back, like a slingshot. The further you pull, the stronger the throw; the direction sets the angle. Let go to throw. A hit on the head does the most damage. Then your rival throws back. Knock them out to meet a new rival on a further hill. From level 3 the wind pushes your spear. Keyboard: Up/Down angle, Left/Right power, Space throws.",
+      "fr": "Touche l'écran et tire en arrière, comme un lance-pierre. Plus tu tires, plus le lancer est fort ; la direction donne l'angle. Lâche pour lancer. Toucher la tête fait le plus de dégâts. Ensuite, le rival lance à son tour. Mets-le KO pour affronter un nouveau rival plus loin. Dès le niveau 3, le vent pousse ta lance. Clavier : Haut/Bas l'angle, Gauche/Droite la force, Espace pour lancer.",
+      "ar": "المس الشاشة واسحب للخلف مثل المقلاع. كلما سحبت أكثر كانت الرمية أقوى، والاتجاه يحدد الزاوية. اترك لترمي. إصابة الرأس تسبب أكبر ضرر. ثم يرمي خصمك. اهزمه لتواجه خصماً جديداً على تل أبعد. من المستوى 3 تدفع الرياح رمحك. لوحة المفاتيح: أعلى/أسفل للزاوية، يمين/يسار للقوة، المسافة للرمي."
+    }
+  },
+  {
     "id": "block-bloom",
     "category": "puzzle",
     "color": "#7B4DFF",

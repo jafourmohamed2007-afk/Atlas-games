@@ -230,6 +230,24 @@ const BOTS = {
     if (d.kills < 15) fail('only ' + d.kills + ' kills — combat may be broken');
   },
 
+  'spear-hills': async (page, fail, info) => {
+    const box = await page.locator('#game').boundingBox();
+    let kos = 0, lvl = 1, throws = 0, hit = 0;
+    for (let i = 0; i < 900 && throws < 40; i++) {
+      if ((await st(page)) !== 'playing') break;
+      const d = await dbg(page);
+      if (d.level > lvl) { kos += d.level - lvl; lvl = d.level; }
+      if (d.phase !== 'aim' || !d.hint) { await sleep(50); continue; }
+      const x = box.x + box.width * 0.5, y = box.y + box.height * 0.6, h0 = d.hp2;
+      await drag(page, x, y, x + d.hint.dx, y + d.hint.dy); throws++;
+      for (let k = 0; k < 80; k++) { await sleep(40); const e = await dbg(page); if (e.phase !== 'fly') break; }
+      if ((await dbg(page)).hp2 < h0 || (await dbg(page)).phase === 'ko') hit++;
+    }
+    info.push(throws + ' throws, ' + hit + ' hits, ' + kos + ' knockouts');
+    if (throws < 3) fail('could not throw (' + throws + ')');
+    if (hit < throws * 0.6) fail('aimed throws missed too often (' + hit + '/' + throws + ')');
+    if (kos < 1) fail('never knocked out a rival');
+  },
   'wiggle-snake': async (page, fail, info) => {
     const D = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }, KEY = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
     await page.keyboard.press('ArrowUp');

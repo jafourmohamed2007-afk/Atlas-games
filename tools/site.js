@@ -22,9 +22,9 @@ const tr = (s, o) => String(s).replace(/\{(\w+)\}/g, (m, k) => (o[k] !== undefin
 const lp = (lang, p) => (lang === 'en' ? '' : lang + '/') + p;
 const abs = (p) => SITE + '/' + p.replace(/(^|\/)index\.html$/, '$1');
 const HOT = ['pocket-grove', 'ink-heroes', 'rooftop-rush'];
-const ORDER = ['pocket-grove', 'ink-heroes', 'rooftop-rush', 'block-bloom', 'jelly-drop', 'hop-hook', 'hill-hopper', 'number-pop', 'wiggle-snake', 'memo-match'];
+const ORDER = ['pocket-grove', 'ink-heroes', 'spear-hills', 'rooftop-rush', 'block-bloom', 'jelly-drop', 'hop-hook', 'hill-hopper', 'number-pop', 'wiggle-snake', 'memo-match'];
 const CATS = ['action', 'farm', 'puzzle', 'running', 'skill', 'learning', 'cars'];
-const MOODS = { quick: ['wiggle-snake', 'number-pop', 'hop-hook', 'rooftop-rush', 'memo-match'], brain: ['block-bloom', 'memo-match', 'number-pop', 'jelly-drop'], chill: ['pocket-grove', 'block-bloom', 'jelly-drop', 'memo-match', 'wiggle-snake'] };
+const MOODS = { quick: ['spear-hills', 'wiggle-snake', 'number-pop', 'hop-hook', 'rooftop-rush', 'memo-match'], brain: ['block-bloom', 'memo-match', 'number-pop', 'jelly-drop'], chill: ['pocket-grove', 'block-bloom', 'jelly-drop', 'memo-match', 'wiggle-snake'] };
 const TILE = { quick: ['#FFE066', '#FFB020', '#4A2E00', 'clock'], brain: ['#7DF5CF', '#1FC79A', '#063A2C', 'bulb'], chill: ['#B5E2FF', '#5AA9FF', '#0B2A55', 'cloud'],
   puzzle: ['#D6C6FF', '#9271FF', '#1F0F5C', 'puzzle'], running: ['#FFC59A', '#FF7F45', '#3D1500', 'bolt'], skill: ['#FFB3CF', '#FF5F96', '#4A0A22', 'target'],
   learning: ['#B4F5DF', '#34D3A3', '#063A2C', 'learn'], cars: ['#AEEBFF', '#3FB6FF', '#062A44', 'car'], action: ['#FFB4A6', '#FF5A4E', '#460A08', 'burst'], farm: ['#D5F79F', '#7ED957', '#143A0A', 'cloud'] };

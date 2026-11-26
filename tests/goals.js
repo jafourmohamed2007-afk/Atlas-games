@@ -3,7 +3,7 @@ const OUT = process.argv[2] || require('os').tmpdir();
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const fails = [], ok = [];
-  const games = ['block-bloom', 'hill-hopper', 'hop-hook', 'ink-heroes', 'jelly-drop', 'memo-match', 'number-pop', 'rooftop-rush', 'wiggle-snake', 'pocket-grove'];
+  const games = ['block-bloom', 'hill-hopper', 'hop-hook', 'ink-heroes', 'jelly-drop', 'memo-match', 'number-pop', 'rooftop-rush', 'wiggle-snake', 'pocket-grove', 'spear-hills'];
   for (const id of games) {
     const ctx = await b.newContext({ viewport: { width: 420, height: 800 }, colorScheme: id === 'number-pop' ? 'dark' : 'light' }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
     const url = 'file://' + path.join(process.cwd(), 'games', id + '.html') + '?test';
