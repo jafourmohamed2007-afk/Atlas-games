@@ -52,3 +52,7 @@ URL flags: `?lang=en|fr|ar`, `?test` (instant ads plus debug hooks), `?speed=N`.
 ### Pocket Grove (3D)
 `npm install` once (three.js, esbuild, glTF tools), then `node tools/build.js` as usual. `node tests/grove.js` tests it.
 3D models: [KayKit](https://kaylousberg.com) by Kay Lousberg, CC0. See `docs/pocket-grove-design.md`.
+
+### Creator code (TEMPORARY, remove before launch)
+In any game, type `creator` on the keyboard, or tap the game's title 5 times on the menu (phone) and enter `creator`. That game then gets 9,999,999 coins that never run out, all skins, and every unlock (Ink Heroes: all heroes, guns, items, story levels; Pocket Grove: gold, seeds, level 12, plots, sprinkler, decorations, pets). It is saved per game.
+To remove it: delete every line marked `CREATOR` (`grep -rn CREATOR src/`), then rebuild.

@@ -276,7 +276,21 @@
   K.synth = { tone: function () { tone.apply(null, arguments); }, noise: function () { noise.apply(null, arguments); }, muted: function () { return muted; } };
   /* Rewarded ad from inside a game (e.g. "watch ad for coins") — goes through the same AD PLACEHOLDER hook */
   K.rewarded = function (done) { Ads.rewarded(function (ok) { done(!!ok); }); };
-  K.spend = function (n) { if (wallet() < n) return false; store.set('coins', wallet() - n); updateHud(false); return true; };
+  K.spend = function (n) { if (K.creator) { creatorTopUp(); return true; } /* CREATOR */ if (wallet() < n) return false; store.set('coins', wallet() - n); updateHud(false); return true; };
+
+  /* ---------------- CREATOR CODE — TEMPORARY, REMOVE BEFORE LAUNCH (delete every line marked CREATOR) ----------------
+     Type "creator" on the keyboard, or tap the game title 5 times on the menu and enter it.
+     Turns on creator mode for THIS game only: coins never run out, all skins, and each game's own unlocks (cfg.creator). */
+  var CREATOR_CODE = 'creator', CREATOR_COINS = 9999999, typed = '', titleTaps = 0, titleT = 0; // CREATOR
+  K.creator = false; // CREATOR
+  function creatorTopUp() { if (wallet() < CREATOR_COINS) store.set('coins', CREATOR_COINS); if (ui.coins) updateHud(false); } // CREATOR
+  function creatorApply() { K.creator = true; creatorTopUp(); store.set('skins', SKINS.map(function (s) { return s.id; })); if (game.creator) game.creator(K); } // CREATOR
+  function creatorEnter(code) { // CREATOR
+    if (String(code || '').trim().toLowerCase() !== CREATOR_CODE) { if (code) { sfx('wrong'); toast('✗'); } return false; }
+    store.set('creator:' + cfg.id, true); creatorApply(); sfx('reward'); confetti(120); toast('Creator mode ON');
+    if (state === 'menu') showMenu(); return true;
+  }
+  K.creatorEnter = creatorEnter; // CREATOR (tests)
   K.info = function (txt) { if (ui.info && ui.info.textContent !== txt) ui.info.textContent = txt; };
   K.tutorialDone = function () { if (K.tutorial) { K.tutorial = false; store.set('tut:' + cfg.id, true); } };
   K.gameOver = function (o) {
@@ -409,7 +423,7 @@
       '<div class="topbar"><a class="brand" target="_top" href="../' + (K.lang === 'en' ? '' : K.lang + '/') + 'index.html" aria-label="Bubzi">' + (cfg.mascot ? '' : bubziSVG('happy', 34)) + '<span>bubzi</span></a>' +
       '<span class="pill">' + ICON.coin + '<b>' + fmt(wallet()) + '</b></span></div>' +
       bubziSVG('happy').replace('class="mascot-svg"', 'class="mascot"') +
-      '<h1 class="title">' + esc(cfg.title[K.lang] || cfg.title.en) + '</h1>' +
+      '<h1 class="title" id="gTitle">' + esc(cfg.title[K.lang] || cfg.title.en) + (K.creator ? ' <small style="font-size:.45em;color:#FFB020">CREATOR</small>' : '') + '</h1>' + /* CREATOR badge */
       '<p class="tag">' + esc(K.t('tagline')) + '</p>' +
       '<button class="btn big" id="bPlay">' + ICON.play + esc(K.t('play')) + '</button>' +
       '<p class="tag">' + esc(K.t('best')) + ': <b>' + fmt(bestScore()) + '</b></p>' +
@@ -421,6 +435,7 @@
       '</div>');
     $('bPlay').onclick = function () { unlockAudio(); sfx('click'); startRound(); };
     $('bDaily').onclick = function () { sfx('click'); showDaily(); };
+    $('gTitle').onclick = function () { var t = Date.now(); titleTaps = t - titleT < 800 ? titleTaps + 1 : 1; titleT = t; if (titleTaps >= 5) { titleTaps = 0; var c = window.prompt('Code'); if (c) creatorEnter(c); } }; // CREATOR
     if ($('bSkins')) $('bSkins').onclick = function () { sfx('click'); showSkins(); };
     $('bSoundM').onclick = toggleSound;
     var sel = $('selLang'); sel.value = K.lang;
@@ -475,6 +490,7 @@
     K.score = 0; K.coinsRound = 0; K.revived = false; K.round++; bonusPaid = 0; lastScoreShown = -1;
     K.tutorial = !store.get('tut:' + cfg.id, false);
     K.info('');
+    if (K.creator) creatorApply(); // CREATOR: refill before the round
     game.reset(K);
     ui.hud.classList.remove('hidden');
     updateHud(false);
@@ -580,6 +596,7 @@
     var GAMEKEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'];
     window.addEventListener('keydown', function (e) {
       unlockAudio();
+      if (e.key && e.key.length === 1) { typed = (typed + e.key.toLowerCase()).slice(-CREATOR_CODE.length); if (typed === CREATOR_CODE) { typed = ''; creatorEnter(CREATOR_CODE); } } // CREATOR
       var c = e.code;
       if (state === 'playing') {
         if (c === 'Escape' || c === 'KeyP') { e.preventDefault(); pause(); return; }
@@ -641,6 +658,7 @@
       var th = cfg.theme || Q.get('theme') || store.get('theme', null); if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th);
       buildDom(); bindInput(); resize();
       if (game.init) game.init(K);
+      if (store.get('creator:' + cfg.id, false)) creatorApply(); // CREATOR
       game.reset(K);
       showMenu();
       if (AUTOSTART) startRound();

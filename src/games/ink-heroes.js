@@ -1747,6 +1747,11 @@
   }
 
   BubziKit.run({
+    creator: function (K) { // CREATOR (temporary): all heroes, guns, full items, every story level
+      K.store.set('ink:heroes', HEROES.map(function (h) { return h.id; })); K.store.set('ink:guns', Object.keys(GUNS));
+      var o = inv(); ITEM_ORDER.forEach(function (k) { o[k] = ITEMS[k].max; }); saveInv(o);
+      if (!prog) prog = loadProg(); prog.u = NLV - 1; prog.nu = NLV - 1; prog.nm = true; saveProg();
+    },
     id: 'ink-heroes', coinRate: 0.01, noSkins: true, theme: 'dark', mascot: mascot,
     title: { en: 'Ink Heroes', fr: 'Héros d’Encre', ar: 'أبطال الحبر' },
     strings: {
