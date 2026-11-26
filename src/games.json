@@ -26,6 +26,32 @@
     }
   },
   {
+    "id": "merge-blasters",
+    "category": "action",
+    "color": "#38B6FF",
+    "isNew": true,
+    "title": {
+      "en": "Merge Blasters",
+      "fr": "Fusion Blasters",
+      "ar": "دمج المدافع"
+    },
+    "desc": {
+      "en": "Merge two of the same blaster into a stronger one and pop the wobbly goo blobs before they reach your wall. A free merge defense game.",
+      "fr": "Fusionne deux blasters identiques pour en créer un plus fort et éclate les blobs de gelée avant ton mur. Un jeu de fusion et de défense gratuit.",
+      "ar": "ادمج مدفعين متشابهين لتصنع مدفعاً أقوى وفجّر كرات الهلام قبل أن تصل إلى جدارك. لعبة دمج ودفاع مجانية."
+    },
+    "keywords": {
+      "en": "merge games, merge defense, tower defense game, idle shooter, free merge game",
+      "fr": "jeux de fusion, jeu de défense, tower defense gratuit, jeu de tir",
+      "ar": "ألعاب دمج, ألعاب دفاع, ألعاب الأبراج, ألعاب إطلاق مجانية"
+    },
+    "howto": {
+      "en": "Tap the green button to buy a blaster with gold. Drag a blaster onto another one with the same number to merge them into a stronger one. Blasters fire by themselves at the nearest goo blob. Popped blobs give gold. If a blob reaches your wall you lose a heart; every 5th wave is a big boss. Keyboard: B buys, arrows move, Space picks up and drops.",
+      "fr": "Touche le bouton vert pour acheter un blaster avec de l'or. Fais glisser un blaster sur un autre avec le même nombre pour les fusionner. Les blasters tirent seuls sur le blob le plus proche. Chaque blob éclaté donne de l'or. Si un blob touche ton mur, tu perds un cœur ; toutes les 5 vagues arrive un gros boss. Clavier : B pour acheter, flèches pour bouger, Espace pour prendre et poser.",
+      "ar": "المس الزر الأخضر لشراء مدفع بالذهب. اسحب مدفعاً فوق آخر يحمل نفس الرقم لتدمجهما في مدفع أقوى. تطلق المدافع وحدها على أقرب كرة هلام. كل كرة تنفجر تعطيك ذهباً. إذا وصلت كرة إلى جدارك تخسر قلباً، وكل 5 موجات يأتي زعيم كبير. لوحة المفاتيح: B للشراء، الأسهم للتحريك، المسافة للحمل والوضع."
+    }
+  },
+  {
     "id": "block-bloom",
     "category": "puzzle",
     "color": "#7B4DFF",

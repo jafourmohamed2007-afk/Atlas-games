@@ -230,6 +230,29 @@ const BOTS = {
     if (d.kills < 15) fail('only ' + d.kills + ' kills — combat may be broken');
   },
 
+  'merge-blasters': async (page, fail, info) => {
+    const box = await page.locator('#game').boundingBox(); const p = page;
+    const act = async (p, box) => {
+    const d = await dbg(p);
+    const lv = {}; let pair = null; d.grid.forEach((l, i) => { if (!l || pair) return; if (lv[l] !== undefined) pair = [i, lv[l]]; else lv[l] = i; });
+    if (pair) { const a = d.cells[pair[0]], b = d.cells[pair[1]]; await p.mouse.move(box.x + a.x, box.y + a.y); await p.mouse.down(); for (let k = 1; k <= 5; k++) { await p.mouse.move(box.x + a.x + (b.x - a.x) * k / 5, box.y + a.y + (b.y - a.y) * k / 5); await sleep(20); } await p.mouse.up(); return 'merge'; }
+    if (d.gold >= d.price && d.grid.some((l) => !l)) { await p.mouse.click(box.x + d.buy.x, box.y + d.buy.y); return 'buy'; }
+    await sleep(120); return '';
+  };
+    let buys = 0, mergesSeen = 0, d;
+    for (let i = 0; i < 700; i++) {
+      if ((await st(page)) !== 'playing') break;
+      const r = await act(p, box); if (r === 'buy') buys++;
+      d = await dbg(page); if (d.wave >= 9) break;
+    }
+    d = await dbg(page);
+    const top = Math.max(...d.grid);
+    info.push(buys + ' buys, ' + d.merges + ' merges, top blaster level ' + top + ', wave ' + d.wave + ', ' + d.kills + ' blobs popped, wall ' + d.wallHp);
+    if (buys < 3) fail('could not buy blasters');
+    if (d.merges < 3 || top < 3) fail('merging does not work (' + d.merges + ')');
+    if (d.wave < 5) fail('waves did not progress (' + d.wave + ')');
+    if (d.kills < 20) fail('blasters did not pop blobs (' + d.kills + ')');
+  },
   'spear-hills': async (page, fail, info) => {
     const box = await page.locator('#game').boundingBox();
     let kos = 0, lvl = 1, throws = 0, hit = 0;

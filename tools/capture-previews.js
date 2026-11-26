@@ -8,7 +8,7 @@ const ROOT = path.join(__dirname, '..');
 const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/games.json'), 'utf8')).map((g) => g.id);
 const only = process.argv.slice(2);
 const FRAMES = 12, FW = 240, FH = 240, GAP = 190, VW = 360, VH = 640;
-const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170, 'ink-heroes': 250, 'pocket-grove': 200, 'spear-hills': 200 };
+const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170, 'ink-heroes': 250, 'pocket-grove': 200, 'spear-hills': 200, 'merge-blasters': 150 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const dbg = (p) => p.evaluate(() => JSON.parse(JSON.stringify(window.__bubzi.K.dbg())));
 const playing = (p) => p.evaluate(() => window.__bubzi.state() === 'playing');
@@ -73,6 +73,13 @@ const ACT = {
       g.skip(240); g.camYaw(0.4 + Math.sin(Date.now() / 2500) * 0.35); });
     await p.keyboard.press('Backspace'); await sleep(170);
   },
+  'merge-blasters': async (p, box) => {
+    const d = await dbg(p);
+    const lv = {}; let pair = null; d.grid.forEach((l, i) => { if (!l || pair) return; if (lv[l] !== undefined) pair = [i, lv[l]]; else lv[l] = i; });
+    if (pair) { const a = d.cells[pair[0]], b = d.cells[pair[1]]; await p.mouse.move(box.x + a.x, box.y + a.y); await p.mouse.down(); for (let k = 1; k <= 5; k++) { await p.mouse.move(box.x + a.x + (b.x - a.x) * k / 5, box.y + a.y + (b.y - a.y) * k / 5); await sleep(20); } await p.mouse.up(); return 'merge'; }
+    if (d.gold >= d.price && d.grid.some((l) => !l)) { await p.mouse.click(box.x + d.buy.x, box.y + d.buy.y); return 'buy'; }
+    await sleep(120); return '';
+  },
   'spear-hills': async (p, box, s) => {
     const d = await dbg(p); if (d.phase !== 'aim' || !d.hint) { await sleep(60); return; }
     const x = box.x + box.width * 0.5, y = box.y + box.height * 0.55, e = 1 + (Math.random() - 0.5) * 0.06;
@@ -102,7 +109,7 @@ const ACT = {
     const box = await p.locator('#game').boundingBox();
     const s = {}; let stop = false;
     const loop = (async () => { while (!stop) { try { if (await playing(p)) await ACT[id](p, box, s); else { await p.evaluate(() => window.__bubzi.start()); } } catch (e) { await sleep(50); } } })();
-    await sleep(id === 'memo-match' ? 2600 : id === 'jelly-drop' ? 11000 : id === 'ink-heroes' ? 9000 : id === 'pocket-grove' ? 4000 : 3200);
+    await sleep(id === 'memo-match' ? 2600 : id === 'jelly-drop' ? 11000 : id === 'ink-heroes' ? 9000 : id === 'pocket-grove' ? 4000 : id === 'merge-blasters' ? 16000 : 3200);
     const frames = [];
     for (let i = 0; i < FRAMES; i++) { frames.push((await p.screenshot({ type: 'jpeg', quality: 88, clip: { x: 0, y: Y0[id], width: VW, height: VW } })).toString('base64')); await sleep(GAP); }
     stop = true; await loop;
