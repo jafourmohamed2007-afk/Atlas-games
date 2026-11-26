@@ -32,7 +32,10 @@ Tap an empty plot → pick a seed → tap to water (+20% growth) → it grows in
 - **Random mutations:** Shiny ×2, Giant ×3, Rainbow ×8 (stack).
 - **Harvest Album:** 9 seeds × 7 looks = 63 entries to collect.
 - **Pets** from eggs (1500 gold, level 5, hatch in 20 min): Bunny (grow 10% faster), Bee (+50% mutations), Hedgehog (+15% sell), Firefly (+25% XP, rare).
-- **Daily seed gift**, plus the site-wide daily coin bonus.
+- **Daily seed gift + login streak:** the gift grows every 3 days in a row, and every 7th day adds a rare seed.
+- **Daily Orders:** 3 villager orders a day (the same for everyone), for example "Tom wants 3× Tomato", paying gold and XP. Finishing all 3 gives a bonus of 2 rare seeds and 200 gold. They reset at midnight.
+- **Sprinkler** (2500 gold, level 5): automatically waters every new plant.
+- **Harvest all** button when 2 or more plants are ready.
 - **Day/night** follows the player's clock, with lanterns at night.
 
 ## Ads (placeholders)
