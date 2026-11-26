@@ -60,11 +60,27 @@
     crit: { en: ['Crit Eye', '+12% critical hits'], fr: ['Œil critique', '+12 % de coups critiques'], ar: ['عين حاسمة', '+12% ضربات حاسمة'] }
   };
 
-  var K0, sc, gyS, camX, hero, zombies, bullets, spits, waves, pickups, parts, decals, allies, banners, mode, wave, queue, spawnT, alive, picked, sel,
+  /* ---------------- infinity difficulty: every wave is strictly harder, forever ---------------- */
+  function threat(n) {
+    var k = n - 1;
+    return { hp: 1 + 0.12 * k + 0.004 * k * k, dmg: 1 + 0.05 * k, spd: 1 + Math.min(0.6, 0.022 * k), count: Math.min(60, Math.round(6 + 2.6 * n)),
+      maxAlive: Math.min(22, 4 + n), spawn: Math.max(0.25, 1.3 - 0.05 * k), elite: n < 6 ? 0 : Math.min(0.45, 0.04 * (n - 5)),
+      special: Math.min(0.85, 0.3 + 0.045 * k), bosses: n % 5 === 0 ? 1 + Math.floor(n / 15) : 0, muts: n >= 15 ? 2 : n >= 6 ? 1 : 0 };
+  }
+  var MUTS = {
+    fast: { en: ['Fast Night', 'Zombies move faster'], fr: ['Nuit rapide', 'Les zombies vont plus vite'], ar: ['ليلة سريعة', 'الزومبي أسرع'] },
+    tough: { en: ['Thick Skin', '+40% zombie health'], fr: ['Peau épaisse', '+40 % de vie pour les zombies'], ar: ['جلد سميك', '+40% صحة الزومبي'] },
+    horde: { en: ['The Horde', '50% more zombies'], fr: ['La horde', '50 % de zombies en plus'], ar: ['الحشد', 'زومبي أكثر بنسبة 50%'] },
+    spitters: { en: ['Goo Rain', 'Lots of Gloops'], fr: ['Pluie de gelée', 'Plein de Gloops'], ar: ['مطر اللزوجة', 'الكثير من غلوب'] },
+    boom: { en: ['Pop Party', 'Lots of Poppers'], fr: ['Fête explosive', 'Plein de Pétards'], ar: ['حفلة الانفجارات', 'الكثير من المنفجرين'] },
+    redmoon: { en: ['Red Moon', 'More elite zombies'], fr: ['Lune rouge', 'Plus de zombies d’élite'], ar: ['القمر الأحمر', 'زومبي نخبة أكثر'] }
+  };
+  var K0, curMut = [], bestWave = 0, sc, gyS, camX, hero, zombies, bullets, spits, waves, pickups, parts, decals, allies, banners, mode, wave, queue, spawnT, alive, picked, sel,
     perkOpts, perkSel, hs, slow, combo, comboT, mods, kills, bossRef, tutT, ui, touchUI, held, keys, firstTypes, introT, clearT, seed;
 
   /* ---------------- helpers ---------------- */
   function rnd(a, b) { return a + Math.random() * (b - a); }
+  function mix(a, b, t) { var p = function (h, i) { return parseInt(h.slice(i, i + 2), 16); }; var o = '#'; for (var i = 1; i < 7; i += 2) { var v = Math.round(p(a, i) + (p(b, i) - p(a, i)) * t); o += (v < 16 ? '0' : '') + v.toString(16); } return o; }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function owned() { var o = K0.store.get('ink:heroes', ['kai']); return Array.isArray(o) ? o : ['kai']; }
@@ -166,23 +182,30 @@
   }
   function nextWave(K) {
     wave++; mode = 'fight'; introT = 1.6; K.sfx(wave % 5 === 0 ? 'boss' : 'star');
-    var n = wave, count = Math.min(46, 5 + n * 3), avail = TYPES.filter(function (t) { return ZT[t].wave <= n; });
+    var n = wave, T = threat(n), avail = TYPES.filter(function (t) { return ZT[t].wave <= n; });
+    curMut = []; var pool = Object.keys(MUTS).sort(function () { return Math.random() - 0.5; });
+    for (var mi = 0; mi < T.muts; mi++) curMut.push(pool[mi]);
+    var has = function (m) { return curMut.indexOf(m) >= 0; };
+    var count = Math.round(T.count * (has('horde') ? 1.5 : 1));
     queue = [];
     for (var i = 0; i < count; i++) {
       var t = 'shuffler', r = Math.random();
-      if (avail.length > 1 && r > Math.max(0.25, 0.7 - n * 0.05)) t = avail[1 + Math.floor(Math.random() * (avail.length - 1))];
+      if (has('spitters') && r < 0.35) t = 'gloop';
+      else if (has('boom') && r < 0.35) t = 'popper';
+      else if (avail.length > 1 && Math.random() < T.special) t = avail[1 + Math.floor(Math.random() * (avail.length - 1))];
       queue.push(t);
     }
     // the newest type always shows up early so its intro appears
     var newest = TYPES.filter(function (t) { return ZT[t].wave === n; })[0]; if (newest) queue.splice(2, 0, newest);
-    if (n % 5 === 0) queue.splice(Math.floor(queue.length / 3), 0, 'gravemaw');
+    for (var bi = 0; bi < T.bosses; bi++) queue.splice(Math.floor(queue.length * (bi + 1) / (T.bosses + 2)), 0, 'gravemaw');
+    if (curMut.length) banners.push({ t: 3.4, title: curMut.map(function (m) { return (MUTS[m][K.lang] || MUTS[m].en)[0]; }).join(' + '), sub: curMut.map(function (m) { return (MUTS[m][K.lang] || MUTS[m].en)[1]; }).join(' · '), col: '#FF8A6A' });
     spawnT = 1.2;
     for (var b = 0; b < mods.buddy; b++) if (!allies[b] || allies[b].dead) allies[b] = newAlly(K, b);
-    K.info(K.t('wave') + ' ' + wave);
+    K.info('\u221E ' + K.t('wave') + ' ' + wave);
   }
   function newAlly(K, i) { return { x: hero.x - 60 - i * 40, y: 0, vx: 0, vy: 0, face: 1, hp: 90 + wave * 10, maxHp: 90 + wave * 10, pose: pose('idle', 0), animT: 0, atkT: 0, cd: 0, col: ['#22C55E', '#F59E0B'][i % 2], dead: false }; }
   function spawnZombie(K, t) {
-    var d = ZT[t], m = 1 + (wave - 1) * 0.1, vw = viewW(K), side = Math.random() < 0.5 ? -1 : 1, x;
+    var d = ZT[t], T = threat(wave), vw = viewW(K), side = Math.random() < 0.5 ? -1 : 1, x;
     if (t === 'biter' && Math.random() < 0.6) x = clamp(hero.x + side * rnd(220, 380), 40, AW - 40);
     else {
       var lx = camX - 70, rx = camX + vw + 70;
@@ -190,9 +213,12 @@
       x = clamp(side < 0 ? lx : rx, 30, AW - 30);
       if (Math.abs(x - hero.x) < 260) x = clamp(hero.x - side * 420, 30, AW - 30);
     }
-    var hp = Math.round(d.hp * (d.boss ? 1 + Math.floor(wave / 5 - 1) * 0.35 : m));
-    var z = { t: t, d: d, x: x, y: 0, vx: 0, vy: 0, face: x < hero.x ? 1 : -1, hp: hp, maxHp: hp, pose: pose('zwalk', 0), animT: rnd(0, 6), atkT: 0, atkHit: false, cd: rnd(0.3, 1.2),
-      stun: 0, rise: t === 'biter' ? 0.6 : 0, fuse: 0, shield: d.shield || 0, dmgM: 1 + (wave - 1) * 0.04, spd: d.spd * rnd(0.9, 1.12) * (1 + Math.min(0.4, wave * 0.02)), bossT: 2, bossAct: null };
+    var tough = curMut.indexOf('tough') >= 0 ? 1.4 : 1, fast = curMut.indexOf('fast') >= 0 ? 1.25 : 1;
+    var elite = !d.boss && Math.random() < T.elite + (curMut.indexOf('redmoon') >= 0 ? 0.25 : 0);
+    var hp = Math.round(d.hp * (d.boss ? 0.6 + 0.4 * T.hp : T.hp) * tough * (elite ? 2.5 : 1));
+    var z = { elite: elite, t: t, d: d, x: x, y: 0, vx: 0, vy: 0, face: x < hero.x ? 1 : -1, hp: hp, maxHp: hp, pose: pose('zwalk', 0), animT: rnd(0, 6), atkT: 0, atkHit: false, cd: rnd(0.3, 1.2),
+      stun: 0, rise: t === 'biter' ? 0.6 : 0, fuse: 0, shield: d.shield || 0, dmgM: T.dmg * (elite ? 1.5 : 1), spd: d.spd * rnd(0.9, 1.12) * Math.min(1.75, T.spd * fast * (elite ? 1.2 : 1)) * (d.boss ? 1 : 1), bossT: 2, bossAct: null };
+    if (elite && !firstTypes.elite) { firstTypes.elite = true; banners.push({ t: 3.2, title: K.t('eliteT'), sub: K.t('eliteS'), col: '#FFD43B' }); }
     zombies.push(z);
     if (!firstTypes[t]) { firstTypes[t] = true; banners.push({ t: 3.2, title: (d.boss ? '' : K.t('newZ') + ' ') + L(K, d.name), sub: L(K, d.tip), col: d.col }); if (d.boss) { K.shake(10); bossRef = z; } }
     if (d.boss) { bossRef = z; K.sfx('boss'); }
@@ -250,20 +276,20 @@
   function killZombie(K, z, dir) {
     z.dead = true; kills++;
     var mult = 1 + Math.min(2, Math.floor(combo / 10) * 0.25);
-    K.addScore(Math.round(z.d.score * mult));
+    K.addScore(Math.round(z.d.score * mult * (z.elite ? 3 : 1) * (1 + (wave - 1) * 0.05)));
     var J = rig(z.pose, z.x, z.y, z.face, z.d.size, z.y >= -1, z.t === 'biter');
     ragdoll(J, z.d.col, dir || -z.face, z.d.size, 10 * z.d.size);
     goo(z.x, -50, z.d.col, 16, 520); decals.push({ x: z.x, w: rnd(30, 60) * z.d.size, col: z.d.col, t: 8 });
     if (z.d.explode) explode(K, z.x, -50 * z.d.size, 140, 60, z);
     if (mods.vamp) hero.hp = Math.min(hero.maxHp, hero.hp + mods.vamp);
     // drops
-    var r = Math.random(), coinN = z.d.boss ? 25 : z.d.heavy ? 5 : (r < 0.55 ? (Math.random() < 0.3 ? 2 : 1) : 0);
+    var r = Math.random(), coinN = z.d.boss ? 25 : z.d.heavy ? 5 : (r < 0.55 ? (Math.random() < 0.3 ? 2 : 1) : 0); if (z.elite) coinN += 4;
     for (var i = 0; i < coinN; i++) pickups.push({ k: 'coin', x: z.x, y: -40, vx: rnd(-220, 220), vy: rnd(-600, -300), t: 0 });
     if (Math.random() < 0.07) pickups.push({ k: 'heart', x: z.x, y: -40, vx: rnd(-100, 100), vy: -500, t: 0 });
     if (Math.random() < 0.05) pickups.push({ k: 'ink', x: z.x, y: -40, vx: rnd(-100, 100), vy: -500, t: 0 });
     if (Math.random() < (z.d.boss ? 1 : z.d.heavy ? 0.5 : 0.06)) pickups.push({ k: 'crate', x: z.x, y: -60, vx: rnd(-80, 80), vy: -520, t: 0, id: Object.keys(WEAPONS)[Math.floor(Math.random() * 6)] });
     if (Math.random() < 0.02 && !hero.rage) pickups.push({ k: 'rage', x: z.x, y: -40, vx: 0, vy: -500, t: 0 });
-    if (z.d.boss) { bossRef = null; slow = 1.2; K.confetti(80); K.shake(16); K.sfx('reward'); }
+    if (z.d.boss) { bossRef = zombies.filter(function (o) { return o.d.boss && !o.dead; })[0] || null; slow = 1.2; K.confetti(80); K.shake(16); K.sfx('reward'); }
     else { hs = Math.max(hs, 0.045); K.sfx('punch'); }
     if (combo > 0 && combo % 25 === 0) { banners.push({ t: 1.6, title: combo + ' ' + K.t('combo') + '!', sub: '', col: '#FFE15A' }); K.sfx('combo'); }
   }
@@ -285,7 +311,8 @@
       hero.hp = 0;
       var J = rig(hero.pose, hero.x, hero.y, hero.face, hero.def.size, hero.ground, false);
       ragdoll(J, '#111111', dir, 1, hero.def.lw); hero.dead = true;
-      K.gameOver({ title: K.t('overrun') });
+      if (wave > bestWave) { bestWave = wave; K.store.set('ink:bestWave', wave); }
+      K.gameOver({ title: K.t('reached') + ' ' + wave + (wave >= bestWave ? ' · ' + K.t('record') : '') });
     }
   }
   function fire(K) {
@@ -559,12 +586,14 @@
   function drawWorld(c, K) {
     var W = K.W, H = K.H;
     // sky: sunset over ruins
-    var g = c.createLinearGradient(0, 0, 0, gyS); g.addColorStop(0, '#5C3B7A'); g.addColorStop(0.45, '#E0775C'); g.addColorStop(1, '#FFC587');
+    var nt = Math.min(1, Math.max(0, (wave - 1) / 12));
+    var g = c.createLinearGradient(0, 0, 0, gyS); g.addColorStop(0, mix('#5C3B7A', '#0E0820', nt)); g.addColorStop(0.45, mix('#E0775C', '#3A1838', nt)); g.addColorStop(1, mix('#FFC587', '#8A2E3A', nt));
     c.fillStyle = g; c.fillRect(0, 0, W, H);
     var sunX = W * 0.68 - camX * sc * 0.03, sunY = gyS - 150 * sc;
     var sg = c.createRadialGradient(sunX, sunY, 10, sunX, sunY, 260 * sc); sg.addColorStop(0, 'rgba(255,240,190,0.95)'); sg.addColorStop(0.25, 'rgba(255,200,120,0.55)'); sg.addColorStop(1, 'rgba(255,200,120,0)');
     c.fillStyle = sg; c.fillRect(0, 0, W, H);
-    c.fillStyle = '#FFF1C8'; c.beginPath(); c.arc(sunX, sunY, 46 * sc, 0, TAU); c.fill();
+    c.fillStyle = mix('#FFF1C8', '#FF5A4E', nt); c.beginPath(); c.arc(sunX, sunY, 46 * sc, 0, TAU); c.fill();
+    if (nt > 0.3) { c.fillStyle = 'rgba(255,255,255,' + (nt * 0.8) + ')'; for (var st = 0; st < 40; st++) { var sxx = (st * 137.5 + 40) % K.W, syy = (st * 71.3) % (gyS * 0.55); c.fillRect(sxx, syy, 2, 2); } }
     // ruined skyline layers
     [[0.2, '#8C5A7E', 1.0, 3], [0.45, '#5E3B60', 0.75, 7]].forEach(function (Lr, li) {
       c.fillStyle = Lr[1]; var off = camX * Lr[0];
@@ -651,7 +680,8 @@
     var lw = (d.boss ? 12 : d.heavy ? 12 : 9) * s;
     var flash = z.stun > 0.18;
     if (z.fuse > 0) { c.shadowColor = '#FF3B4E'; c.shadowBlur = 20 * sc * (0.5 + 0.5 * Math.sin(K.time * 40)); }
-    drawRig(c, J, flash ? '#FFFFFF' : d.col, flash ? '#FFFFFF' : d.dark, lw, '#1A1020');
+    else if (z.elite) { c.shadowColor = '#FFD43B'; c.shadowBlur = (16 + 6 * Math.sin(K.time * 6)) * sc; }
+    drawRig(c, J, flash ? '#FFFFFF' : d.col, flash ? '#FFFFFF' : d.dark, lw, z.elite ? '#FFD43B' : '#1A1020');
     c.shadowBlur = 0;
     var hx = sx(J.head[0]), hy = sy(J.head[1]), r = J.R * sc, f = z.face;
     // type features
@@ -748,7 +778,7 @@
     // banners
     var y0 = gyS * 0.32;
     banners.forEach(function (b, i) { if (i > 0) return; var a = Math.min(1, b.t * 3, (b.dur || 3) - b.t + 1); c.globalAlpha = Math.max(0, Math.min(1, a)); c.textAlign = 'center'; c.font = K.font(Math.min(36, W / 12)); c.lineWidth = 7; c.strokeStyle = 'rgba(20,10,30,0.85)'; c.strokeText(b.title, W / 2, y0); c.fillStyle = b.col; c.fillText(b.title, W / 2, y0); if (b.sub) { c.font = K.font(Math.min(17, W / 24), 700); c.lineWidth = 5; c.strokeText(b.sub, W / 2, y0 + 30); c.fillStyle = '#FFFFFF'; c.fillText(b.sub, W / 2, y0 + 30); } c.globalAlpha = 1; });
-    if (introT > 0) { c.globalAlpha = Math.min(1, introT * 2); c.textAlign = 'center'; c.font = K.font(Math.min(64, W / 7)); c.lineWidth = 9; c.strokeStyle = 'rgba(20,10,30,0.9)'; var wt = (wave % 5 === 0 ? K.t('bossWave') + ' · ' : '') + K.t('wave') + ' ' + wave; c.strokeText(wt, W / 2, gyS * 0.5); c.fillStyle = wave % 5 === 0 ? '#FF3B4E' : '#FFE15A'; c.fillText(wt, W / 2, gyS * 0.5); c.globalAlpha = 1; }
+    if (introT > 0) { c.globalAlpha = Math.min(1, introT * 2); c.textAlign = 'center'; c.font = K.font(Math.min(64, W / 7)); c.lineWidth = 9; c.strokeStyle = 'rgba(20,10,30,0.9)'; var wt = (wave % 5 === 0 ? K.t('bossWave') + ' · ' : '') + '\u221E ' + K.t('wave') + ' ' + wave; c.strokeText(wt, W / 2, gyS * 0.5); c.fillStyle = wave % 5 === 0 ? '#FF3B4E' : '#FFE15A'; c.fillText(wt, W / 2, gyS * 0.5); c.globalAlpha = 1; }
     // touch controls
     if (touchUI) {
       var B = btns(K), lbl = { atk: K.t('bAtk'), jump: K.t('bJump'), shoot: K.t('bShoot'), spec: K.t('bSpec') }, col = { left: '#FFFFFF', right: '#FFFFFF', atk: '#FF3B4E', jump: '#22C55E', shoot: '#3B82F6', spec: h.ink >= 100 ? '#FFE15A' : '#6B6B7B' };
@@ -778,11 +808,12 @@
     var W = K.W, H = K.H; ui = [];
     c.fillStyle = 'rgba(15,8,25,0.72)'; c.fillRect(0, 0, W, H);
     c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = K.font(Math.min(36, W / 11, H / 13)); c.fillStyle = '#FFFFFF'; c.fillText(K.t('choose'), W / 2, K.hudH + Math.min(24, H / 30));
+    c.font = K.font(Math.min(14, W / 31, H / 26), 800); c.fillStyle = '#FFD43B'; c.fillText('\u221E ' + K.t('infinity') + (bestWave ? ' · ' + K.t('bestWave') + ' ' + bestWave : ''), W / 2, K.hudH + Math.min(24, H / 30) + Math.min(26, H / 15));
     var own = owned(), n = HEROES.length, land = W > H * 1.1, gap = 12, cw, ch, x0, y0;
     if (land) { cw = Math.min(210, (W - 40 - gap * (n - 1)) / n); ch = Math.min(H - K.hudH - 56 - 40 - Math.min(24, H / 30) * 2, cw * 1.55); x0 = (W - (cw * n + gap * (n - 1))) / 2; y0 = K.hudH + Math.min(52, H / 12); }
     else { cw = Math.min(200, (W - 36 - gap) / 2); ch = Math.min((H - K.hudH - 150 - gap) / 2, cw * 1.5); x0 = (W - (cw * 2 + gap)) / 2; y0 = K.hudH + 50; }
     HEROES.forEach(function (h, i) {
-      var x = land ? x0 + i * (cw + gap) : x0 + (i % 2) * (cw + gap), y = land ? y0 : y0 + Math.floor(i / 2) * (ch + gap), isSel = sel === i, own2 = own.indexOf(h.id) >= 0;
+      var x = land ? x0 + i * (cw + gap) : x0 + (i % 2) * (cw + gap), y = (land ? y0 : y0 + Math.floor(i / 2) * (ch + gap)) + Math.min(14, H / 30), isSel = sel === i, own2 = own.indexOf(h.id) >= 0;
       c.fillStyle = isSel ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.07)'; K.roundRect(c, x, y, cw, ch, 18); c.fill();
       if (isSel) { c.strokeStyle = h.acc; c.lineWidth = 4; c.stroke(); }
       // hero preview
@@ -878,11 +909,11 @@
     id: 'ink-heroes', coinRate: 0.01, noSkins: true, theme: 'dark', mascot: mascot,
     title: { en: 'Ink Heroes', fr: 'Héros d’Encre', ar: 'أبطال الحبر' },
     strings: {
-      en: { tagline: 'Endless zombie night. Punch, shoot and survive!', choose: 'Choose your hero', fight: 'FIGHT!', unlock: 'Unlock', needCoins: 'Not enough coins yet', wave: 'Wave', bossWave: 'BOSS', cleared: 'Wave cleared!', pickPerk: 'Pick a power-up', combo: 'COMBO', reloading: 'Reloading…', newZ: 'New:', block: 'BLOCK', broken: 'SMASHED!', broke: 'Broken!', empty: 'Empty!', rage: 'RAGE MODE!', overrun: 'Overrun!', bAtk: 'HIT', bJump: 'JUMP', bShoot: 'FIRE', bSpec: 'POWER', sPow: 'POWER', sSpd: 'SPEED', sHp: 'HEALTH', keys: '←/→ move · W jump · J hit · K fire · L power · R reload' },
-      fr: { tagline: 'Nuit zombie sans fin. Frappe, tire et survis !', choose: 'Choisis ton héros', fight: 'COMBAT !', unlock: 'Débloquer', needCoins: 'Pas encore assez de pièces', wave: 'Vague', bossWave: 'BOSS', cleared: 'Vague terminée !', pickPerk: 'Choisis un bonus', combo: 'COMBO', reloading: 'Rechargement…', newZ: 'Nouveau :', block: 'BLOQUÉ', broken: 'BRISÉ !', broke: 'Cassé !', empty: 'Vide !', rage: 'MODE FURIE !', overrun: 'Submergé !', bAtk: 'FRAPPE', bJump: 'SAUT', bShoot: 'TIR', bSpec: 'POUVOIR', sPow: 'PUISSANCE', sSpd: 'VITESSE', sHp: 'VIE', keys: '←/→ bouger · W sauter · J frapper · K tirer · L pouvoir · R recharger' },
-      ar: { tagline: 'ليلة زومبي لا تنتهي. اضرب وأطلق النار ونجُ!', choose: 'اختر بطلك', fight: 'قتال!', unlock: 'افتح', needCoins: 'العملات لا تكفي بعد', wave: 'الموجة', bossWave: 'زعيم', cleared: 'انتهت الموجة!', pickPerk: 'اختر قوة', combo: 'كومبو', reloading: 'إعادة التلقيم…', newZ: 'جديد:', block: 'صدّ', broken: 'تحطّم!', broke: 'انكسر!', empty: 'فارغ!', rage: 'وضع الغضب!', overrun: 'غُمِرت!', bAtk: 'ضرب', bJump: 'قفز', bShoot: 'نار', bSpec: 'قوة', sPow: 'القوة', sSpd: 'السرعة', sHp: 'الصحة', keys: '←/→ تحرك · W قفز · J ضرب · K نار · L قوة · R تلقيم' }
+      en: { tagline: 'Endless zombie night. Punch, shoot and survive!', choose: 'Choose your hero', fight: 'FIGHT!', unlock: 'Unlock', needCoins: 'Not enough coins yet', wave: 'Wave', bossWave: 'BOSS', cleared: 'Wave cleared!', pickPerk: 'Pick a power-up', combo: 'COMBO', reloading: 'Reloading…', newZ: 'New:', block: 'BLOCK', broken: 'SMASHED!', broke: 'Broken!', empty: 'Empty!', rage: 'RAGE MODE!', overrun: 'Overrun!', reached: 'Fell at wave', record: 'New record!', infinity: 'INFINITY MODE · every wave is harder', bestWave: 'Best wave', eliteT: 'ELITE ZOMBIES!', eliteS: 'Gold glow = tougher, but 3× points and more coins', threat: 'Threat', bAtk: 'HIT', bJump: 'JUMP', bShoot: 'FIRE', bSpec: 'POWER', sPow: 'POWER', sSpd: 'SPEED', sHp: 'HEALTH', keys: '←/→ move · W jump · J hit · K fire · L power · R reload' },
+      fr: { tagline: 'Nuit zombie sans fin. Frappe, tire et survis !', choose: 'Choisis ton héros', fight: 'COMBAT !', unlock: 'Débloquer', needCoins: 'Pas encore assez de pièces', wave: 'Vague', bossWave: 'BOSS', cleared: 'Vague terminée !', pickPerk: 'Choisis un bonus', combo: 'COMBO', reloading: 'Rechargement…', newZ: 'Nouveau :', block: 'BLOQUÉ', broken: 'BRISÉ !', broke: 'Cassé !', empty: 'Vide !', rage: 'MODE FURIE !', overrun: 'Submergé !', reached: 'Tombé à la vague', record: 'Nouveau record !', infinity: 'MODE INFINI · chaque vague est plus dure', bestWave: 'Meilleure vague', eliteT: 'ZOMBIES D\u2019ÉLITE !', eliteS: 'Lueur dorée = plus coriaces, mais 3× points et plus de pièces', threat: 'Menace', bAtk: 'FRAPPE', bJump: 'SAUT', bShoot: 'TIR', bSpec: 'POUVOIR', sPow: 'PUISSANCE', sSpd: 'VITESSE', sHp: 'VIE', keys: '←/→ bouger · W sauter · J frapper · K tirer · L pouvoir · R recharger' },
+      ar: { tagline: 'ليلة زومبي لا تنتهي. اضرب وأطلق النار ونجُ!', choose: 'اختر بطلك', fight: 'قتال!', unlock: 'افتح', needCoins: 'العملات لا تكفي بعد', wave: 'الموجة', bossWave: 'زعيم', cleared: 'انتهت الموجة!', pickPerk: 'اختر قوة', combo: 'كومبو', reloading: 'إعادة التلقيم…', newZ: 'جديد:', block: 'صدّ', broken: 'تحطّم!', broke: 'انكسر!', empty: 'فارغ!', rage: 'وضع الغضب!', overrun: 'غُمِرت!', reached: 'سقطت في الموجة', record: 'رقم قياسي جديد!', infinity: 'الوضع اللانهائي · كل موجة أصعب', bestWave: 'أفضل موجة', eliteT: 'زومبي النخبة!', eliteS: 'التوهج الذهبي = أقوى لكن 3× نقاط وعملات أكثر', threat: 'الخطر', bAtk: 'ضرب', bJump: 'قفز', bShoot: 'نار', bSpec: 'قوة', sPow: 'القوة', sSpd: 'السرعة', sHp: 'الصحة', keys: '←/→ تحرك · W قفز · J ضرب · K نار · L قوة · R تلقيم' }
     },
-    init: function (K) { K0 = K; held = {}; keys = {}; ui = []; waves = []; layout(K); picked = K.store.get('ink:hero', 'kai');
+    init: function (K) { K0 = K; held = {}; keys = {}; ui = []; waves = []; layout(K); picked = K.store.get('ink:hero', 'kai'); bestWave = K.store.get('ink:bestWave', 0) || 0;
       window.addEventListener('touchstart', function () { if (!touchUI) { touchUI = true; layout(K); } }, { passive: true }); },
     resize: function (K) { layout(K); },
     reset: function (K) {
@@ -892,7 +923,7 @@
       hero = newHero(K); zombies = []; bullets = []; spits = []; pickups = []; parts = []; decals = []; allies = []; banners = []; wave = 0; combo = 0; comboT = 0; hs = 0; slow = 0; introT = 0; bossRef = null;
       mods = { maxHp: 0, melee: 1, rate: 1, mag: 1, vamp: 0, focus: 1, buddy: 0, luck: 1, crit: 0.05 };
       camX = clamp(hero.x - viewW(K) / 2, 0, Math.max(0, AW - viewW(K))); mode = 'pick';
-      if (K.test) K.dbg = function () { return { mode: mode, wave: wave, seen: Object.keys(firstTypes), weapon: (hero.melee && hero.melee.id) || (hero.gun2 && hero.gun2.id) || null, boss: !!bossRef, hero: { x: hero.x, y: hero.y, hp: hero.hp, ink: hero.ink, face: hero.face, ground: hero.ground, ammo: hero.ammo }, zombies: zombies.map(function (z) { return { t: z.t, x: z.x, y: z.y, hp: z.hp, shield: z.shield, atkT: z.atkT }; }), waves: waves.map(function (w) { return { x: w.x }; }), kills: kills, perkOpts: perkOpts, sel: sel, queue: queue.length }; };
+      if (K.test) K.dbg = function () { return { mode: mode, wave: wave, muts: curMut, elites: zombies.filter(function (z) { return z.elite; }).length, threat: [1, 2, 3, 5, 10, 15, 20, 30, 40, 60].map(function (n) { var t = threat(n); t.n = n; return t; }), seen: Object.keys(firstTypes), weapon: (hero.melee && hero.melee.id) || (hero.gun2 && hero.gun2.id) || null, boss: !!bossRef, hero: { x: hero.x, y: hero.y, hp: hero.hp, ink: hero.ink, face: hero.face, ground: hero.ground, ammo: hero.ammo }, zombies: zombies.map(function (z) { return { t: z.t, x: z.x, y: z.y, hp: z.hp, shield: z.shield, atkT: z.atkT }; }), waves: waves.map(function (w) { return { x: w.x }; }), kills: kills, perkOpts: perkOpts, sel: sel, queue: queue.length }; };
     },
     revive: function (K) {
       hero.dead = false; hero.hp = hero.maxHp; hero.inv = 2.6; hero.y = 0; hero.vy = 0; hero.ground = true; hero.atkT = 0; hero.specialT = 0; hero.specialKind = null; spits = []; waves = [];
@@ -951,8 +982,8 @@
       updateAllies(K, dt); updateProjectiles(K, dt); if (!K.isPlaying()) return;
       updatePickups(K, dt); updateParts(dt);
       // spawning
-      var aliveN = zombies.length, maxAlive = Math.min(4 + wave, 14);
-      if (queue.length && introT <= 0.6) { spawnT -= dt; if (spawnT <= 0 && aliveN < maxAlive) { spawnZombie(K, queue.shift()); spawnT = Math.max(0.35, 1.3 - wave * 0.05) * rnd(0.6, 1.3); } }
+      var aliveN = zombies.length, TT = threat(wave), maxAlive = TT.maxAlive;
+      if (queue.length && introT <= 0.6) { spawnT -= dt; if (spawnT <= 0 && aliveN < maxAlive) { spawnZombie(K, queue.shift()); spawnT = TT.spawn * rnd(0.6, 1.3); } }
       if (!queue.length && !zombies.length && introT <= 0) {
         clearT += dt;
         if (clearT > 1.2) { clearT = 0; K.addScore(100 * wave); K.addCoins(2 + Math.floor(wave / 2)); K.tutorialDone(); hero.ammo = Math.round(hero.def.gun.mag * mods.mag); hero.reloadT = 0; choosePerks(K); mode = 'perk'; K.sfx('reward'); }
