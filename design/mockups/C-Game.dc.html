@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Sticker Pack Block Bloom (French, game over)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B1B2F}a:hover{color:#3D5AFE}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #FFF1C2; font-family: Rubik, system-ui, sans-serif; color: #1B1B2F; display: flex; flex-direction: column; align-items: center; padding: 14px 16px 12px 16px; gap: 14px">
+
+<header style="width: 100%; display: flex; align-items: center; justify-content: space-between">
+<button aria-label="Pause" style="width: 48px; height: 48px; border: 3px solid #1B1B2F; border-radius: 14px; background: #FFFFFF; box-shadow: 3px 3px 0 #1B1B2F; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="#1B1B2F" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"></rect><rect x="14" y="4" width="5" height="16" rx="1.5"></rect></svg>
+</button>
+<div style="display: flex; flex-direction: column; align-items: center; line-height: 1; padding: 6px 18px; border: 3px solid #1B1B2F; border-radius: 16px; background: #FFFFFF; box-shadow: 3px 3px 0 #1B1B2F">
+<span style="font-size: 12px; font-weight: 700; color: #4A4860">RECORD 3 120</span>
+<span style="font-size: 34px; font-weight: 800">2 480</span>
+</div>
+<button aria-label="Son activé" style="width: 48px; height: 48px; border: 3px solid #1B1B2F; border-radius: 14px; background: #FFD23F; box-shadow: 3px 3px 0 #1B1B2F; display: flex; align-items: center; justify-content: center">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B1B2F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9Z" fill="#1B1B2F"></path><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"></path></svg>
+</button>
+</header>
+
+<div style="width: 358px; height: 358px; box-sizing: border-box; padding: 9px; border: 3px solid #1B1B2F; border-radius: 22px; background: #FFFFFF; box-shadow: 5px 5px 0 #1B1B2F; opacity: 0.55">
+<div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; width: 334px; height: 334px">
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="64">
+<div style="{{c.style}}"></div>
+</sc-for>
+</div>
+</div>
+
+<div role="dialog" aria-modal="true" aria-labelledby="go-title" style="position: absolute; left: 16px; right: 16px; bottom: 76px; box-sizing: border-box; padding: 56px 20px 20px 20px; border: 3px solid #1B1B2F; border-radius: 28px; background: #FFFFFF; box-shadow: 6px 6px 0 #1B1B2F; display: flex; flex-direction: column; align-items: center; gap: 12px">
+<svg width="96" height="96" viewBox="0 0 64 64" aria-hidden="true" style="position: absolute; top: -52px">
+<path d="M14 22 L12 6 L26 15 Z" fill="#FF5C5C" stroke="#1B1B2F" stroke-width="3" stroke-linejoin="round"></path>
+<path d="M50 22 L52 6 L38 15 Z" fill="#FF5C5C" stroke="#1B1B2F" stroke-width="3" stroke-linejoin="round"></path>
+<circle cx="32" cy="36" r="24" fill="#FF5C5C" stroke="#1B1B2F" stroke-width="3"></circle>
+<ellipse cx="32" cy="44" rx="13" ry="9" fill="#FFE1D6"></ellipse>
+<path d="M19 31 l7 4 M45 31 l-7 4" stroke="#1B1B2F" stroke-width="3" stroke-linecap="round"></path>
+<circle cx="24" cy="36" r="3.4" fill="#1B1B2F"></circle><circle cx="40" cy="36" r="3.4" fill="#1B1B2F"></circle>
+<ellipse cx="32" cy="47" rx="4" ry="3" fill="#1B1B2F"></ellipse>
+<path d="M50 40 q2 5 0 7 q-2 -2 0 -7Z" fill="#3D5AFE"></path>
+</svg>
+<h2 id="go-title" style="margin: 0; font-size: 28px; font-weight: 800">Plus de place !</h2>
+<div style="display: flex; gap: 10px">
+<div style="display: flex; flex-direction: column; align-items: center; padding: 6px 14px; border: 2.5px solid #1B1B2F; border-radius: 14px; background: #FFF1C2; line-height: 1.15">
+<span style="font-size: 12px; font-weight: 700; color: #4A4860">SCORE</span><span style="font-size: 22px; font-weight: 800">2 480</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; padding: 6px 14px; border: 2.5px solid #1B1B2F; border-radius: 14px; background: #FFF1C2; line-height: 1.15">
+<span style="font-size: 12px; font-weight: 700; color: #4A4860">PIÈCES</span><span style="font-size: 22px; font-weight: 800">+48</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; padding: 6px 14px; border: 2.5px solid #1B1B2F; border-radius: 14px; background: #FFF1C2; line-height: 1.15">
+<span style="font-size: 12px; font-weight: 700; color: #4A4860">ÉTOILES</span><span style="font-size: 22px; font-weight: 800">2/3</span></div>
+</div>
+<button style="width: 100%; height: 60px; border: 3px solid #1B1B2F; border-radius: 18px; background: #00A99D; box-shadow: 4px 4px 0 #1B1B2F; color: #FFFFFF; font-family: inherit; font-weight: 800; font-size: 19px; display: flex; align-items: center; justify-content: center; gap: 10px">
+<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3" fill="#FFFFFF" stroke="#1B1B2F" stroke-width="2"></rect><path d="M10 9v6l5-3Z" fill="#1B1B2F"></path></svg>
+Continuer (pub vidéo)</button>
+<span style="font-size: 13px; font-weight: 600; color: #4A4860">Rewarded ad slot: clears 3 rows, one use per round</span>
+<button style="width: 100%; height: 56px; border: 3px solid #1B1B2F; border-radius: 18px; background: #FFD23F; box-shadow: 4px 4px 0 #1B1B2F; color: #1B1B2F; font-family: inherit; font-weight: 800; font-size: 19px; display: flex; align-items: center; justify-content: center; gap: 8px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B1B2F" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"></path><path d="M4 4v4h4"></path></svg>
+Rejouer</button>
+</div>
+
+<aside aria-label="Publicité" style="position: absolute; left: 35px; bottom: 12px; width: 320px; height: 50px; box-sizing: border-box; border: 2.5px dashed #1B1B2F; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #4A4860; background: #FFFFFF">AD SLOT · 320×50 banner</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+var rows = ['PPY.OOBB', 'P.YYOOB.', 'TTY.TT.R', 'BTTTRR.R', 'BB.PPRRR', 'YYPP.TBB', 'Y.PPOTBB', 'OOO.OTT.'];
+var col = { P: '#B69CFF', O: '#FF5C5C', T: '#00A99D', B: '#3D5AFE', Y: '#FFD23F', R: '#FF8F8F' };
+var cells = [];
+rows.forEach(function (r) {
+r.split('').forEach(function (ch) {
+var base = 'border-radius: 7px; box-sizing: border-box; ';
+var s = ch === '.' ? base + 'background: #FFF1C2; border: 2px solid #E8D9A8;' : base + 'background: ' + col[ch] + '; border: 2.5px solid #1B1B2F;';
+cells.push({ style: s });
+});
+});
+return { cells: cells };
+}
+}
+</script>
+</body>
+</html>
