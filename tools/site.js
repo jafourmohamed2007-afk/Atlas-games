@@ -19,9 +19,13 @@ const HOT = ['pocket-grove', 'ink-heroes', 'rooftop-rush'];
 const ORDER = ['pocket-grove', 'ink-heroes', 'rooftop-rush', 'block-bloom', 'jelly-drop', 'hop-hook', 'hill-hopper', 'number-pop', 'wiggle-snake', 'memo-match'];
 const CATS = ['action', 'farm', 'puzzle', 'running', 'skill', 'learning', 'cars'];
 const MOODS = { quick: ['wiggle-snake', 'number-pop', 'hop-hook', 'rooftop-rush', 'memo-match'], brain: ['block-bloom', 'memo-match', 'number-pop', 'jelly-drop'], chill: ['pocket-grove', 'block-bloom', 'jelly-drop', 'memo-match', 'wiggle-snake'] };
-const TILE = { quick: ['#3B2A06', '#7A5200', '#FFD36B', 'clock'], brain: ['#0E3B3A', '#16665A', '#C6FF4D', 'bulb'], chill: ['#10284F', '#1F5296', '#9FD4FF', 'cloud'],
-  puzzle: ['#24125E', '#4A2AB0', '#D9C9FF', 'puzzle'], running: ['#3D1A05', '#8A3B00', '#FFB35A', 'bolt'], skill: ['#3B0B19', '#8A1A36', '#FF9AB5', 'target'],
-  learning: ['#0B3A2C', '#0F7056', '#7FF0D0', 'learn'], cars: ['#0B2A3F', '#145C7A', '#8BE3FF', 'car'], action: ['#3B0A12', '#8A1A2E', '#FF8A6A', 'burst'], farm: ['#123B12', '#2E7D32', '#B9F27A', 'cloud'] };
+const TILE = { quick: ['#FFE066', '#FFB020', '#4A2E00', 'clock'], brain: ['#7DF5CF', '#1FC79A', '#063A2C', 'bulb'], chill: ['#B5E2FF', '#5AA9FF', '#0B2A55', 'cloud'],
+  puzzle: ['#D6C6FF', '#9271FF', '#1F0F5C', 'puzzle'], running: ['#FFC59A', '#FF7F45', '#3D1500', 'bolt'], skill: ['#FFB3CF', '#FF5F96', '#4A0A22', 'target'],
+  learning: ['#B4F5DF', '#34D3A3', '#063A2C', 'learn'], cars: ['#AEEBFF', '#3FB6FF', '#062A44', 'car'], action: ['#FFB4A6', '#FF5A4E', '#460A08', 'burst'], farm: ['#D5F79F', '#7ED957', '#143A0A', 'cloud'] };
+/* colours for partner tiles while their picture loads (or if it cannot load) */
+const PCOL = ['#FF6FAE', '#45BEFF', '#3BE0B5', '#FFB020', '#9B6BFF', '#FF7F45', '#7ED957', '#FF5A4E'];
+const ORIG = { en: 'Bubzi Originals', fr: 'Créations Bubzi', ar: 'ألعاب بوبزي الأصلية' };
+const ORIGSUB = { en: 'Made by us. Every game has its own currency for the Bubzi Exchange.', fr: 'Faits par nous. Chaque jeu a sa propre monnaie pour le bureau de change Bubzi.', ar: 'من صنعنا. لكل لعبة عملتها الخاصة لصرّاف بوبزي.' };
 const TILE_ORDER = ['farm', 'action', 'quick', 'brain', 'chill', 'puzzle', 'running', 'skill', 'learning', 'cars'];
 const inCat = (slug) => (MOODS[slug] ? MOODS[slug].map((id) => games.find((g) => g.id === id)) : games.filter((g) => g.category === slug));
 const sorted = ORDER.map((id) => games.find((g) => g.id === id)).filter(Boolean);
@@ -60,7 +64,7 @@ function gameData(lang, depth) {
     c: g.color, isNew: !!g.isNew, url: up + lp(lang, 'play/' + g.id + '.html') + '#play', thumb: up + 'thumbs/' + g.id + '.webp', prev: up + 'thumbs/' + g.id + '-play.webp',
     tag: g.desc[lang].split(/(?<=[.!?。])\s/)[0]
   }));
-  const ext = partners.map((p) => ({ id: 'p-' + p.slug, title: p.title, alt: '', catName: p.category || '', kw: p.tags || '', c: '#7C5CFF', isNew: false,
+  const ext = partners.map((p) => ({ id: 'p-' + p.slug, title: p.title, alt: '', catName: p.category || '', kw: p.tags || '', c: PCOL[parseInt(hash(p.slug), 16) % PCOL.length], isNew: false,
     url: up + lp(lang, 'g/' + p.slug + '.html') + '#play', thumb: p.thumb, prev: '', ext: 'Partner' }));
   return own.concat(ext);
 }
@@ -69,7 +73,26 @@ function card(g, sub, extra) {
   return `<a class="card" href="${esc(g.url)}" style="--c:${g.c}"${g.prev ? ` data-prev="${esc(g.prev)}"` : ''}>` +
     `<div class="thumb">${g.isNew ? '<span class="badge new">NEW</span>' : hot && extra !== 'nohot' ? `<span class="badge hot">${ICON.flame}HOT</span>` : ''}` +
     `<img src="${esc(g.thumb)}" alt="" width="256" height="256" loading="lazy" decoding="async"><div class="prev"></div>${g.ext ? `<span class="ext">${esc(g.ext)}</span>` : ''}</div>` +
-    `<div class="t">${esc(g.title)}</div>${sub ? `<div class="s">${esc(sub)}</div>` : ''}</a>`;
+    `<div class="t" dir="auto">${esc(g.title)}</div>${sub ? `<div class="s">${esc(sub)}</div>` : ''}</a>`;
+}
+function tile(g, cls) {
+  const big = cls === 'big', badge = g.isNew ? '<span class="badge new">NEW</span>' : HOT.includes(g.id) ? `<span class="badge hot">${ICON.flame}HOT</span>` : '';
+  return `<a class="card tile${cls ? ' ' + cls : ''}" href="${esc(g.url)}" style="--c:${g.c}"${g.prev ? ` data-prev="${esc(g.prev)}"` : ''}>` +
+    `<div class="thumb">${badge}<img src="${esc(g.thumb)}" alt="" width="${big ? 256 : 160}" height="${big ? 256 : 160}" loading="lazy" decoding="async"><div class="prev"></div><span class="tt" dir="auto">${esc(g.title)}</span></div></a>`;
+}
+/* own games (the HOT ones as big tiles) spread between partner games */
+function mixed(own, ext, every) { const out = []; let i = 0; own.forEach((g) => { out.push(g); for (let j = 0; j < (every || 3) && i < ext.length; j++) out.push(ext[i++]); }); return out.concat(ext.slice(i)); }
+const mosaic = (list, bigOK) => list.map((g) => tile(g, bigOK !== false && !g.ext && HOT.includes(g.id) ? 'big' : '')).join('');
+function band(k, h, list, more, sub, id) {
+  return `<section class="band b-${k}"${id ? ' hidden' : ''}><div class="sh"><h2>${h}</h2>${more || ''}</div>${sub ? `<p class="bsub">${esc(sub)}</p>` : ''}<div class="row"${id ? ` id="${id}"` : ''}>${list.join('')}</div></section>`;
+}
+function gameLayout(t, lang, up, stageHTML, gbarHTML, near, rest, info) {
+  return `<div class="gp"><div class="stagecol">${stageHTML}${gbarHTML}</div>
+<nav class="gl" aria-label="${esc(t.related)}">${near.slice(0, 12).map((x) => tile(x)).join('')}</nav>
+<aside class="gr"><div class="ad mrec" role="complementary" aria-label="Advertisement"><!-- AD PLACEHOLDER: sidebar 300x250 -->AD PLACEHOLDER · 300×250</div><div class="gl2">${near.slice(12, 18).map((x) => tile(x)).join('')}</div></aside></div>
+<section aria-label="${esc(t.moreGames)}"><div class="mosaic" id="gridAll">${mosaic(rest)}</div></section>
+<div class="ad banner" role="complementary" aria-label="Advertisement"><!-- AD PLACEHOLDER: below-game banner -->AD PLACEHOLDER · BANNER</div>
+<div class="info">${info}</div>`;
 }
 function moodTiles(lang, depth) {
   const up = '../'.repeat(depth), t = I[lang];
@@ -82,13 +105,10 @@ function page(o) {
   const t = I[lang], depth = file.split('/').length - 1, up = '../'.repeat(depth), gd = gameData(lang, depth);
   const homeHref = up + lp(lang, 'index.html');
   const langOpts = LANGS.map((l) => `<option value="${l}" data-href="${esc(up + alts[l])}"${l === lang ? ' selected' : ''}>${I[l].langName}</option>`).join('');
-  const side = `<nav class="side" aria-label="${esc(t.categories)}">
-<a href="${homeHref}"${home ? ' class="on"' : ''}>${ICON.home}${esc(t.home)}</a>
-<button type="button" data-sheet="sheetMy">${ICON.my}${esc(t.myGames)}</button>
-<button type="button" data-sheet="sheetRewards">${ICON.gift}${esc(t.rewards)}</button>
-<hr><span class="lbl">${esc(t.categories)}</span>
-${TILE_ORDER.map((k) => `<a href="${up + lp(lang, 'c/' + k + '.html')}"${o.cat === k ? ' class="on"' : ''}><img src="${up}thumbs/icon-${TILE[k][3]}.webp" alt="" width="26" height="26" loading="lazy">${esc(t.cat[k])}</a>`).join('\n')}
-</nav>`;
+  const chips = `<nav class="chipbar" aria-label="${esc(t.categories)}"><div class="chipin">
+<a class="chipc${home ? ' on' : ''}" href="${homeHref}" style="--a:#E9E2FF;--b:#C9B8FF;--t:#2A1570">${ICON.home}<span>${esc(t.home)}</span></a>
+${TILE_ORDER.map((k) => `<a class="chipc${o.cat === k ? ' on' : ''}" href="${up + lp(lang, 'c/' + k + '.html')}" style="--a:${TILE[k][0]};--b:${TILE[k][1]};--t:${TILE[k][2]}"><img src="${up}thumbs/icon-${TILE[k][3]}.webp" alt="" width="26" height="26" loading="lazy"><span>${esc(t.cat[k])}</span></a>`).join('\n')}
+</div></nav>`;
   const sheet = (id, h, inner) => `<div class="sheet" id="${id}" role="dialog" aria-modal="true" aria-label="${esc(h)}" aria-hidden="true"><div class="scrim"></div><div class="panel"><div class="grab"></div><div class="ph"><h2>${esc(h)}</h2><button class="ibtn" type="button" data-close aria-label="${{ en: 'Close', fr: 'Fermer', ar: 'إغلاق' }[lang]}">${ICON.close}</button></div>${inner}</div></div>`;
   const BZ = { lang, base: up, t: { coins: t.coins, best: t.best, plays: t.plays, continue: t.continue, favorites: t.favorites, mostPlayed: t.mostPlayed, noResults: t.noResults, emptyMy: t.emptyMy,
     daily: t.daily, dailyReady: t.dailyReady, dailyDone: t.dailyDone, claim: t.claim, day: t.day, skins: t.skins, skinsNote: t.skinsNote, using: t.using, use: t.use, notEnough: t.notEnough,
@@ -103,7 +123,7 @@ ${TILE_ORDER.map((k) => `<a href="${up + lp(lang, 'c/' + k + '.html')}"${o.cat =
 <meta name="description" content="${esc(desc)}">
 ${kw ? `<meta name="keywords" content="${esc(kw)}">\n` : ''}<link rel="canonical" href="${esc(abs(file))}">
 ${altLinks}
-<meta name="theme-color" content="#0B0820">
+<meta name="theme-color" content="#F5F1FF">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Bubzi">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(abs(file))}"><meta property="og:image" content="${esc(SITE + '/' + (o.og || 'thumbs/rooftop-rush-og.jpg'))}">
@@ -112,7 +132,7 @@ ${altLinks}
 <link rel="icon" href="${up}favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="${up}thumbs/app-192.png"><link rel="manifest" href="${up}manifest.webmanifest">
 <link rel="preload" href="${up}assets/fonts/${lang === 'ar' ? 'baloo-bhaijaan-2-arabic-800-normal' : 'baloo-2-latin-800-normal'}.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${up}assets/site.css?v=${V}">
-<script>try{var th=JSON.parse(localStorage.getItem('bubzi:theme'));if(th==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}${home ? `try{var sl=JSON.parse(localStorage.getItem('bubzi:lang'));var al=${JSON.stringify(Object.fromEntries(LANGS.map((l) => [l, up + alts[l]])))};if(sl&&sl!=='${lang}'&&al[sl])location.replace(al[sl])}catch(e){}` : ''}</script>
+<script>try{var th=JSON.parse(localStorage.getItem('bubzi:theme'));if(th==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}${home ? `try{var sl=JSON.parse(localStorage.getItem('bubzi:lang'));var al=${JSON.stringify(Object.fromEntries(LANGS.map((l) => [l, up + alts[l]])))};if(sl&&sl!=='${lang}'&&al[sl])location.replace(al[sl])}catch(e){}` : ''}</script>
 <!-- AD PLACEHOLDER: paste your AdSense / AdinPlay head script here (one line, async). -->
 ${ld ? `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>` : ''}
 </head>
@@ -122,12 +142,13 @@ ${ld ? `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\
 <a class="logo" href="${homeHref}" aria-label="Bubzi">${ICON.logo}<b>bubzi</b></a>
 <label class="searchbox">${ICON.search}<span class="sr">${esc(t.search)}</span><input id="q" type="search" placeholder="${esc(t.searchPh)}" autocomplete="off"></label>
 <div class="tools">
+<button class="ibtn dk" type="button" data-sheet="sheetMy" aria-label="${esc(t.myGames)}" title="${esc(t.myGames)}">${ICON.my}</button>
 <button class="coins" type="button" data-sheet="sheetRewards" aria-label="${esc(t.coins)}">${ICON.coin}<span data-coins>0</span></button>
 <select class="langsel" id="langSel" aria-label="${esc(t.lang)}">${langOpts}</select>
 <button class="ibtn" type="button" id="themeBtn" aria-label="${esc(t.theme)}" title="${esc(t.theme)}">${ICON.theme}</button>
-</div></div></header>
+</div></div>
+${chips}</header>
 <div class="shell">
-${side}
 <main id="games">
 ${body}
 <footer>
@@ -161,20 +182,22 @@ for (const lang of LANGS) {
   {
     const file = lp(lang, 'index.html'), depth = file.split('/').length - 1, gd = gameData(lang, depth), up = '../'.repeat(depth);
     const alts = Object.fromEntries(LANGS.map((l) => [l, lp(l, 'index.html')]));
-    const own = gd.filter((g) => !g.ext), first = own[0];
-    const body = `<section aria-label="${esc(t.categories)}"><div class="moods">${moodTiles(lang, depth)}</div></section>
-<section class="hero" id="hero" aria-labelledby="heroTitle"><div class="bgart" style="background-image:url('${esc(first.thumb)}')"></div>
-<div class="hero-in"><div class="hero-txt"><span class="chip">${esc(t.gameOfDay)}</span><h2 id="heroTitle">${esc(first.title)}</h2><p id="heroDesc">${esc(first.tag)}</p>
-<a class="play" id="heroPlay" href="${esc(first.url)}">${ICON.play}${esc(t.playNow)}</a></div>
-<div class="clip" role="img" aria-label="${esc(t.gameOfDay)}" style="background-image:url('${esc(first.prev)}')"></div></div></section>
-<section hidden><div class="sh"><h2>${esc(t.continue)}</h2></div><div class="row" id="rowContinue"></div></section>
-<section><div class="sh"><h2><span class="dot"></span>${esc(t.hot)}</h2></div><div class="grid" id="gridHot">${own.map((g) => card(g)).join('')}</div></section>
+    const own = gd.filter((g) => !g.ext), ext = gd.filter((g) => g.ext), top = mixed(own, ext.slice(0, 40));
+    const catBands = ['action', 'puzzle', 'cars', 'skill', 'running', 'learning'].map((k) => {
+      const list = own.filter((g) => games.find((y) => y.id === g.id).category === k).concat(ext.filter((g) => (partners.find((p) => 'p-' + p.slug === g.id) || {}).category === k));
+      return list.length < 3 ? '' : band(k, `<img src="${up}thumbs/icon-${TILE[k][3]}.webp" alt="" width="34" height="34" loading="lazy">${esc(t.cat[k])}`, list.slice(0, 16).map((g) => card(g, g.catName)), `<a href="${up + lp(lang, 'c/' + k + '.html')}">${esc(t.seeAll)}</a>`);
+    }).join('\n');
+    const body = `<section aria-label="${esc(t.hot)}"><div class="mosaic" id="gridHot">${mosaic(top)}</div></section>
+${band('continue', esc(t.continue), [], '', '', 'rowContinue')}
+${band('orig', `${ICON.logo}${esc(ORIG[lang])}`, own.map((g) => card(g, BubziCur.get(g.id).n[lang])), '', ORIGSUB[lang])}
 <div class="reward" id="reward" hidden><img src="${up}thumbs/icon-chest.webp" alt="" width="54" height="54"><div><b>${esc(t.daily)}</b><span id="rewardTxt"></span></div><button class="play" type="button" id="rewardClaim">${esc(t.claim)}</button></div>
+${band('new', `<span class="dot"></span>${esc(t.new)}`, own.filter((g) => g.isNew).concat(ext.slice(-8).reverse()).map((g) => card(g, g.catName)))}
 <div class="ad banner" role="complementary" aria-label="Advertisement"><!-- AD PLACEHOLDER: home banner 728x90 / 320x100 -->AD PLACEHOLDER · BANNER</div>
-<section><div class="sh"><h2>${esc(t.new)}</h2></div><div class="row">${own.filter((g) => g.isNew).map((g) => card(g)).join('')}</div></section>
-<section hidden><div class="sh"><h2>${esc(t.mostPlayed)}</h2></div><div class="row" id="rowMost"></div></section>
-<section><div class="sh"><h2>${esc(t.categories)}</h2></div><div class="cats">${TILE_ORDER.map((k) => `<a class="cat" href="${up + lp(lang, 'c/' + k + '.html')}"><img src="${up}thumbs/icon-${TILE[k][3]}.webp" alt="" width="40" height="40" loading="lazy"><span>${esc(t.cat[k])}<small>${inCat(k).length + (MOODS[k] ? 0 : partners.filter((p) => p.category === k).length)}</small></span></a>`).join('')}</div></section>
-${partners.length ? `<section><div class="sh"><h2>${esc(t.moreGames)}</h2></div><p class="lead" style="margin:-6px 0 12px">${esc(t.partnerNote)}</p><div class="grid">${gd.filter((g) => g.ext).map((g) => card(g)).join('')}</div></section>` : ''}
+${band('most', esc(t.mostPlayed), [], '', '', 'rowMost')}
+${catBands}
+<section><div class="sh"><h2>${esc(t.categories)}</h2></div><div class="moods">${moodTiles(lang, depth)}</div></section>
+${ext.length > 40 ? `<section aria-label="${esc(t.moreGames)}"><div class="sh"><h2>${esc(t.moreGames)}</h2></div><div class="mosaic">${mosaic(ext.slice(40))}</div></section>` : ''}
+${partners.length ? `<p class="pnote">${esc(t.partnerNote)}</p>` : ''}
 <section class="about"><h1 style="margin:0 0 6px;font-family:var(--display);font-size:24px">${esc(t.seoH)}</h1><p>${esc(t.seoP)}</p></section>`;
     const ld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'Bubzi', url: abs(file), inLanguage: lang },
       { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: own.map((g, i) => ({ '@type': 'ListItem', position: i + 1, url: abs(lp(lang, 'play/' + g.id + '.html')), name: g.title })) }];
@@ -185,23 +208,20 @@ ${partners.length ? `<section><div class="sh"><h2>${esc(t.moreGames)}</h2></div>
     const file = lp(lang, 'play/' + g.id + '.html'), depth = 2 - (lang === 'en' ? 1 : 0), up = '../'.repeat(depth), gd = gameData(lang, depth);
     const alts = Object.fromEntries(LANGS.map((l) => [l, lp(l, 'play/' + g.id + '.html')]));
     const name = g.title[lang], catHref = up + lp(lang, 'c/' + g.category + '.html');
-    const others = gd.filter((x) => x.id !== g.id && !x.ext), related = others.filter((x) => games.find((y) => y.id === x.id).category === g.category).concat(others.filter((x) => games.find((y) => y.id === x.id).category !== g.category)).slice(0, 5);
+    const pcat = (x) => (partners.find((p) => 'p-' + p.slug === x.id) || {}).category, cat = (x) => (x.ext ? pcat(x) : games.find((y) => y.id === x.id).category);
+    const others = gd.filter((x) => x.id !== g.id), ownO = others.filter((x) => !x.ext), extO = others.filter((x) => x.ext);
+    const near = mixed(ownO.filter((x) => cat(x) === g.category).concat(ownO.filter((x) => cat(x) !== g.category)), extO.filter((x) => cat(x) === g.category).concat(extO.filter((x) => cat(x) !== g.category)), 1).slice(0, 18);
+    const rest = mixed(ownO, extO).filter((x) => !near.includes(x));
     const faq = [1, 2, 3].map((n) => [tr(t['faq' + n + 'q'], { g: name }), tr(t['faq' + n + 'a'], { g: name })]);
-    const body = `<nav class="crumbs" aria-label="breadcrumb"><a href="${up + lp(lang, 'index.html')}">${esc(t.home)}</a><span aria-hidden="true">›</span><a href="${catHref}">${esc(t.cat[g.category])}</a></nav>
-<div class="theater"><div class="stagecol">
-<div class="stage" id="stage" data-id="${g.id}" data-title="${esc(name)}" data-src="${up}games/${g.id}.html?lang=${lang}&amp;embed">
+    const stageHTML = `<div class="stage" id="stage" data-id="${g.id}" data-title="${esc(name)}" data-src="${up}games/${g.id}.html?lang=${lang}&amp;embed">
 <button class="poster" id="poster" type="button" aria-label="${esc(t.play + ' ' + name)}"><span class="pbg" style="background-image:url('${up}thumbs/${g.id}.webp')"></span><img src="${up}thumbs/${g.id}.webp" alt="${esc(name)}" width="240" height="240" fetchpriority="high"><span class="play">${ICON.play}${esc(t.play)}</span></button>
-</div>
-<div class="gbar"><img src="${up}thumbs/${g.id}.webp" alt="" width="54" height="54"><div class="meta"><h1>${esc(name)}</h1><a href="${catHref}">${esc(t.cat[g.category])}</a> <span id="bestOut" class="s"></span></div>
-<div class="acts"><button class="ibtn" type="button" id="favBtn" aria-pressed="false" aria-label="${esc(t.addFav)}">${ICON.heart}</button><button class="ibtn" type="button" id="shareBtn" aria-label="${esc(t.share)}" title="${esc(t.share)}">${ICON.share}</button><button class="ibtn" type="button" id="restartBtn" aria-label="${esc(t.restart)}" title="${esc(t.restart)}">${ICON.redo}</button><button class="ibtn" type="button" id="fsBtn" aria-label="${esc(t.fullscreen)}" title="${esc(t.fullscreen)}">${ICON.fs}</button></div></div>
-<div class="ad banner" role="complementary" aria-label="Advertisement"><!-- AD PLACEHOLDER: below-game banner -->AD PLACEHOLDER · BANNER</div>
-<section class="box"><h2>${esc(t.howTo)}</h2><p>${esc(g.howto[lang])}</p></section>
-<section class="box"><h2>${esc(tr(t.aboutGame, { g: name }))}</h2><p>${esc(g.desc[lang])}</p><h3 class="sr">${esc(t.faqTitle)}</h3>${faq.map((f) => `<details><summary>${esc(f[0])}</summary><p>${esc(f[1])}</p></details>`).join('')}</section>
-</div>
-<aside class="sidecol"><div class="ad mrec" role="complementary" aria-label="Advertisement"><!-- AD PLACEHOLDER: sidebar 300x250 -->AD PLACEHOLDER · 300×250</div>
-<section class="box"><h2>${esc(t.related)}</h2><div class="mini">${related.map((x) => `<a href="${esc(x.url)}"><img src="${esc(x.thumb)}" alt="" width="64" height="64" loading="lazy"><span>${esc(x.title)}<small>${esc(x.catName)}</small></span></a>`).join('')}</div></section></aside>
-</div>
-<section><div class="sh"><h2><span class="dot"></span>${esc(t.hot)}</h2><a href="${up + lp(lang, 'index.html')}">${esc(t.seeAll)}</a></div><div class="grid" id="gridAll">${others.map((x) => card(x)).join('')}</div></section>`;
+</div>`;
+    const gbarHTML = `<div class="gbar"><img src="${up}thumbs/${g.id}.webp" alt="" width="54" height="54"><div class="meta"><h1>${esc(name)}</h1><a href="${catHref}">${esc(t.cat[g.category])}</a> <span id="bestOut" class="s"></span></div>
+<div class="acts"><button class="ibtn" type="button" id="favBtn" aria-pressed="false" aria-label="${esc(t.addFav)}">${ICON.heart}</button><button class="ibtn" type="button" id="shareBtn" aria-label="${esc(t.share)}" title="${esc(t.share)}">${ICON.share}</button><button class="ibtn" type="button" id="restartBtn" aria-label="${esc(t.restart)}" title="${esc(t.restart)}">${ICON.redo}</button><button class="ibtn" type="button" id="fsBtn" aria-label="${esc(t.fullscreen)}" title="${esc(t.fullscreen)}">${ICON.fs}</button></div></div>`;
+    const info = `<section class="box"><h2>${esc(t.howTo)}</h2><p>${esc(g.howto[lang])}</p></section>
+<section class="box"><h2>${esc(tr(t.aboutGame, { g: name }))}</h2><p>${esc(g.desc[lang])}</p><h3 class="sr">${esc(t.faqTitle)}</h3>${faq.map((f) => `<details><summary>${esc(f[0])}</summary><p>${esc(f[1])}</p></details>`).join('')}</section>`;
+    const body = `<nav class="crumbs" aria-label="breadcrumb"><a href="${up + lp(lang, 'index.html')}">${esc(t.home)}</a><span aria-hidden="true">›</span><a href="${catHref}">${esc(t.cat[g.category])}</a></nav>
+${gameLayout(t, lang, up, stageHTML, gbarHTML, near, rest, info)}`;
     const ld = [
       { '@context': 'https://schema.org', '@type': 'VideoGame', name, alternateName: LANGS.filter((l) => l !== lang).map((l) => g.title[l]), description: g.desc[lang], url: abs(file), image: SITE + '/thumbs/' + g.id + '-og.jpg',
         genre: t.cat[g.category], gamePlatform: ['Web browser', 'Android', 'iOS', 'PC'], applicationCategory: 'GameApplication', operatingSystem: 'Any', inLanguage: LANGS, isAccessibleForFree: true,
@@ -218,7 +238,7 @@ ${partners.length ? `<section><div class="sh"><h2>${esc(t.moreGames)}</h2></div>
     const ids = inCat(k).map((g) => g.id), list = gd.filter((g) => ids.includes(g.id)).concat(MOODS[k] ? [] : gd.filter((g) => g.ext && partners.find((p) => 'p-' + p.slug === g.id && p.category === k)));
     const body = `<nav class="crumbs" aria-label="breadcrumb"><a href="${up + lp(lang, 'index.html')}">${esc(t.home)}</a><span aria-hidden="true">›</span><span>${esc(t.cat[k])}</span></nav>
 <div><h1 class="pageh">${esc(t.catTitle[k])}</h1><p class="lead">${esc(t.catDesc[k])}</p></div>
-<section><div class="grid" id="gridAll">${list.map((g) => card(g)).join('')}</div></section>
+<section><div class="mosaic" id="gridAll">${mosaic(mixed(list.filter((g) => !g.ext), list.filter((g) => g.ext)))}</div></section>
 <div class="ad banner" role="complementary" aria-label="Advertisement"><!-- AD PLACEHOLDER: category banner -->AD PLACEHOLDER · BANNER</div>
 <section><div class="sh"><h2>${esc(t.categories)}</h2></div><div class="moods">${moodTiles(lang, depth)}</div></section>
 <section class="about"><h2>${esc(t.seoH)}</h2><p>${esc(t.seoP)}</p></section>`;
@@ -229,16 +249,17 @@ ${partners.length ? `<section><div class="sh"><h2>${esc(t.moreGames)}</h2></div>
   for (const p of partners) {
     const file = lp(lang, 'g/' + p.slug + '.html'), depth = file.split('/').length - 1, up = '../'.repeat(depth), gd = gameData(lang, depth);
     const alts = Object.fromEntries(LANGS.map((l) => [l, lp(l, 'g/' + p.slug + '.html')]));
-    const body = `<nav class="crumbs" aria-label="breadcrumb"><a href="${up + lp(lang, 'index.html')}">${esc(t.home)}</a><span aria-hidden="true">›</span><span>${esc(t.moreGames)}</span></nav>
-<div class="theater"><div class="stagecol">
-<div class="stage" id="stage" data-id="p-${esc(p.slug)}" data-title="${esc(p.title)}" data-src="${esc(p.embed)}">
+    const ownO = gd.filter((x) => !x.ext), extO = gd.filter((x) => x.ext && x.id !== 'p-' + p.slug), pc = (x) => (partners.find((q) => 'p-' + q.slug === x.id) || {}).category;
+    const near = mixed(ownO, extO.filter((x) => pc(x) === p.category).concat(extO.filter((x) => pc(x) !== p.category)), 1).slice(0, 18), rest = mixed(ownO, extO).filter((x) => !near.includes(x));
+    const catHref = up + lp(lang, 'c/' + p.category + '.html');
+    const stageHTML = `<div class="stage" id="stage" data-id="p-${esc(p.slug)}" data-title="${esc(p.title)}" data-src="${esc(p.embed)}">
 <button class="poster" id="poster" type="button" aria-label="${esc(t.play + ' ' + p.title)}"><span class="pbg" style="background-image:url('${esc(p.thumb)}')"></span><img src="${esc(p.thumb)}" alt="${esc(p.title)}" width="240" height="240"><span class="play">${ICON.play}${esc(t.play)}</span></button>
-</div>
-<div class="gbar"><img src="${esc(p.thumb)}" alt="" width="54" height="54"><div class="meta"><h1>${esc(p.title)}</h1><span class="s">${esc(t.partnerNote)}</span></div>
-<div class="acts"><button class="ibtn" type="button" id="favBtn" aria-pressed="false" aria-label="${esc(t.addFav)}">${ICON.heart}</button><button class="ibtn" type="button" id="shareBtn" aria-label="${esc(t.share)}">${ICON.share}</button><button class="ibtn" type="button" id="fsBtn" aria-label="${esc(t.fullscreen)}">${ICON.fs}</button></div></div>
-<section class="box"><h2>${esc(t.howTo)}</h2><p>${esc(p.instructions || p.description || '')}</p></section>
-</div><aside class="sidecol"><div class="ad mrec" role="complementary" aria-label="Advertisement">AD PLACEHOLDER · 300×250</div></aside></div>
-<section><div class="sh"><h2>${esc(t.hot)}</h2></div><div class="grid">${gd.filter((g) => !g.ext).map((g) => card(g)).join('')}</div></section>`;
+</div>`;
+    const gbarHTML = `<div class="gbar"><img src="${esc(p.thumb)}" alt="" width="54" height="54"><div class="meta"><h1>${esc(p.title)}</h1><a href="${catHref}">${esc(t.cat[p.category] || '')}</a> <span class="s">· ${esc(t.partnerNote)}</span></div>
+<div class="acts"><button class="ibtn" type="button" id="favBtn" aria-pressed="false" aria-label="${esc(t.addFav)}">${ICON.heart}</button><button class="ibtn" type="button" id="shareBtn" aria-label="${esc(t.share)}">${ICON.share}</button><button class="ibtn" type="button" id="fsBtn" aria-label="${esc(t.fullscreen)}">${ICON.fs}</button></div></div>`;
+    const info = `<section class="box"><h2>${esc(t.howTo)}</h2><p>${esc(p.instructions || p.description || '')}</p>${p.description && p.instructions ? `<p>${esc(p.description)}</p>` : ''}</section>`;
+    const body = `<nav class="crumbs" aria-label="breadcrumb"><a href="${up + lp(lang, 'index.html')}">${esc(t.home)}</a><span aria-hidden="true">›</span><a href="${catHref}">${esc(t.cat[p.category] || t.moreGames)}</a></nav>
+${gameLayout(t, lang, up, stageHTML, gbarHTML, near, rest, info)}`;
     write(file, page({ lang, file, title: `${p.title} – ${t.playNow} | Bubzi`, desc: (p.description || p.title).slice(0, 155), alts, body }), alts);
   }
   // ---------- about / privacy / terms / contact ----------
@@ -256,7 +277,7 @@ const sm = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), sm + '\n');
 fs.writeFileSync(path.join(ROOT, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /tools/\nDisallow: /tests/\nDisallow: /src/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 if (!fs.existsSync(path.join(ROOT, 'ads.txt'))) fs.writeFileSync(path.join(ROOT, 'ads.txt'), '# Replace with the line your ad network gives you, e.g.\n# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0\n');
-fs.writeFileSync(path.join(ROOT, 'manifest.webmanifest'), JSON.stringify({ name: 'Bubzi – Free Online Games', short_name: 'Bubzi', start_url: './', display: 'standalone', background_color: '#0B0820', theme_color: '#0B0820',
+fs.writeFileSync(path.join(ROOT, 'manifest.webmanifest'), JSON.stringify({ name: 'Bubzi – Free Online Games', short_name: 'Bubzi', start_url: './', display: 'standalone', background_color: '#F5F1FF', theme_color: '#7C4DFF',
   icons: [{ src: 'thumbs/app-192.png', sizes: '192x192', type: 'image/png' }, { src: 'thumbs/app-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }] }, null, 2));
 fs.writeFileSync(path.join(ROOT, 'favicon.svg'), ICON.logo.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '));
 console.log('site built:', files.length + 12, 'pages,', partners.length, 'partner games, SITE_URL =', SITE);

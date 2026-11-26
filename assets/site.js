@@ -82,8 +82,9 @@ var BubziCur = (function () {
   /* ---------- theme ---------- */
   var tbtn = $('#themeBtn');
   if (tbtn) tbtn.addEventListener('click', function () {
-    var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', cur); store.set('theme', cur);
+    var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    if (cur === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); else document.documentElement.removeAttribute('data-theme');
+    store.set('theme', cur);
   });
   /* ---------- language ---------- */
   var ls = $('#langSel');
@@ -133,10 +134,14 @@ var BubziCur = (function () {
   function blob(c, d) { return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 14C50 14 59 27 59 39C59 52 47 59 32 59C17 59 5 52 5 39C5 27 14 14 32 14Z" fill="' + c + '" stroke="' + d + '" stroke-width="3"/><circle cx="23" cy="37" r="6" fill="#fff"/><circle cx="41" cy="37" r="6" fill="#fff"/><circle cx="24" cy="38" r="3" fill="#241B4D"/><circle cx="42" cy="38" r="3" fill="#241B4D"/></svg>'; }
 
   /* ---------- cards ---------- */
+  /* a partner picture that cannot load: show a coloured tile with the game name instead */
+  function noImg(img) { var c = img.closest && img.closest('.card'); if (c) { c.classList.add('noimg'); img.style.display = 'none'; } }
+  document.addEventListener('error', function (e) { if (e.target && e.target.tagName === 'IMG') noImg(e.target); }, true);
+  $$('.card img').forEach(function (img) { if (img.complete && !img.naturalWidth && img.getAttribute('src')) noImg(img); });
   function card(g, sub) {
     return '<a class="card" href="' + esc(g.url) + '" style="--c:' + g.c + '" data-prev="' + esc(g.prev || '') + '">' +
       '<div class="thumb">' + (g.isNew ? '<span class="badge new">NEW</span>' : '') + '<img src="' + esc(g.thumb) + '" alt="" width="256" height="256" loading="lazy"><div class="prev"></div>' + (g.ext ? '<span class="ext">' + esc(g.ext) + '</span>' : '') + '</div>' +
-      '<div class="t">' + esc(g.title) + '</div>' + (sub ? '<div class="s">' + esc(sub) + '</div>' : '') + '</a>';
+      '<div class="t" dir="auto">' + esc(g.title) + '</div>' + (sub ? '<div class="s">' + esc(sub) + '</div>' : '') + '</a>';
   }
   function recent() { var r = store.get('recent', []); return (Array.isArray(r) ? r : []).map(function (x) { return x && byId[x.id]; }).filter(Boolean); }
   function best(id) { var b = store.get('best:' + id, 0); return typeof b === 'number' ? b : 0; }
@@ -298,7 +303,7 @@ var BubziCur = (function () {
       if ($('iframe', stage)) return;
       var f = document.createElement('iframe');
       var own = !/^https?:/i.test(src);
-      f.src = own ? src + (src.indexOf('?') >= 0 ? '&' : '?') + 'autostart&theme=' + (document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark') : src;
+      f.src = own ? src + (src.indexOf('?') >= 0 ? '&' : '?') + 'autostart&theme=' + (document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light') : src;
       f.title = stage.getAttribute('data-title'); f.setAttribute('allow', 'autoplay; fullscreen; gamepad');
       f.setAttribute('allowfullscreen', '');
       f.addEventListener('load', function () { try { f.contentWindow.focus(); } catch (e) { } });
