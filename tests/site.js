@@ -55,10 +55,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   // the home page is a tile mosaic with our games and partner games, and colour bands
   { const h = await ctx.newPage(); await h.goto(BASE + 'index.html'); await sleep(200);
     const m = await h.evaluate(() => ({ tiles: document.querySelectorAll('#gridHot .tile').length, big: document.querySelectorAll('#gridHot .tile.big').length, bands: document.querySelectorAll('.band:not([hidden])').length, own: document.querySelectorAll('#gridHot .tile[href*="play/"]').length }));
-    if (m.tiles < 20 || m.big < 3 || m.bands < 3 || m.own < 10) fails.push('home mosaic: ' + JSON.stringify(m));
+    if (m.tiles < 10 || m.big < 3 || m.bands < 2 || m.own < 10 || !(await h.$('.hubban'))) fails.push('home mosaic: ' + JSON.stringify(m));
     await h.goto(BASE + 'play/ink-heroes.html'); await sleep(200);
     const n = await h.evaluate(() => ({ near: document.querySelectorAll('.gl .tile').length, all: document.querySelectorAll('#gridAll .tile').length }));
-    if (n.near < 10 || n.all < 5) fails.push('game page tiles around the game: ' + JSON.stringify(n));
+    if (n.near < 8) fails.push('game page tiles around the game: ' + JSON.stringify(n));
     await h.close(); }
   console.log('checked ' + pages.length + ' pages, ' + checked.size + ' unique links/images');
 

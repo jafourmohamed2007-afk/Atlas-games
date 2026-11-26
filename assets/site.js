@@ -135,7 +135,7 @@ var BubziCur = (function () {
 
   /* ---------- cards ---------- */
   /* a partner picture that cannot load: show a coloured tile with the game name instead */
-  function noImg(img) { var c = img.closest && img.closest('.card'); if (c) { c.classList.add('noimg'); img.style.display = 'none'; } }
+  function noImg(img) { var c = img.closest && img.closest('.card'); if (c) c.classList.add('noimg'); if (c || (img.closest && img.closest('.hb-pics'))) img.style.display = 'none'; }
   document.addEventListener('error', function (e) { if (e.target && e.target.tagName === 'IMG') noImg(e.target); }, true);
   $$('.card img').forEach(function (img) { if (img.complete && !img.naturalWidth && img.getAttribute('src')) noImg(img); });
   function card(g, sub) {
