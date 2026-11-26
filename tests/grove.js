@@ -97,6 +97,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   if (!s.plots[0] || s.plots[0].g < 1) F('potato did not grow while the game was closed ' + JSON.stringify(s.plots[0])); else ok.push('offline growth: potato ready after 2 h away');
   if (s.popup !== 'welcome') F('no welcome-back summary'); else ok.push('welcome-back summary with daily gift');
   await shot('g14-welcome');
+  // daily orders: fill the first one with real harvests, then claim it
+  await p.keyboard.press('Backspace'); await p.keyboard.press('Backspace');
+  let od = await ev(() => window.__grove.orders().list.map((o) => ({ seed: o.seed, need: o.need, gold: o.gold })));
+  if (od.length !== 3) F('expected 3 daily orders, got ' + od.length);
+  const o0 = od[0];
+  for (let k = 0; k < o0.need; k++) await ev((id) => { const g = window.__grove; g.seeds(id, 1); for (let i = 0; i < 16; i++) if (!g.state().plots[i] && i < g.state().open) { g.plant(i, id); break; } }, o0.seed);
+  await ev(() => window.__grove.skip(15000)); const nh = await ev(() => window.__grove.harvestAll());
+  s = await d(); if (!(nh >= o0.need) || s.orders[0][1] < o0.need) F('harvest-all / order progress wrong ' + JSON.stringify([nh, s.orders[0]])); else ok.push('Harvest all (' + nh + ') filled order: ' + o0.need + '× ' + o0.seed);
+  const gc = (await d()).gold; await ev(() => window.__grove.claim(0)); s = await d();
+  if (!s.orders[0][3] || s.gold - gc !== o0.gold) F('claiming order failed'); else ok.push('order claimed: +' + o0.gold + ' gold');
+  await p.keyboard.press('Enter'); await p.keyboard.press('Backspace'); await p.keyboard.press('KeyO'); await sleep(250); if ((await d()).sheet !== 'orders') F('orders sheet did not open'); else ok.push('orders sheet opens (O)'); await shot('g15-orders'); await p.keyboard.press('Backspace');
+  // sprinkler auto-waters new plants
+  await ev(() => { window.__grove.give(5000); window.__grove.sprinkler(); window.__grove.seeds('carrot', 1); const st = window.__grove.state(); for (let i = 0; i < st.open; i++) if (!st.plots[i]) { window.__grove.plant(i, 'carrot'); window.__lastPlot = i; break; } });
+  s = await d(); const lp2 = await ev(() => window.__lastPlot);
+  if (!s.sprinkler || !s.plots[lp2] || !s.plots[lp2].w) F('sprinkler did not auto-water'); else ok.push('sprinkler auto-waters new plants');
+  await sleep(500); await shot('g16-sprinkler');
+  // login streak grows day after day
+  await ev(() => { const st = window.__grove.state(), K = window.__bubzi.K, t = Date.now() + window.__groveOffset; st.day = new Date(t - 864e5).toDateString(); st.streak = 6; K.store.set('grove', st); window.__grove.reload(); });
+  s = await d(); if (s.streak !== 7) F('streak did not grow (' + s.streak + ')'); else ok.push('day streak 6 → 7 (bonus rare seed on day 7)');
+  await sleep(200); await shot('g17-streak'); await p.keyboard.press('Backspace');
   // frame rate
   await p.keyboard.press('Enter');
   const fps = await ev(() => new Promise((res) => { let n = 0; const t = performance.now(); (function f() { n++; if (performance.now() - t < 2000) requestAnimationFrame(f); else res(n / 2); })(); }));

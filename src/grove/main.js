@@ -71,7 +71,7 @@ function nextEvent(ms) {
 let S = null;
 function freshState() {
   const plots = []; for (let i = 0; i < GRID * GRID; i++) plots.push(null);
-  return { v: 1, gold: 40, xp: 0, lv: 1, seeds: { carrot: 4, lettuce: 1 }, plots: plots, open: START_PLOTS, album: {}, stock: null, pets: [], egg: null, last: now(), day: '', boostAt: 0, harvested: 0, tut: 0 };
+  return { v: 1, gold: 40, xp: 0, lv: 1, seeds: { carrot: 4, lettuce: 1 }, plots: plots, open: START_PLOTS, album: {}, stock: null, pets: [], egg: null, last: now(), day: '', boostAt: 0, harvested: 0, tut: 0, orders: null, streak: 0, sprinkler: false };
 }
 function load() {
   let s = K0.store.get('grove', null);
@@ -92,6 +92,37 @@ function makeStock(key) {
   return { key: key, left: { carrot: 25, lettuce: 15, tomato: ri(4, 10), onion: ri(3, 7), potato: ri(2, 5), pumpkin: ri(1, 3), goldpump: r() < 0.5 ? ri(1, 2) : 0, cactus: r() < 0.3 ? 1 : 0, inkbloom: r() < 0.12 ? 1 : 0 } };
 }
 function stock() { const k = hourKey(now()); if (!S.stock || (S.stock.key !== k && !S.stock.forced) || (S.stock.forced && S.stock.key < k)) S.stock = makeStock(k); return S.stock; }
+
+/* ---------------- daily orders (same for everyone each day) ---------------- */
+const WHO = [{ n: 'Mila', col: '#FF8A5B' }, { n: 'Tom', col: '#4AA3FF' }, { n: 'Zara', col: '#B06CFF' }, { n: 'Omar', col: '#22A06B' }, { n: 'Lina', col: '#FF5FA2' }];
+const QTY = { carrot: [6, 12], lettuce: [4, 9], tomato: [3, 6], onion: [2, 4], potato: [2, 3], pumpkin: [1, 2], goldpump: [1, 1], cactus: [1, 1], inkbloom: [1, 1] };
+const SPRINKLER = { price: 2500, lvl: 5 };
+function dayKey(ms) { const d = new Date(ms); return d.getFullYear() * 1000 + Math.floor((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(d.getFullYear(), 0, 0)) / 864e5); }
+function makeOrders(key, lv) {
+  const r = rng(key * 7919 + 3), pool = SEEDS.filter((s) => s.lvl <= Math.max(1, lv)).slice(-4), list = [], used = {};
+  for (let i = 0; i < 3; i++) {
+    let sd = pool[Math.floor(r() * pool.length)]; for (let k = 0; k < 4 && used[sd.id] && pool.length > 1; k++) sd = pool[Math.floor(r() * pool.length)]; used[sd.id] = 1;
+    const q = QTY[sd.id], need = q[0] + Math.floor(r() * (q[1] - q[0] + 1));
+    list.push({ seed: sd.id, need: need, have: 0, claimed: false, gold: Math.round(need * sd.sell * 1.5 + 20), xp: need * sd.xp * 2, who: Math.floor(r() * WHO.length) });
+  }
+  return list;
+}
+function orders() { const k = dayKey(now()); if (!S.orders || S.orders.day !== k) S.orders = { day: k, list: makeOrders(k, S.lv), bonus: false }; return S.orders; }
+function claimable() { return orders().list.filter((o) => !o.claimed && o.have >= o.need).length; }
+function claim(K, k) {
+  const o = orders().list[k]; if (!o || o.claimed || o.have < o.need) return false;
+  o.claimed = true; S.gold += o.gold; S.earned = (S.earned || 0) + o.gold; addXp(K, o.xp); K.sfx('reward'); K.confetti(40); K.addCoins(2);
+  const od = orders();
+  if (!od.bonus && od.list.every((x) => x.claimed)) { od.bonus = true; const rare = S.lv >= 8 ? 'goldpump' : 'pumpkin'; S.seeds[rare] = (S.seeds[rare] || 0) + 2; S.gold += 200; K.toast(K.t('ordersDone') + ' 2× ' + L(K, SEED[rare].name) + ' + 200'); K.confetti(90); }
+  K.setScore(S.earned || 0); save(); return true;
+}
+function buySprinkler(K) {
+  if (S.sprinkler) return; if (S.lv < SPRINKLER.lvl) { K.sfx('wrong'); K.toast(K.t('needLv') + ' ' + SPRINKLER.lvl); return; }
+  if (S.gold < SPRINKLER.price) { K.sfx('wrong'); K.toast(K.t('needGold')); return; }
+  S.gold -= SPRINKLER.price; S.sprinkler = true; buildSprinkler(); S.plots.forEach((p) => { if (p && !p.w && plotProgress(p, now()) < 1) { p.w = true; p.t0 -= Math.min(p.t0 + p.dur - now(), p.dur * 0.2); } });
+  K.sfx('reward'); K.confetti(50); K.toast(K.t('sprinklerD')); save();
+}
+function harvestAll(K) { let n = 0; for (let i = 0; i < S.open; i++) { const p = S.plots[i]; if (p && plotProgress(p, now()) >= 1) { harvest(K, i); n++; } } return n; }
 
 /* ---------------- game rules ---------------- */
 const hasPet = (t) => S.pets.some((p) => p.type === t);
@@ -169,7 +200,7 @@ function buildScene(K) {
   const buf = PACK.buffer.slice(PACK.byteOffset, PACK.byteOffset + PACK.byteLength);
   new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parse(buf, '', (gltf) => {
     gltf.scene.children.slice().forEach((c) => { M[c.name] = c; });
-    decorate(); ready3d = true; syncAll();
+    decorate(); ready3d = true; syncAll(); buildSprinkler();
   }, (err) => { console.error('grove models', err); ready3d = true; });
 }
 function decorate() {
@@ -262,6 +293,23 @@ function syncPlot(i) {
 function syncAll() { for (let i = 0; i < GRID * GRID; i++) syncPlot(i); syncPets(); }
 
 /* ---------------- pets ---------------- */
+let sprinklerObj = null;
+function buildSprinkler() {
+  if (!R || sprinklerObj || !S.sprinkler) return;
+  const g = new THREE.Group(), x = plotPos(0).x - 1.75, z = GZ; g.position.set(x, 0, z);
+  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.9, 6), mat('#8A97A6', { metalness: 0.4, roughness: 0.4 })); pipe.position.y = 0.45; g.add(pipe);
+  const head = new THREE.Group(); head.position.y = 0.95; g.add(head);
+  const hm = mat('#3B9BFF', { metalness: 0.3, roughness: 0.4 }); const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.1, 8), hm); head.add(hub);
+  [0, Math.PI].forEach((a) => { const arm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.05), hm); arm.rotation.y = a; arm.position.x = Math.cos(a) * 0.22; head.add(arm); });
+  const n = 40, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const drops = new THREE.Points(geo, new THREE.PointsMaterial({ color: '#8FD3FF', size: 0.08, transparent: true, opacity: 0.85, depthWrite: false })); g.add(drops);
+  shadowAll(g, true, false); scene.add(g); sprinklerObj = { g: g, head: head, drops: drops, n: n };
+}
+function updateSprinkler(t) {
+  if (!sprinklerObj) return; const s = sprinklerObj; s.head.rotation.y = t * 2.2; const a = s.drops.geometry.attributes.position;
+  for (let i = 0; i < s.n; i++) { const k = ((t * 0.8 + i / s.n) % 1), ang = t * 2.2 + (i % 2) * Math.PI, r = k * 2.6; a.array[i * 3] = Math.cos(-ang) * r; a.array[i * 3 + 1] = 0.95 + Math.sin(k * Math.PI) * 0.9 - k * 0.8; a.array[i * 3 + 2] = Math.sin(-ang) * r; }
+  a.needsUpdate = true;
+}
 function petMesh(type) {
   const g = new THREE.Group();
   if (type === 'bunny') {
@@ -360,11 +408,12 @@ let sheet = null, popup = null, fx = [], ui = [], tutT = 0;
 function plant(K, i, id) {
   const sd = SEED[id]; if (!(S.seeds[id] > 0) || S.plots[i] || i >= S.open) return false;
   S.seeds[id]--; S.plots[i] = { seed: id, t0: now(), dur: Math.round(sd.t * 1000 * growMul()), w: false, mut: null };
-  K.sfx('place'); K.haptic(15); syncPlot(i); sheet = null; if (S.tut === 0) S.tut = 1; save(); return true;
+  if (S.sprinkler) { S.plots[i].w = true; S.plots[i].t0 -= S.plots[i].dur * 0.2; }
+  K.sfx('place'); K.haptic(15); syncPlot(i); plotG[i] && (plotG[i].plant.userData.popT = 0.45); sheet = null; if (S.tut === 0) S.tut = 1; save(); return true;
 }
 function water(K, i) {
   const p = S.plots[i]; if (!p || p.w) return false; const left = p.t0 + p.dur - now(); if (left <= 0) return false;
-  p.w = true; p.t0 -= Math.min(left, p.dur * 0.2); K.sfx('pop'); splash(i); if (S.tut === 1) S.tut = 2; save(); return true;
+  p.w = true; p.t0 -= Math.min(left, p.dur * 0.2); K.sfx('pop'); splash(i); plotG[i].plant.userData.popT = 0.35; if (S.tut === 1) S.tut = 2; save(); return true;
 }
 function harvest(K, i, double) {
   const p = S.plots[i]; if (!p || plotProgress(p, now()) < 1) return false;
@@ -373,6 +422,7 @@ function harvest(K, i, double) {
   if (moonAt(t) && Math.random() < MUTS.moonlit.p) extra.push('moonlit');
   p.mut = p.mut.concat(extra.filter((m) => p.mut.indexOf(m) < 0));
   const sd = SEED[p.seed], v = valueOf(p) * (double ? 2 : 1);
+  orders().list.forEach((o) => { if (!o.claimed && o.seed === p.seed && o.have < o.need) o.have++; });
   S.gold += v; S.earned = (S.earned || 0) + v; S.harvested++; addXp(K, sd.xp);
   const newAlbum = []; [''].concat(p.mut).forEach((m) => { const k = p.seed + ':' + (m || 'normal'); if (!S.album[k]) { S.album[k] = 1; newAlbum.push(m || 'normal'); } });
   if (newAlbum.length) addXp(K, 3 * newAlbum.length);
@@ -382,6 +432,7 @@ function harvest(K, i, double) {
     const o = pg.plant.userData.prod.clone(true); o.position.copy(wp); o.scale.setScalar(pg.plant.scale.x); scene.add(o); flyers.push({ o: o, a: wp.clone(), t: 0 });
   }
   const sp = screenOf(wp.clone().setY(1));
+  for (let k = 0; k < 12; k++) { const a = Math.random() * TAU, sp2 = 90 + Math.random() * 160; fx.push({ x: sp.x, y: sp.y + 20, vx: Math.cos(a) * sp2, vy: Math.sin(a) * sp2 - 140, bit: true, col: k % 3 ? sd.col : sd.leaf, r: 3 + Math.random() * 4, t: 0 }); }
   fx.push({ x: sp.x, y: sp.y, txt: '+' + v, col: p.mut.length ? '#FFE15A' : '#FFFFFF', t: 0, big: p.mut.length > 0 });
   if (p.mut.length) fx.push({ x: sp.x, y: sp.y - 30, txt: p.mut.map((m) => L(K, MUTS[m].name)).join(' · '), col: MUTS[p.mut[p.mut.length - 1]].col, t: 0 });
   K.sfx(p.mut.length ? 'reward' : 'coin'); K.haptic(20);
@@ -486,8 +537,16 @@ function drawShop(c, K) {
     c.textAlign = 'center';
     if (!lock) { const bw = 92, bx = rtl ? box.x + 18 : box.x + box.w - bw - 18; btn(c, K, bx, y + rh / 2 - 18, bw, 36, left > 0 ? String(sd.price) : K.t('soldOut'), left > 0 && S.gold >= sd.price ? '#FF8A1F' : '#B9A88C', 'buy', { id: sd.id }); }
   });
+  { const y = y0 + SEEDS.length * (rh + 6), lock = S.lv < SPRINKLER.lvl;
+    if (y < view.y + view.h + 30) {
+      c.fillStyle = '#DDEFFC'; K.roundRect(c, box.x + 10, y, box.w - 20, rh, 14); c.fill();
+      c.fillStyle = '#7A8A9A'; c.fillRect(box.x + 34, y + rh * 0.35, 8, rh * 0.45); c.fillStyle = '#3B9BFF'; c.beginPath(); c.arc(box.x + 38, y + rh * 0.32, 9, 0, TAU); c.fill();
+      c.textAlign = K.rtl ? 'right' : 'left'; const tx = K.rtl ? box.x + box.w - 66 : box.x + 66;
+      c.fillStyle = '#1F3A5A'; c.font = K.font(14); c.fillText(K.t('sprinkler'), tx, y + rh * 0.34); c.fillStyle = '#4A6A8A'; c.font = K.font(11, 700); c.fillText(lock ? K.t('needLv') + ' ' + SPRINKLER.lvl : K.t('sprinklerD'), tx, y + rh * 0.7); c.textAlign = 'center';
+      if (!lock) { const bw = 92, bx = K.rtl ? box.x + 18 : box.x + box.w - bw - 18; btn(c, K, bx, y + rh / 2 - 18, bw, 36, S.sprinkler ? K.t('owned') : String(SPRINKLER.price), S.sprinkler ? '#9BB5A3' : S.gold >= SPRINKLER.price ? '#3B82F6' : '#B9A88C', 'sprinkler'); }
+    } }
   c.restore();
-  sheet.maxScroll = Math.max(0, SEEDS.length * (rh + 6) - view.h + 10);
+  sheet.maxScroll = Math.max(0, (SEEDS.length + 1) * (rh + 6) - view.h + 10);
 }
 function drawAlbum(c, K) {
   const box = panel(c, K, K.t('albumT'), 60 + SEEDS.length * 44), n = Object.keys(S.album).length, tot = SEEDS.length * (MUT_ORDER.length + 1);
@@ -502,6 +561,24 @@ function drawAlbum(c, K) {
       c.fillStyle = got ? (m === 'normal' ? sd.col : MUTS[m].col) : 'rgba(0,0,0,0.08)'; c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.fill();
       if (got) { c.fillStyle = '#FFFFFF'; c.font = K.font(r); c.fillText('✓', cx, cy + 1); }
     });
+  });
+}
+function drawOrders(c, K) {
+  const od = orders(), box = panel(c, K, K.t('ordersT'), 3 * 92 + 34), t = now(), mid = new Date(t); mid.setHours(24, 0, 0, 0);
+  c.fillStyle = '#7A6448'; c.font = K.font(12, 800); c.fillText(K.t('newOrders') + ' ' + fmtTime(mid - t), K.W / 2, box.y + 2);
+  od.list.forEach((o, k) => {
+    const y = box.y + 18 + k * 92, sd = SEED[o.seed], w = WHO[o.who], done = o.have >= o.need;
+    c.fillStyle = o.claimed ? '#E6EFE0' : '#F1E4C8'; K.roundRect(c, box.x + 10, y, box.w - 20, 84, 16); c.fill();
+    c.fillStyle = w.col; c.beginPath(); c.arc(box.x + 38, y + 30, 18, 0, TAU); c.fill(); c.fillStyle = '#FFF'; c.font = K.font(16); c.fillText(w.n[0], box.x + 38, y + 31);
+    seedIcon(c, sd, box.x + 38, y + 64, 11);
+    c.textAlign = K.rtl ? 'right' : 'left'; const tx = K.rtl ? box.x + box.w - 70 : box.x + 70, bw = Math.min(110, box.w * 0.28);
+    c.fillStyle = '#3B2A1A'; c.font = K.font(14); c.fillText(w.n + ' ' + K.t('wants') + ' ' + o.need + '× ' + L(K, sd.name), tx, y + 20, box.w - 100 - bw);
+    c.fillStyle = '#7A6448'; c.font = K.font(11, 800); c.fillText('+' + o.gold + ' · +' + o.xp + ' XP', tx, y + 40);
+    const pw = box.w - 110 - bw, px = K.rtl ? tx - pw : tx; c.fillStyle = 'rgba(0,0,0,0.1)'; K.roundRect(c, px, y + 54, pw, 12, 6); c.fill(); c.fillStyle = done ? '#22A06B' : '#FFB020'; K.roundRect(c, px, y + 54, Math.max(12, pw * Math.min(1, o.have / o.need)), 12, 6); c.fill();
+    c.fillStyle = '#3B2A1A'; c.font = K.font(10, 800); c.textAlign = 'center'; c.fillText(Math.min(o.have, o.need) + ' / ' + o.need, px + pw / 2, y + 61);
+    const bx = K.rtl ? box.x + 18 : box.x + box.w - bw - 18;
+    if (o.claimed) { c.fillStyle = '#22A06B'; c.font = K.font(22); c.fillText('✓', bx + bw / 2, y + 42); }
+    else btn(c, K, bx, y + 24, bw, 38, done ? K.t('claim') : '…', done ? '#22A06B' : '#C9B89A', done ? 'claim' : 'none', { i: k });
   });
 }
 function drawPets(c, K) {
@@ -537,7 +614,8 @@ function drawPopup(c, K) {
     p.seeds.forEach((s, i) => seedIcon(c, s, K.W / 2 + (i - (p.seeds.length - 1) / 2) * 50, y + 150, 18));
     btn(c, K, K.W / 2 - 80, y + h - 56, 160, 42, K.t('ok'), '#FF8A1F', 'closePop');
   } else if (p.kind === 'rare') {
-    c.fillStyle = MUTS[p.mut[p.mut.length - 1]].col; c.font = K.font(24); c.fillText(p.mut.map((m) => L(K, MUTS[m].name)).join(' ') + ' ' + L(K, p.seed.name) + '!', K.W / 2, y + 44);
+    const mc = MUTS[p.mut[p.mut.length - 1]].col; c.fillStyle = '#3B2A1A'; c.font = K.font(Math.min(24, w / 14)); c.fillText(p.mut.map((m) => L(K, MUTS[m].name)).join(' ') + ' ' + L(K, p.seed.name) + '!', K.W / 2, y + 44, w - 20);
+    const gl = c.createRadialGradient(K.W / 2, y + 100, 4, K.W / 2, y + 100, 52); gl.addColorStop(0, mc); gl.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gl; c.beginPath(); c.arc(K.W / 2, y + 100, 52, 0, TAU); c.fill();
     seedIcon(c, p.seed, K.W / 2, y + 100, 30); c.fillStyle = '#3B2A1A'; c.font = K.font(18); c.fillText('+' + p.v, K.W / 2, y + 146);
     btn(c, K, x + 16, y + h - 58, w / 2 - 22, 44, K.t('ok'), '#B9A88C', 'closePop'); btn(c, K, x + w / 2 + 6, y + h - 58, w / 2 - 22, 44, K.t('double'), '#22A06B', 'doubleAd');
   } else if (p.kind === 'pet') {
@@ -545,7 +623,8 @@ function drawPopup(c, K) {
     c.fillStyle = pt.col; c.strokeStyle = '#3B2A1A'; c.lineWidth = 3; c.beginPath(); c.arc(K.W / 2, y + 104, 30, 0, TAU); c.fill(); c.stroke();
     c.fillStyle = '#3B2A1A'; c.font = K.font(14, 700); c.fillText(L(K, pt.bonus), K.W / 2, y + 152); btn(c, K, K.W / 2 - 80, y + h - 56, 160, 42, K.t('ok'), '#FF8A1F', 'closePop');
   } else if (p.kind === 'welcome') {
-    c.fillStyle = '#22A06B'; c.font = K.font(24); c.fillText(K.t('welcome'), K.W / 2, y + 44);
+    c.fillStyle = '#22A06B'; c.font = K.font(24); c.fillText(K.t('welcome'), K.W / 2, y + 40);
+    if (p.streak > 1) { c.fillStyle = '#FF6A1F'; c.font = K.font(14); c.fillText(K.t('dayN') + ' ' + p.streak + ' · ' + K.t('streak'), K.W / 2, y + 66); }
     c.fillStyle = '#3B2A1A'; c.font = K.font(15, 700); c.fillText(K.t('grewAway') + ' ' + fmtTime(p.away), K.W / 2, y + 90);
     c.fillText(p.ready + ' ' + K.t('readyCount'), K.W / 2, y + 116); if (p.gift) { c.fillStyle = '#FF8A1F'; c.fillText(K.t('dailyGift') + ': ' + p.gift, K.W / 2, y + 146); }
     btn(c, K, K.W / 2 - 80, y + h - 56, 160, 42, K.t('ok'), '#FF8A1F', 'closePop');
@@ -569,18 +648,24 @@ function drawHud(c, K) {
   c.fillStyle = 'rgba(255,255,255,0.88)'; c.font = K.font(16); const gt = String(S.gold), gw = c.measureText(gt).width + 50; K.roundRect(c, 10, top + 48, gw, 34, 17); c.fill();
   K.drawCoin(c, 28, top + 65, 10, K.time); c.fillStyle = '#3B2A1A'; c.textAlign = 'left'; c.fillText(gt, 44, top + 66); c.textAlign = 'center';
   // bottom buttons
-  const n = 4, bs = Math.min(74, (W2 - 20) / n - 10), by = K.H - bs - 12, labels = [['shop', K.t('shop'), '#FF8A1F'], ['album', K.t('album'), '#7B4DFF'], ['pets', K.t('pets'), '#E85D9A'], ['boost', K.t('boost'), '#22A06B']];
+  const n = 5, bs = Math.min(74, (W2 - 20) / n - 8), by = K.H - bs - 12, labels = [['shop', K.t('shop'), '#FF8A1F'], ['orders', K.t('orders'), '#3B82F6'], ['album', K.t('album'), '#7B4DFF'], ['pets', K.t('pets'), '#E85D9A'], ['boost', K.t('boost'), '#22A06B']];
   labels.forEach((b, i) => {
-    const x = W2 / 2 + (i - (n - 1) / 2) * (bs + 10) - bs / 2, cool = b[0] === 'boost' && now() < S.boostAt + BOOST_CD;
+    const x = W2 / 2 + (i - (n - 1) / 2) * (bs + 8) - bs / 2, cool = b[0] === 'boost' && now() < S.boostAt + BOOST_CD;
     c.fillStyle = 'rgba(0,0,0,0.25)'; K.roundRect(c, x, by + 4, bs, bs, 20); c.fill(); c.fillStyle = cool ? '#9BB5A3' : b[2]; K.roundRect(c, x, by, bs, bs, 20); c.fill();
     iconFor(c, b[0], x + bs / 2, by + bs * 0.4, bs * 0.22); c.fillStyle = '#FFF'; c.font = K.font(Math.min(12, bs / 6)); c.fillText(cool ? fmtTime(S.boostAt + BOOST_CD - now()) : b[1], x + bs / 2, by + bs * 0.8, bs - 6);
+    const cl = b[0] === 'orders' ? claimable() : 0; if (cl) { c.fillStyle = '#FF3B4E'; c.beginPath(); c.arc(x + bs - 6, by + 6, 10, 0, TAU); c.fill(); c.fillStyle = '#FFF'; c.font = K.font(11); c.fillText(cl, x + bs - 6, by + 7); }
     if (b[0] === 'pets' && S.egg && now() >= S.egg.t0 + S.egg.dur) { c.fillStyle = '#FF3B4E'; c.beginPath(); c.arc(x + bs - 6, by + 6, 8, 0, TAU); c.fill(); }
     ui.push({ x: x, y: by, w: bs, h: bs, act: b[0] });
   });
+  // streak + harvest-all
+  if (S.streak > 1) { c.font = K.font(13); const st = K.t('dayN') + ' ' + S.streak, sw = c.measureText(st).width + 34, sx2 = 10, sy2 = top + 90; c.fillStyle = 'rgba(255,255,255,0.88)'; K.roundRect(c, sx2, sy2, sw, 28, 14); c.fill(); c.fillStyle = '#FF6A1F'; c.beginPath(); c.moveTo(sx2 + 15, sy2 + 5); c.quadraticCurveTo(sx2 + 26, sy2 + 15, sx2 + 15, sy2 + 23); c.quadraticCurveTo(sx2 + 5, sy2 + 15, sx2 + 15, sy2 + 5); c.fill(); c.fillStyle = '#3B2A1A'; c.textAlign = 'left'; c.fillText(st, sx2 + 26, sy2 + 15); c.textAlign = 'center'; }
+  let ready = 0; for (let i = 0; i < S.open; i++) { const p = S.plots[i]; if (p && plotProgress(p, now()) >= 1) ready++; }
+  if (ready >= 2) btn(c, K, W2 / 2 - 95, by - 56, 190, 44, K.t('harvestAll') + ' (' + ready + ')', '#22A06B', 'harvestAll');
 }
 function iconFor(c, k, x, y, r) {
   c.fillStyle = '#FFFFFF'; c.strokeStyle = '#FFFFFF'; c.lineWidth = r * 0.22; c.lineCap = 'round';
   if (k === 'shop') { c.beginPath(); c.moveTo(x - r, y - r * 0.4); c.lineTo(x + r, y - r * 0.4); c.lineTo(x + r * 0.7, y + r); c.lineTo(x - r * 0.7, y + r); c.closePath(); c.fill(); c.beginPath(); c.arc(x, y - r * 0.4, r * 0.55, Math.PI, 0); c.stroke(); }
+  else if (k === 'orders') { c.fillRect(x - r * 0.8, y - r, r * 1.6, r * 2); c.fillStyle = '#3B82F6'; for (let j = 0; j < 3; j++) c.fillRect(x - r * 0.5, y - r * 0.5 + j * r * 0.55, r, r * 0.16); }
   else if (k === 'album') { c.fillRect(x - r, y - r, r * 0.9, r * 2); c.fillRect(x + r * 0.1, y - r, r * 0.9, r * 2); }
   else if (k === 'pets') { c.beginPath(); c.ellipse(x, y + r * 0.3, r * 0.55, r * 0.45, 0, 0, TAU); c.fill(); [[-0.7, -0.4], [-0.25, -0.85], [0.25, -0.85], [0.7, -0.4]].forEach((q) => { c.beginPath(); c.arc(x + q[0] * r, y + q[1] * r, r * 0.22, 0, TAU); c.fill(); }); }
   else { c.beginPath(); c.moveTo(x - r * 0.3, y - r); c.lineTo(x + r * 0.5, y - r * 0.1); c.lineTo(x, y - r * 0.1); c.lineTo(x + r * 0.3, y + r); c.lineTo(x - r * 0.5, y + r * 0.1); c.lineTo(x, y + r * 0.1); c.closePath(); c.fill(); }
@@ -614,7 +699,8 @@ function drawPlotLabels(c, K) {
 function drawFx(c, K, dt) {
   fx.forEach((f) => {
     f.t += dt;
-    if (f.drop) { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 400 * dt; c.globalAlpha = Math.max(0, 1 - f.t * 1.6); c.fillStyle = '#5AB8FF'; c.beginPath(); c.arc(f.x, f.y, 4, 0, TAU); c.fill(); }
+    if (f.bit) { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 520 * dt; c.globalAlpha = Math.max(0, 1 - f.t * 1.3); c.fillStyle = f.col; c.beginPath(); c.arc(f.x, f.y, f.r, 0, TAU); c.fill(); }
+    else if (f.drop) { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 400 * dt; c.globalAlpha = Math.max(0, 1 - f.t * 1.6); c.fillStyle = '#5AB8FF'; c.beginPath(); c.arc(f.x, f.y, 4, 0, TAU); c.fill(); }
     else { c.globalAlpha = Math.max(0, Math.min(1, 2.2 - f.t * 1.6)); c.font = K.font(f.big ? 26 : 18); c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 5; c.strokeStyle = 'rgba(40,30,10,0.75)'; const y = f.y - f.t * 40; c.strokeText(f.txt, f.x, y); c.fillStyle = f.col; c.fillText(f.txt, f.x, y); }
   });
   c.globalAlpha = 1; fx = fx.filter((f) => f.t < 1.4);
@@ -640,13 +726,14 @@ function adapt(dt) { // drop resolution (then shadows) on slow devices
 }
 function render3d(dt, K) {
   if (!R || !webglOk) return; if (!TEST || window.__groveAdapt) adapt(dt); const t = K.time, ms = now(), ev = eventNow(ms);
-  updateSky(ms, ev || ''); updateRain(dt); placeCam(t); updatePets(dt, t);
+  updateSky(ms, ev || ''); updateRain(dt); placeCam(t); updatePets(dt, t); updateSprinkler(t);
   clouds.forEach((cl) => { cl.a += cl.s * dt; cl.o.position.set(Math.cos(cl.a) * cl.r, cl.y, Math.sin(cl.a) * cl.r); });
   for (let i = 0; i < GRID * GRID; i++) {
     const p = S.plots[i], pg = plotG[i]; if (!p || i >= S.open || !pg.plant.userData.leaves) continue;
     const g = plotProgress(p, ms), parts = pg.plant.userData, giant = parts.giant ? 1.45 : 1;
     parts.leaves.scale.setScalar(0.25 + 0.75 * Math.min(1, g * 1.4)); parts.prod.scale.setScalar(Math.max(0.001, smooth(0.3, 1, g)));
-    pg.plant.scale.setScalar(giant * (g >= 1 ? 1 + Math.sin(t * 3 + i) * 0.03 : 1));
+    const pd = pg.plant.userData, pop = pd.popT > 0 ? 1 + Math.sin(pd.popT * 24) * pd.popT * 0.7 : 1; if (pd.popT > 0) pd.popT -= dt;
+    pg.plant.scale.setScalar(giant * pop * (g >= 1 ? 1 + Math.sin(t * 3 + i) * 0.03 : 1));
     if (p.mut && p.mut.indexOf('rainbow') >= 0) parts.mats.forEach((m, k) => m.color.setHSL((t * 0.25 + k * 0.1) % 1, 0.8, 0.6));
     const sp = pg.plant.getObjectByName('sparkle'); if (sp) { sp.rotation.y += dt * 0.8; sp.material.opacity = 0.6 + Math.sin(t * 6 + i) * 0.4; }
   }
@@ -662,15 +749,17 @@ function startSession(K) {
   S = load(); const t = now(), away = t - (S.last || t); let gift = '';
   stock();
   const today = new Date(t).toDateString();
-  if (!S.day && !S.harvested) S.day = today; // first day: the starter pack is the gift
+  if (!S.day && !S.harvested) { S.day = today; S.streak = 1; } // first day: the starter pack is the gift
   if (S.day !== today) { // daily seed gift
-    S.day = today; const pool = SEEDS.filter((s) => s.lvl <= S.lv + 1), pick = pool[Math.floor(Math.random() * pool.length)], n = pick.price < 50 ? 3 : 1;
+    S.streak = S.day === new Date(t - 864e5).toDateString() ? (S.streak || 1) + 1 : 1;
+    S.day = today; const pool = SEEDS.filter((s) => s.lvl <= S.lv + 1), pick = pool[Math.floor(Math.random() * pool.length)], n = (pick.price < 50 ? 3 : 1) * (1 + Math.floor((S.streak - 1) / 3));
     S.seeds[pick.id] = (S.seeds[pick.id] || 0) + n; gift = n + '× ' + L(K, pick.name);
+    if (S.streak % 7 === 0) { const rare = SEEDS.filter((s) => s.lvl <= S.lv + 2).pop(); S.seeds[rare.id] = (S.seeds[rare.id] || 0) + 1; gift = rare.id === pick.id ? (n + 1) + '× ' + L(K, pick.name) : gift + ' + 1× ' + L(K, rare.name); }
   }
   const readyN = S.plots.filter((p) => p && plotProgress(p, t) >= 1).length;
-  if (away > 5 * 60000 || gift) popup = { kind: 'welcome', away: away, ready: readyN, gift: gift && S.harvested ? gift : '', t: 0 };
+  if (away > 5 * 60000 || gift) popup = { kind: 'welcome', away: away, ready: readyN, gift: gift && S.harvested ? gift : '', streak: S.streak, t: 0 };
   if (!S.harvested) popup = null; // brand-new players go straight to planting
-  syncAll(); K.setScore(S.earned || 0); save();
+  syncAll(); buildSprinkler(); K.setScore(S.earned || 0); save();
 }
 function hit(x, y) { for (let i = ui.length - 1; i >= 0; i--) { const u = ui[i]; if (x >= u.x && x <= u.x + u.w && y >= u.y && y <= u.y + u.h) return u; } return null; }
 function act(K, u) {
@@ -681,6 +770,10 @@ function act(K, u) {
   else if (a === 'album') { sheet = { kind: 'album' }; K.sfx('click'); }
   else if (a === 'pets') { if (S.egg && now() >= S.egg.t0 + S.egg.dur) hatch(K); else { sheet = { kind: 'pets' }; K.sfx('click'); } }
   else if (a === 'boost') boost(K);
+  else if (a === 'orders') { sheet = { kind: 'orders' }; K.sfx('click'); }
+  else if (a === 'claim') claim(K, u.i);
+  else if (a === 'harvestAll') harvestAll(K);
+  else if (a === 'sprinkler') buySprinkler(K);
   else if (a === 'plant') plant(K, sheet.plot, u.id);
   else if (a === 'buy') buySeed(K, u.id);
   else if (a === 'egg') buyEgg(K);
@@ -696,17 +789,17 @@ BubziKit.run({
   id: 'pocket-grove', coinRate: 0, noSkins: true, mascot: mascot,
   title: { en: 'Pocket Grove', fr: 'Pocket Grove', ar: 'بستان الجيب' },
   strings: {
-    en: { tagline: 'A tiny 3D garden that grows while you sleep.', shop: 'SEEDS', album: 'ALBUM', pets: 'PETS', boost: '+15 MIN', plantWhat: 'What do you want to plant?', noSeeds: 'No seeds left. Buy some!', shopT: 'Seed Shop', restock: 'New seeds in', restockAd: 'Restock now · AD', sells: 'sells', stock: 'left', soldOut: 'Sold out', needLv: 'Level', needGold: 'Not enough gold yet', albumT: 'Harvest Album', petsT: 'Pets', buyEgg: 'Pet egg: hatches into a helper', eggHatch: 'Your egg hatches in', eggReady: 'Your egg is ready!', eggTip: 'Plants and pets keep growing while you are away', hatch: 'HATCH', hatched: 'You got a', levelUp: 'Level', newSeed: 'New seed', keepGrowing: 'Keep growing!', eggUnlocked: 'Pet eggs unlocked!', ok: 'OK', double: 'x2 · AD', welcome: 'Welcome back!', grewAway: 'Your garden grew for', readyCount: 'plants are ready to harvest', dailyGift: 'Daily gift', lockedPlot: 'Unlock the plots in order', boostWait: 'Boost ready soon', boosted: 'Everything grew 15 minutes!', in: 'in', ev_rain: 'Ink Rain', ev_golden: 'Golden Hour', ev_moon: 'Moonlight', evTip_rain: 'Ink Rain: plants growing in the rain can turn Wet (x2)', evTip_golden: 'Golden Hour (7–8 pm): harvests can turn Golden (x5)', evTip_moon: 'Moonlight (9–10 pm): harvests can turn Moonlit (x4)' },
-    fr: { tagline: 'Un petit jardin 3D qui pousse pendant que tu dors.', shop: 'GRAINES', album: 'ALBUM', pets: 'ANIMAUX', boost: '+15 MIN', plantWhat: 'Que veux-tu planter ?', noSeeds: 'Plus de graines. Achètes-en !', shopT: 'Boutique de graines', restock: 'Nouvelles graines dans', restockAd: 'Réassort · PUB', sells: 'vaut', stock: 'en stock', soldOut: 'Épuisé', needLv: 'Niveau', needGold: 'Pas encore assez d’or', albumT: 'Album des récoltes', petsT: 'Animaux', buyEgg: 'Œuf : éclot en un compagnon', eggHatch: 'Ton œuf éclot dans', eggReady: 'Ton œuf est prêt !', eggTip: 'Les plantes et les animaux grandissent même quand tu es absent', hatch: 'ÉCLORE', hatched: 'Tu as un', levelUp: 'Niveau', newSeed: 'Nouvelle graine', keepGrowing: 'Continue à cultiver !', eggUnlocked: 'Œufs débloqués !', ok: 'OK', double: 'x2 · PUB', welcome: 'Bon retour !', grewAway: 'Ton jardin a poussé pendant', readyCount: 'plantes sont prêtes', dailyGift: 'Cadeau du jour', lockedPlot: 'Débloque les parcelles dans l’ordre', boostWait: 'Boost bientôt prêt', boosted: 'Tout a poussé de 15 minutes !', in: 'dans', ev_rain: 'Pluie d’encre', ev_golden: 'Heure dorée', ev_moon: 'Clair de lune', evTip_rain: 'Pluie d’encre : les plantes sous la pluie peuvent devenir Mouillées (x2)', evTip_golden: 'Heure dorée (19–20 h) : les récoltes peuvent devenir Dorées (x5)', evTip_moon: 'Clair de lune (21–22 h) : les récoltes peuvent devenir Lunaires (x4)' },
-    ar: { tagline: 'حديقة صغيرة ثلاثية الأبعاد تنمو وأنت نائم.', shop: 'البذور', album: 'الألبوم', pets: 'الحيوانات', boost: '+15 دقيقة', plantWhat: 'ماذا تريد أن تزرع؟', noSeeds: 'لا توجد بذور. اشترِ بعضها!', shopT: 'متجر البذور', restock: 'بذور جديدة بعد', restockAd: 'تجديد الآن · إعلان', sells: 'يُباع بـ', stock: 'متبقٍ', soldOut: 'نفد', needLv: 'المستوى', needGold: 'الذهب لا يكفي بعد', albumT: 'ألبوم المحاصيل', petsT: 'الحيوانات', buyEgg: 'بيضة: يفقس منها مساعد', eggHatch: 'بيضتك تفقس بعد', eggReady: 'بيضتك جاهزة!', eggTip: 'النباتات والحيوانات تنمو حتى وأنت بعيد', hatch: 'افقس', hatched: 'حصلت على', levelUp: 'المستوى', newSeed: 'بذرة جديدة', keepGrowing: 'واصل الزراعة!', eggUnlocked: 'فُتحت البيوض!', ok: 'حسناً', double: 'x2 · إعلان', welcome: 'مرحباً بعودتك!', grewAway: 'نمت حديقتك لمدة', readyCount: 'نباتات جاهزة للحصاد', dailyGift: 'هدية اليوم', lockedPlot: 'افتح الأحواض بالترتيب', boostWait: 'التسريع جاهز قريباً', boosted: 'نما كل شيء 15 دقيقة!', in: 'بعد', ev_rain: 'مطر الحبر', ev_golden: 'الساعة الذهبية', ev_moon: 'ضوء القمر', evTip_rain: 'مطر الحبر: النباتات التي تنمو تحت المطر قد تصبح مبلّلة (x2)', evTip_golden: 'الساعة الذهبية (7–8 مساءً): المحاصيل قد تصبح ذهبية (x5)', evTip_moon: 'ضوء القمر (9–10 مساءً): المحاصيل قد تصبح قمرية (x4)' }
+    en: { orders: 'ORDERS', ordersT: 'Daily Orders', newOrders: 'New orders in', claim: 'CLAIM', wants: 'wants', ordersDone: 'All orders done! Bonus:', harvestAll: 'Harvest all', streak: 'in a row!', dayN: 'Day', sprinkler: 'Sprinkler', sprinklerD: 'Waters every new plant for you', owned: 'Owned', tagline: 'A tiny 3D garden that grows while you sleep.', shop: 'SEEDS', album: 'ALBUM', pets: 'PETS', boost: '+15 MIN', plantWhat: 'What do you want to plant?', noSeeds: 'No seeds left. Buy some!', shopT: 'Seed Shop', restock: 'New seeds in', restockAd: 'Restock now · AD', sells: 'sells', stock: 'left', soldOut: 'Sold out', needLv: 'Level', needGold: 'Not enough gold yet', albumT: 'Harvest Album', petsT: 'Pets', buyEgg: 'Pet egg: hatches into a helper', eggHatch: 'Your egg hatches in', eggReady: 'Your egg is ready!', eggTip: 'Plants and pets keep growing while you are away', hatch: 'HATCH', hatched: 'You got a', levelUp: 'Level', newSeed: 'New seed', keepGrowing: 'Keep growing!', eggUnlocked: 'Pet eggs unlocked!', ok: 'OK', double: 'x2 · AD', welcome: 'Welcome back!', grewAway: 'Your garden grew for', readyCount: 'plants are ready to harvest', dailyGift: 'Daily gift', lockedPlot: 'Unlock the plots in order', boostWait: 'Boost ready soon', boosted: 'Everything grew 15 minutes!', in: 'in', ev_rain: 'Ink Rain', ev_golden: 'Golden Hour', ev_moon: 'Moonlight', evTip_rain: 'Ink Rain: plants growing in the rain can turn Wet (x2)', evTip_golden: 'Golden Hour (7–8 pm): harvests can turn Golden (x5)', evTip_moon: 'Moonlight (9–10 pm): harvests can turn Moonlit (x4)' },
+    fr: { orders: 'COMMANDES', ordersT: 'Commandes du jour', newOrders: 'Nouvelles commandes dans', claim: 'PRENDRE', wants: 'veut', ordersDone: 'Toutes les commandes faites ! Bonus :', harvestAll: 'Tout récolter', streak: 'd’affilée !', dayN: 'Jour', sprinkler: 'Arroseur', sprinklerD: 'Arrose chaque nouvelle plante pour toi', owned: 'Acquis', tagline: 'Un petit jardin 3D qui pousse pendant que tu dors.', shop: 'GRAINES', album: 'ALBUM', pets: 'ANIMAUX', boost: '+15 MIN', plantWhat: 'Que veux-tu planter ?', noSeeds: 'Plus de graines. Achètes-en !', shopT: 'Boutique de graines', restock: 'Nouvelles graines dans', restockAd: 'Réassort · PUB', sells: 'vaut', stock: 'en stock', soldOut: 'Épuisé', needLv: 'Niveau', needGold: 'Pas encore assez d’or', albumT: 'Album des récoltes', petsT: 'Animaux', buyEgg: 'Œuf : éclot en un compagnon', eggHatch: 'Ton œuf éclot dans', eggReady: 'Ton œuf est prêt !', eggTip: 'Les plantes et les animaux grandissent même quand tu es absent', hatch: 'ÉCLORE', hatched: 'Tu as un', levelUp: 'Niveau', newSeed: 'Nouvelle graine', keepGrowing: 'Continue à cultiver !', eggUnlocked: 'Œufs débloqués !', ok: 'OK', double: 'x2 · PUB', welcome: 'Bon retour !', grewAway: 'Ton jardin a poussé pendant', readyCount: 'plantes sont prêtes', dailyGift: 'Cadeau du jour', lockedPlot: 'Débloque les parcelles dans l’ordre', boostWait: 'Boost bientôt prêt', boosted: 'Tout a poussé de 15 minutes !', in: 'dans', ev_rain: 'Pluie d’encre', ev_golden: 'Heure dorée', ev_moon: 'Clair de lune', evTip_rain: 'Pluie d’encre : les plantes sous la pluie peuvent devenir Mouillées (x2)', evTip_golden: 'Heure dorée (19–20 h) : les récoltes peuvent devenir Dorées (x5)', evTip_moon: 'Clair de lune (21–22 h) : les récoltes peuvent devenir Lunaires (x4)' },
+    ar: { orders: 'الطلبات', ordersT: 'طلبات اليوم', newOrders: 'طلبات جديدة بعد', claim: 'استلم', wants: 'يريد', ordersDone: 'أنجزت كل الطلبات! مكافأة:', harvestAll: 'احصد الكل', streak: 'على التوالي!', dayN: 'اليوم', sprinkler: 'رشاش ماء', sprinklerD: 'يسقي كل نبتة جديدة عنك', owned: 'مملوك', tagline: 'حديقة صغيرة ثلاثية الأبعاد تنمو وأنت نائم.', shop: 'البذور', album: 'الألبوم', pets: 'الحيوانات', boost: '+15 دقيقة', plantWhat: 'ماذا تريد أن تزرع؟', noSeeds: 'لا توجد بذور. اشترِ بعضها!', shopT: 'متجر البذور', restock: 'بذور جديدة بعد', restockAd: 'تجديد الآن · إعلان', sells: 'يُباع بـ', stock: 'متبقٍ', soldOut: 'نفد', needLv: 'المستوى', needGold: 'الذهب لا يكفي بعد', albumT: 'ألبوم المحاصيل', petsT: 'الحيوانات', buyEgg: 'بيضة: يفقس منها مساعد', eggHatch: 'بيضتك تفقس بعد', eggReady: 'بيضتك جاهزة!', eggTip: 'النباتات والحيوانات تنمو حتى وأنت بعيد', hatch: 'افقس', hatched: 'حصلت على', levelUp: 'المستوى', newSeed: 'بذرة جديدة', keepGrowing: 'واصل الزراعة!', eggUnlocked: 'فُتحت البيوض!', ok: 'حسناً', double: 'x2 · إعلان', welcome: 'مرحباً بعودتك!', grewAway: 'نمت حديقتك لمدة', readyCount: 'نباتات جاهزة للحصاد', dailyGift: 'هدية اليوم', lockedPlot: 'افتح الأحواض بالترتيب', boostWait: 'التسريع جاهز قريباً', boosted: 'نما كل شيء 15 دقيقة!', in: 'بعد', ev_rain: 'مطر الحبر', ev_golden: 'الساعة الذهبية', ev_moon: 'ضوء القمر', evTip_rain: 'مطر الحبر: النباتات التي تنمو تحت المطر قد تصبح مبلّلة (x2)', evTip_golden: 'الساعة الذهبية (7–8 مساءً): المحاصيل قد تصبح ذهبية (x5)', evTip_moon: 'ضوء القمر (9–10 مساءً): المحاصيل قد تصبح قمرية (x4)' }
   },
   init: function (K) { K0 = K; TEST = !!K.test; buildScene(K); S = load(); layoutCam(K); syncAll(); },
   resize: function (K) { layoutCam(K); },
   reset: function (K) {
     K0 = K; sheet = null; popup = null; fx = []; startSession(K); layoutCam(K);
     if (K.test) {
-      window.__grove = { state: () => S, skip: (sec) => { window.__groveOffset = (window.__groveOffset || 0) + sec * 1000; }, setClock: (ms) => { window.__groveOffset = ms - Date.now(); }, tap: (i) => tapPlot(K, i), plant: (i, id) => plant(K, i, id), harvest: (i) => harvest(K, i), give: (g) => { S.gold += g; K.setScore(S.earned || 0); }, xp: (n) => addXp(K, n), seeds: (id, n) => { S.seeds[id] = (S.seeds[id] || 0) + n; }, mut: (i, m) => { const p = S.plots[i]; if (p) { p.mut = m; syncPlot(i); } }, reload: () => startSession(K), egg: (ms) => { S.egg = { t0: now(), dur: ms }; syncPets(); }, ready: () => ready3d, screen: (i) => screenOf(plotPos(i).setY(0.3)), camYaw: (y) => { camYawT = y; } };
-      K.dbg = () => ({ gold: S.gold, lv: S.lv, xp: S.xp, open: S.open, seeds: S.seeds, plots: S.plots.map((p) => (p ? { seed: p.seed, g: plotProgress(p, now()), w: p.w, mut: p.mut } : null)), sheet: sheet && sheet.kind, popup: popup && popup.kind, pets: S.pets.map((p) => p.type), egg: !!S.egg, album: Object.keys(S.album).length, stock: stock().left, ev: eventNow(now()), tut: S.tut, ready3d: ready3d, webgl: webglOk });
+      window.__grove = { state: () => S, skip: (sec) => { window.__groveOffset = (window.__groveOffset || 0) + sec * 1000; }, setClock: (ms) => { window.__groveOffset = ms - Date.now(); }, tap: (i) => tapPlot(K, i), plant: (i, id) => plant(K, i, id), harvest: (i) => harvest(K, i), give: (g) => { S.gold += g; K.setScore(S.earned || 0); }, xp: (n) => addXp(K, n), seeds: (id, n) => { S.seeds[id] = (S.seeds[id] || 0) + n; }, mut: (i, m) => { const p = S.plots[i]; if (p) { p.mut = m; syncPlot(i); } }, reload: () => startSession(K), egg: (ms) => { S.egg = { t0: now(), dur: ms }; syncPets(); }, orders: () => orders(), claim: (k) => claim(K, k), harvestAll: () => harvestAll(K), sprinkler: () => buySprinkler(K), ready: () => ready3d, screen: (i) => screenOf(plotPos(i).setY(0.3)), camYaw: (y) => { camYawT = y; } };
+      K.dbg = () => ({ gold: S.gold, lv: S.lv, xp: S.xp, open: S.open, seeds: S.seeds, plots: S.plots.map((p) => (p ? { seed: p.seed, g: plotProgress(p, now()), w: p.w, mut: p.mut } : null)), sheet: sheet && sheet.kind, popup: popup && popup.kind, pets: S.pets.map((p) => p.type), egg: !!S.egg, album: Object.keys(S.album).length, stock: stock().left, ev: eventNow(now()), tut: S.tut, ready3d: ready3d, webgl: webglOk, streak: S.streak, sprinkler: S.sprinkler, orders: orders().list.map((o) => [o.seed, o.have, o.need, o.claimed]) });
     }
   },
   update: function (dt, K) { tick(dt, K); },
@@ -718,7 +811,7 @@ BubziKit.run({
     if (W !== K.W || H !== K.H) layoutCam(K);
     render3d(dt, K); c.drawImage(R.domElement, 0, 0, K.W, K.H);
     ui = []; if (SHOT) return; drawPlotLabels(c, K); drawHud(c, K); drawFx(c, K, dt);
-    if (sheet) { if (sheet.kind === 'plant') drawPlantSheet(c, K); else if (sheet.kind === 'shop') drawShop(c, K); else if (sheet.kind === 'album') drawAlbum(c, K); else if (sheet.kind === 'pets') drawPets(c, K); }
+    if (sheet) { if (sheet.kind === 'plant') drawPlantSheet(c, K); else if (sheet.kind === 'shop') drawShop(c, K); else if (sheet.kind === 'album') drawAlbum(c, K); else if (sheet.kind === 'pets') drawPets(c, K); else if (sheet.kind === 'orders') drawOrders(c, K); }
     if (popup) { ui = []; drawPopup(c, K); }
     if (!ready3d) { c.fillStyle = 'rgba(255,255,255,0.9)'; c.font = K.font(16); c.textAlign = 'center'; c.fillText('…', K.W / 2, K.H / 2); }
   },
@@ -745,7 +838,7 @@ BubziKit.run({
     const mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -GRID, ArrowDown: GRID }[code];
     if (mv) { sel = sel < 0 ? 0 : clamp(sel + mv, 0, S.open - 1); K.sfx('tick'); return; }
     if ((code === 'Enter' || code === 'Space') && sel >= 0) tapPlot(K, sel);
-    else if (code === 'KeyS') act(K, { act: 'shop' }); else if (code === 'KeyA') act(K, { act: 'album' }); else if (code === 'KeyH') act(K, { act: 'pets' }); else if (code === 'KeyB') boost(K);
+    else if (code === 'KeyS') act(K, { act: 'shop' }); else if (code === 'KeyA') act(K, { act: 'album' }); else if (code === 'KeyH') act(K, { act: 'pets' }); else if (code === 'KeyO') act(K, { act: 'orders' }); else if (code === 'KeyX') harvestAll(K); else if (code === 'KeyB') boost(K);
     else if (code === 'KeyQ') camYawT = clamp(camYawT - 0.3, -0.3, 1.4); else if (code === 'KeyE') camYawT = clamp(camYawT + 0.3, -0.3, 1.4);
   }
 });
