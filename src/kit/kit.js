@@ -25,19 +25,22 @@
       claimed: 'Come back tomorrow!', day: 'Day', skins: 'Skins', sound: 'Sound', ad: 'Advertisement', adInter: 'Interstitial ad placeholder',
       adReward: 'Rewarded ad placeholder', adBanner: 'AD PLACEHOLDER · banner 320×50', skip: 'Close', reward: 'Reward unlocked!', select: 'Select',
       selected: 'Selected', back: 'Back', lang: 'Language', earned: 'Coins', playAgain: 'Play again', level: 'Level', lives: 'Lives', time: 'Time',
-      notEnough: 'Not enough coins', unlocked: 'Skin unlocked!', moreGames: 'More games', pause: 'Pause', soundOn: 'Sound on', soundOff: 'Sound off' },
+      notEnough: 'Not enough coins', unlocked: 'Skin unlocked!', moreGames: 'More games', pause: 'Pause', soundOn: 'Sound on', soundOff: 'Sound off',
+      goal: 'Daily goal', goalTxt: 'Score {n}', goalDone: 'Daily goal done!', toBeat: '{n} more to beat your best', goalNew: 'New goal tomorrow' },
     fr: { play: 'Jouer', best: 'Record', score: 'Score', coins: 'Pièces', paused: 'Pause', resume: 'Reprendre', restart: 'Recommencer', home: 'Menu',
       over: 'Partie terminée', newBest: 'Nouveau record !', cont: 'Regarder une pub pour continuer', noThanks: 'Non merci', daily: 'Bonus du jour',
       claim: 'Récupérer', claimed: 'Reviens demain !', day: 'Jour', skins: 'Skins', sound: 'Son', ad: 'Publicité', adInter: 'Emplacement pub interstitielle',
       adReward: 'Emplacement pub récompensée', adBanner: 'EMPLACEMENT PUB · bannière 320×50', skip: 'Fermer', reward: 'Récompense débloquée !',
       select: 'Choisir', selected: 'Choisi', back: 'Retour', lang: 'Langue', earned: 'Pièces', playAgain: 'Rejouer', level: 'Niveau', lives: 'Vies',
-      time: 'Temps', notEnough: 'Pas assez de pièces', unlocked: 'Skin débloqué !', moreGames: 'Plus de jeux', pause: 'Pause', soundOn: 'Son activé', soundOff: 'Son coupé' },
+      time: 'Temps', notEnough: 'Pas assez de pièces', unlocked: 'Skin débloqué !', moreGames: 'Plus de jeux', pause: 'Pause', soundOn: 'Son activé', soundOff: 'Son coupé',
+      goal: 'Objectif du jour', goalTxt: 'Marque {n}', goalDone: 'Objectif du jour atteint !', toBeat: 'Encore {n} pour battre ton record', goalNew: 'Nouvel objectif demain' },
     ar: { play: 'العب', best: 'الأفضل', score: 'النقاط', coins: 'العملات', paused: 'إيقاف مؤقت', resume: 'متابعة', restart: 'إعادة', home: 'القائمة',
       over: 'انتهت اللعبة', newBest: 'رقم قياسي جديد!', cont: 'شاهد إعلاناً للمتابعة', noThanks: 'لا شكراً', daily: 'مكافأة اليوم', claim: 'استلم',
       claimed: 'عد غداً!', day: 'يوم', skins: 'الشخصيات', sound: 'الصوت', ad: 'إعلان', adInter: 'مكان إعلان بيني', adReward: 'مكان إعلان بمكافأة',
       adBanner: 'مكان إعلان · بانر 320×50', skip: 'إغلاق', reward: 'حصلت على المكافأة!', select: 'اختر', selected: 'مختار', back: 'رجوع', lang: 'اللغة',
       earned: 'العملات', playAgain: 'العب مجدداً', level: 'المستوى', lives: 'المحاولات', time: 'الوقت', notEnough: 'لا تكفي العملات',
-      unlocked: 'تم فتح الشخصية!', moreGames: 'ألعاب أخرى', pause: 'إيقاف', soundOn: 'الصوت يعمل', soundOff: 'الصوت مغلق' }
+      unlocked: 'تم فتح الشخصية!', moreGames: 'ألعاب أخرى', pause: 'إيقاف', soundOn: 'الصوت يعمل', soundOff: 'الصوت مغلق',
+      goal: 'هدف اليوم', goalTxt: 'سجّل {n}', goalDone: 'أنجزت هدف اليوم!', toBeat: 'باقي {n} لتحطيم رقمك', goalNew: 'هدف جديد غداً' }
   };
   var LANGS = ['en', 'fr', 'ar'];
 
@@ -265,8 +268,8 @@
     var g = cfg && cfg.strings;
     return (g && g[K.lang] && g[K.lang][k]) || STR[K.lang][k] || (g && g.en && g.en[k]) || STR.en[k] || k;
   };
-  K.addScore = function (n) { K.score += n; updateHud(true); };
-  K.setScore = function (n) { if (n !== K.score) { K.score = n; updateHud(true); } };
+  K.addScore = function (n) { K.score += n; updateHud(true); checkGoal(); };
+  K.setScore = function (n) { if (n !== K.score) { K.score = n; updateHud(true); checkGoal(); } };
   K.addCoins = function (n, x, y) {
     if (n <= 0) return;
     store.set('coins', wallet() + n); K.coinsRound += n; updateHud(false);
@@ -354,6 +357,23 @@
     if (diff === 1) return { can: true, day: (s.streak % 7) + 1, streak: s.streak % 7 };
     return { can: true, day: 1, streak: 0 };
   }
+  /* Daily goal: one score target per game per day (70% of your best), +GOAL_COINS once */
+  var GOAL_COINS = 40, bestAtStart = 0, beatShown = false;
+  function niceNum(n) { var m = Math.pow(10, Math.max(0, Math.floor(Math.log10(Math.max(1, n))) - 1)); return Math.max(5, Math.round(n / m) * m); }
+  function goalInfo() {
+    if (!game || cfg.noGoal) return null;
+    var g = store.get('goal:' + cfg.id, null), t = today();
+    if (g && g.day === t && g.target > 0) return g;
+    var b = bestScore(); if (b < 8) return null;
+    g = { day: t, target: niceNum(b * 0.7), done: false }; store.set('goal:' + cfg.id, g); return g;
+  }
+  function checkGoal() {
+    if (state !== 'playing') return;
+    if (!beatShown && bestAtStart > 0 && K.score > bestAtStart) { beatShown = true; toast(K.t('newBest')); sfx('star'); haptic(30); confetti(40); }
+    var g = K._goal; if (!g || g.done || K.score < g.target) return;
+    g.done = true; store.set('goal:' + cfg.id, g); K.addCoins(GOAL_COINS); sfx('reward'); haptic(40);
+    setTimeout(function () { toast(K.t('goalDone') + ' +' + GOAL_COINS); }, beatShown && K.score - bestAtStart < 3 ? 900 : 0);
+  }
   function ownedSkins() { var o = store.get('skins', ['grape']); if (!Array.isArray(o)) o = ['grape']; if (o.indexOf('grape') < 0) o.push('grape'); return o; }
 
   /* ---------------- DOM ---------------- */
@@ -426,7 +446,7 @@
       '<h1 class="title" id="gTitle">' + esc(cfg.title[K.lang] || cfg.title.en) + (K.creator ? ' <small style="font-size:.45em;color:#FFB020">CREATOR</small>' : '') + '</h1>' + /* CREATOR badge */
       '<p class="tag">' + esc(K.t('tagline')) + '</p>' +
       '<button class="btn big" id="bPlay">' + ICON.play + esc(K.t('play')) + '</button>' +
-      '<p class="tag">' + esc(K.t('best')) + ': <b>' + fmt(bestScore()) + '</b></p>' +
+      '<p class="tag">' + esc(K.t('best')) + ': <b>' + fmt(bestScore()) + '</b></p>' + goalHTML() +
       '<div class="bottom">' +
       '<button class="btn ghost" id="bDaily">' + ICON.gift + esc(K.t('daily')) + (di.can ? '<span class="dot"></span>' : '') + '</button>' +
       (cfg.noSkins ? '' : '<button class="btn ghost" id="bSkins">' + ICON.shirt + esc(K.t('skins')) + '</button>') +
@@ -443,6 +463,11 @@
     refreshSoundBtns();
     try { $('bPlay').focus({ preventScroll: true }); } catch (e) { }
     return s;
+  }
+  function goalHTML() {
+    var g = goalInfo(); if (!g) return '';
+    return '<p class="goal' + (g.done ? ' done' : '') + '" id="gGoal">' + ICON.coin + '<span>' + esc(K.t('goal')) + ': <b>' + esc(K.t('goalTxt').replace('{n}', fmt(g.target))) + '</b></span>' +
+      '<em>' + (g.done ? '✓ ' + esc(K.t('goalNew')) : '+' + GOAL_COINS) + '</em></p>';
   }
   function showDaily() {
     var di = dailyInfo(), cells = '';
@@ -491,6 +516,7 @@
     K.tutorial = !store.get('tut:' + cfg.id, false);
     K.info('');
     if (K.creator) creatorApply(); // CREATOR: refill before the round
+    bestAtStart = bestScore(); beatShown = false; K._goal = goalInfo();
     game.reset(K);
     ui.hud.classList.remove('hidden');
     updateHud(false);
@@ -515,6 +541,16 @@
   }
   function resume() { if (state !== 'paused') return; closeScreens(); state = 'playing'; Ads.gameplayStart(); }
 
+  function overExtra(isNew, best) {
+    var h = '';
+    if (!isNew && best > 0 && K.score < best) {
+      var pct = Math.max(3, Math.min(100, Math.round(K.score / best * 100)));
+      h += '<div class="tobeat"><span>' + esc(K.t('toBeat').replace('{n}', fmt(best - K.score + 1))) + '</span><i><b style="width:' + pct + '%"></b></i></div>';
+    }
+    var g = goalInfo();
+    if (g && !g.done) h += '<p class="goal small">' + ICON.coin + '<span>' + esc(K.t('goal')) + ': <b>' + fmt(Math.min(K.score, g.target)) + ' / ' + fmt(g.target) + '</b></span><em>+' + GOAL_COINS + '</em></p>';
+    return h;
+  }
   function showOver() {
     state = 'over';
     var rate = cfg.coinRate || 0.02;
@@ -527,7 +563,7 @@
       (isNew ? '<span class="badge">' + esc(K.t('newBest')) + '</span>' : '') +
       '<div class="row"><div class="stat"><b>' + fmt(K.score) + '</b><span>' + esc(K.t('score')) + '</span></div>' +
       '<div class="stat"><b>' + fmt(Math.max(best, K.score)) + '</b><span>' + esc(K.t('best')) + '</span></div>' +
-      '<div class="stat"><b>+' + fmt(K.coinsRound) + '</b><span>' + esc(K.t('earned')) + '</span></div></div>' +
+      '<div class="stat"><b>+' + fmt(K.coinsRound) + '</b><span>' + esc(K.t('earned')) + '</span></div></div>' + overExtra(isNew, best) +
       '<div class="col">' + (canRevive ? '<button class="btn mint" id="bCont">' + ICON.tv + esc(K.t('cont')) + '</button>' : '') +
       '<button class="btn big" id="bAgain">' + ICON.redo + esc(K.t('playAgain')) + '</button>' +
       '<button class="btn ghost" id="bMenu">' + ICON.home + esc(K.t('home')) + '</button></div></div>', true);

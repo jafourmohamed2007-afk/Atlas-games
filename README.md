@@ -44,6 +44,7 @@ node tests/run.js                         # browser tests: menus, ads, saving, l
 node tests/bots.js                        # gameplay bots that play each game and check the rules
 node tests/ink-features.js                # Ink Heroes: shop, all 11 guns, all 8 items, heart revive
 node tests/ink-story.js                   # Ink Heroes story: 40 levels, cutscenes, 5 bosses, stars, unlocks, Nightmare
+node tests/goals.js                       # daily goal + beat-your-best on every game
 node tests/grove.js                       # Pocket Grove (3D): grow, harvest, shop, events, pets, offline growth
 ```
 Source: `src/kit/` (shared engine and styles), `src/games/*.js` (one file per game), `src/games.json` (titles, SEO text, keywords in 3 languages).

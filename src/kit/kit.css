@@ -113,3 +113,13 @@ select.lang{font-family:inherit;font-weight:800;font-size:15px;height:44px;borde
 @keyframes wiggle{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 @media (prefers-reduced-motion: reduce){ *{animation:none !important;transition:none !important} }
 @media (max-height:560px){ #menu .mascot{width:90px;height:90px} .btn.big{min-height:60px;font-size:24px} }
+
+/* daily goal + beat-your-best */
+.goal{display:flex;align-items:center;gap:8px;margin:2px 0;padding:6px 12px;border-radius:14px;background:var(--soft);font-weight:700;font-size:15px;color:var(--ink,#241B4D)}
+.goal svg{width:20px;height:20px;flex:none} .goal em{font-style:normal;font-weight:800;color:#C27C00;white-space:nowrap}
+.goal.done{opacity:.75} .goal.done em{color:#0A9475} .goal.small{font-size:13px;justify-content:center}
+.tobeat{width:100%;margin:6px 0 2px;font-weight:700;font-size:14px;color:var(--muted)}
+.tobeat i{display:block;height:10px;margin-top:5px;border-radius:6px;background:var(--soft);overflow:hidden}
+.tobeat b{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#FF5FA2,#FFB020)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .goal em{color:#FFC93C} :root:not([data-theme="light"]) .goal.done em{color:#3BE0B5} }
+:root[data-theme="dark"] .goal em{color:#FFC93C} :root[data-theme="dark"] .goal.done em{color:#3BE0B5}
