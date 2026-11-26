@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Bubzi Test Arcade</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800&display=swap">
+<style>
+/* Layout: phone-first game picker on the left/top, a phone-sized player on the right/below, test checklist under the player */
+:root{
+  --bg:#F2EEFF; --panel:#FFFFFF; --ink:#241B4D; --muted:#5E5689; --line:#DCD3FF; --soft:#ECE6FF;
+  --violet:#5A2EE8; --violet-d:#3A17B0; --mint:#0F9F80; --mint-bg:#D6F7EE; --pink:#D43D80;
+  --display:"Baloo 2", ui-rounded, "Nunito", system-ui, sans-serif; --body:"Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#140F2E; --panel:#221A4A; --ink:#F3F0FF; --muted:#B9B2E6; --line:#0C0820; --soft:#2E2560;
+  --violet:#8F6BFF; --violet-d:#5A2EE8; --mint:#3EDDB5; --mint-bg:#123B36; --pink:#FF7DB8; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#140F2E; --panel:#221A4A; --ink:#F3F0FF; --muted:#B9B2E6; --line:#0C0820; --soft:#2E2560;
+  --violet:#8F6BFF; --violet-d:#5A2EE8; --mint:#3EDDB5; --mint-bg:#123B36; --pink:#FF7DB8; color-scheme:dark }
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px}
+.wrap{max-width:1180px;margin:0 auto;padding-block:18px 40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:800;font-size:30px;color:var(--violet);line-height:1}
+.tag{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--soft);padding:4px 10px;border-radius:999px}
+header p{margin:0;color:var(--muted);font-weight:700;flex-basis:100%}
+.main{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.picker{flex:999 1 420px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.game{font:inherit;color:inherit;text-align:start;border:none;cursor:pointer;background:var(--panel);border-radius:20px;padding:0;overflow:hidden;
+  box-shadow:0 5px 0 var(--line);display:flex;flex-direction:column;transition:transform .12s ease}
+.game:hover{transform:translateY(-3px)}
+.game:focus-visible{outline:3px solid var(--violet);outline-offset:3px}
+.game[aria-pressed="true"]{outline:3px solid var(--violet)}
+.game svg{display:block;width:100%;height:auto;aspect-ratio:16/10}
+.game b{font-family:var(--display);font-size:18px;line-height:1.1;padding:8px 12px 0}
+.game span{font-size:13px;font-weight:700;color:var(--muted);padding:0 12px 10px}
+.player{flex:1 1 400px;min-width:0;max-width:440px;margin-inline:auto;display:flex;flex-direction:column;gap:10px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar h2{margin:0;font-family:var(--display);font-size:24px;flex:1 1 auto;min-width:0}
+.btn{font:inherit;font-weight:800;border:none;cursor:pointer;border-radius:14px;min-height:40px;padding:0 14px;background:var(--panel);color:var(--ink);box-shadow:0 4px 0 var(--line)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.btn:focus-visible,select:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
+.btn.primary{background:var(--violet);color:#fff;box-shadow:0 4px 0 var(--violet-d)}
+select{font:inherit;font-weight:800;min-height:40px;border-radius:14px;border:none;padding:0 10px;background:var(--panel);color:var(--ink);box-shadow:0 4px 0 var(--line)}
+.frame{position:relative;width:100%;aspect-ratio:9/16;max-height:78vh;border-radius:28px;overflow:hidden;background:#000;box-shadow:0 0 0 8px var(--ink), 0 18px 40px rgba(0,0,0,.25)}
+.frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
+.frame .empty{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-weight:800;text-align:center;padding:20px}
+.check{background:var(--panel);border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 5px 0 var(--line)}
+.check h3{margin:0;font-family:var(--display);font-size:18px}
+.check label{display:flex;gap:10px;align-items:flex-start;font-weight:700;line-height:1.35;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--violet);flex:0 0 auto;margin-top:1px}
+.check .ctrl{font-size:13px;font-weight:700;color:var(--muted);background:var(--soft);border-radius:12px;padding:8px 10px}
+.prog{font-size:13px;font-weight:800;color:var(--mint);background:var(--mint-bg);border-radius:999px;padding:2px 10px;align-self:flex-start}
+.note{font-size:13px;color:var(--muted);font-weight:700;margin:0}
+@media (prefers-reduced-motion: reduce){ .game{transition:none} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 12C36 4 45 4 46 9C41 9 37 11 34 14" fill="#14C8A0"/><path d="M32 14C50 14 59 27 59 39C59 52 47 59 32 59C17 59 5 52 5 39C5 27 14 14 32 14Z" fill="#7B4DFF" stroke="#5A2EE8" stroke-width="2.5"/><circle cx="22.5" cy="37" r="7" fill="#fff"/><circle cx="41.5" cy="37" r="7" fill="#fff"/><circle cx="24" cy="38" r="3.7" fill="#241B4D"/><circle cx="43" cy="38" r="3.7" fill="#241B4D"/><path d="M27 46q5 5 10 0" stroke="#241B4D" stroke-width="2.8" fill="none" stroke-linecap="round"/></svg>
+      bubzi
+    </div>
+    <span class="tag">Test build · 8 games</span>
+    <p>Pick a game, play it in the phone frame, and tick the checklist as you go. Your ticks and game saves stay in this browser only.</p>
+  </header>
+
+  <div class="main">
+    <section class="picker" aria-label="Games">
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <section class="player" aria-label="Player">
+      <div class="bar">
+        <h2 id="gname">Choose a game</h2>
+        <label for="lang" class="note" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Language</label>
+        <select id="lang">
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="ar">العربية</option>
+        </select>
+        <button class="btn" id="reload" type="button">Restart</button>
+        <button class="btn" id="wipe" type="button">Reset saves</button>
+      </div>
+      <div class="frame" id="frame"><div class="empty">Tap a game to start testing</div></div>
+      <p class="note" id="wipeMsg" hidden>Saved scores, coins, skins and tutorials were cleared. The game restarted as a first-time player.</p>
+      <div class="check" id="check" hidden>
+        <h3>Test checklist</h3>
+        <span class="prog" id="prog"></span>
+        <div class="ctrl" id="ctrl"></div>
+        <div id="items"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  var GAMES = [
+    { id:'block-bloom', name:'Block Bloom', genre:'Puzzle', c1:'#C9B8FF', c2:'#7B4DFF', ctrl:'Drag a shape from the tray onto the grid. Keyboard: 1–3 pick a shape, arrows move, Enter places.',
+      tests:['Tutorial hand shows a drag on first play','A full row or column clears with flowers and sound','Game ends only when no shape fits'] },
+    { id:'rooftop-rush', name:'Rooftop Rush', genre:'Running', c1:'#FFB36B', c2:'#5A2EE8', ctrl:'Swipe left/right to change lane, up to jump, down to slide. Tap sides also works. Keyboard: arrows, Space.',
+      tests:['First chimney shows a swipe hint','Jumping a vent and sliding under a pink bar both work','Speed increases over time'] },
+    { id:'hop-hook', name:'Hop Hook', genre:'Skill', c1:'#7FD8FF', c2:'#FF5FA2', ctrl:'Hold anywhere to grab the glowing hook, let go to fly. Keyboard: hold Space.',
+      tests:['Holding attaches a rope to the highlighted hook','Releasing on the up-swing launches you forward','Falling in the water ends the round'] },
+    { id:'number-pop', name:'Number Pop', genre:'Learning', c1:'#FF8FC4', c2:'#241B4D', ctrl:'Tap the bubble with the right answer. Keyboard: type the number.',
+      tests:['Right bubble pops and gives points','Wrong bubble costs a heart','Level goes up every 6 correct answers'] },
+    { id:'hill-hopper', name:'Hill Hopper', genre:'Cars', c1:'#A7F0C9', c2:'#FF8A1F', ctrl:'Hold the right half for gas, left half for brake. In the air, gas leans back. Keyboard: arrows.',
+      tests:['Car climbs hills and fuel goes down','A red F can refills fuel','Landing on the head ends the round'] },
+    { id:'jelly-drop', name:'Jelly Drop', genre:'Puzzle', c1:'#FFE7A8', c2:'#FF5FA2', ctrl:'Move to aim, release to drop. Keyboard: arrows aim, Space drops.',
+      tests:['Two same jellies merge into the next size','The dashed line flashes red when the jar is too full','Big merges give coins'] },
+    { id:'memo-match', name:'Memo Match', genre:'Learning', c1:'#BFF5E4', c2:'#7B4DFF', ctrl:'Tap two cards to find a pair. Keyboard: arrows move, Enter flips.',
+      tests:['Cards show briefly at the start of each level','A wrong pair flips back','Clearing all pairs moves to a bigger level'] },
+    { id:'wiggle-snake', name:'Wiggle Snake', genre:'Skill', c1:'#C9F5E0', c2:'#FF5FA2', ctrl:'Swipe or tap to turn. Keyboard: arrows.',
+      tests:['Snake waits until your first swipe','Eating fruit makes it longer','Gold star gives bonus coins'] }
+  ];
+  var COMMON = ['Sound on/off button works','Pause, resume and restart work','Game over shows score, best and coins','"Watch ad to continue" shows the placeholder, then continues','Arabic switches the menu to right-to-left'];
+  var grid = document.getElementById('grid'), frame = document.getElementById('frame'), lang = document.getElementById('lang');
+  var current = null;
+  function store(k, v){ try{ if (v === undefined) return JSON.parse(localStorage.getItem('arcade:' + k) || 'null'); localStorage.setItem('arcade:' + k, JSON.stringify(v)); }catch(e){ return null; } }
+
+  function art(g){
+    return '<svg viewBox="0 0 160 100" aria-hidden="true"><rect width="160" height="100" fill="' + g.c1 + '"/>' +
+      '<circle cx="128" cy="22" r="26" fill="#ffffff" opacity=".35"/><circle cx="22" cy="86" r="34" fill="#ffffff" opacity=".25"/>' +
+      '<g transform="translate(56 26)"><path d="M24 6C38 6 45 16 45 26C45 37 36 43 24 43C12 43 3 37 3 26C3 16 10 6 24 6Z" fill="' + g.c2 + '" stroke="#241B4D" stroke-width="2.5"/>' +
+      '<circle cx="16" cy="25" r="5.5" fill="#fff"/><circle cx="32" cy="25" r="5.5" fill="#fff"/><circle cx="17" cy="26" r="2.8" fill="#241B4D"/><circle cx="33" cy="26" r="2.8" fill="#241B4D"/>' +
+      '<path d="M20 33q4 4 8 0" stroke="#241B4D" stroke-width="2.4" fill="none" stroke-linecap="round"/></g></svg>';
+  }
+  GAMES.forEach(function(g){
+    var b = document.createElement('button');
+    b.className = 'game'; b.type = 'button'; b.id = 'g-' + g.id; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = art(g) + '<b>' + g.name + '</b><span>' + g.genre + '</span>';
+    b.addEventListener('click', function(){ open(g.id); });
+    grid.appendChild(b);
+  });
+
+  function load(){
+    if (!current) return;
+    frame.innerHTML = '';
+    var f = document.createElement('iframe');
+    f.title = current.name; f.setAttribute('allow', 'autoplay; fullscreen');
+    f.src = 'games/' + current.id + '.html?lang=' + lang.value;
+    frame.appendChild(f);
+  }
+  function renderChecks(){
+    var done = store('done:' + current.id) || {}, all = current.tests.concat(COMMON), n = 0, html = '';
+    all.forEach(function(t, i){
+      if (done[i]) n++;
+      html += '<label><input type="checkbox" id="c-' + current.id + '-' + i + '" data-i="' + i + '"' + (done[i] ? ' checked' : '') + '> <span>' + t + '</span></label>';
+    });
+    document.getElementById('items').innerHTML = html;
+    document.getElementById('prog').textContent = n + ' of ' + all.length + ' checked';
+    document.getElementById('ctrl').textContent = 'Controls: ' + current.ctrl;
+    Array.prototype.forEach.call(document.querySelectorAll('#items input'), function(cb){
+      cb.addEventListener('change', function(){ var d = store('done:' + current.id) || {}; d[cb.getAttribute('data-i')] = cb.checked; store('done:' + current.id, d); renderChecks(); });
+    });
+  }
+  function open(id, fromHash){
+    var g = GAMES.filter(function(x){ return x.id === id; })[0]; if (!g) return;
+    current = g;
+    GAMES.forEach(function(x){ document.getElementById('g-' + x.id).setAttribute('aria-pressed', x.id === id ? 'true' : 'false'); });
+    document.getElementById('gname').textContent = g.name;
+    document.getElementById('check').hidden = false;
+    document.getElementById('wipeMsg').hidden = true;
+    renderChecks(); load(); store('last', id);
+    if (!fromHash && location.hash !== '#' + id) { try { history.replaceState(null, '', '#' + id); } catch(e) { location.hash = id; } }
+    if (!fromHash && window.innerWidth < 860) frame.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  lang.value = store('lang') || 'en';
+  lang.addEventListener('change', function(){ store('lang', lang.value); load(); });
+  document.getElementById('reload').addEventListener('click', load);
+  document.getElementById('wipe').addEventListener('click', function(){
+    try { Object.keys(localStorage).forEach(function(k){ if (k.indexOf('bubzi:') === 0) localStorage.removeItem(k); }); } catch(e) {}
+    document.getElementById('wipeMsg').hidden = false; load();
+  });
+  window.addEventListener('hashchange', function(){ open(location.hash.slice(1), true); });
+  var start = location.hash.slice(1) || store('last') || 'block-bloom';
+  open(start, true);
+})();
+</script>
+</body>
+</html>
