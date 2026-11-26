@@ -197,6 +197,38 @@ const BOTS = {
     info.push('cleared 3 levels, score ' + (await score(page)));
   },
 
+  'ink-heroes': async (page, fail, info) => {
+    await page.keyboard.press('Enter');
+    const t0 = Date.now(); let maxWave = 0, lastHp = 999, perks = 0, held = null;
+    const hold = async (k) => { if (held === k) return; if (held) await page.keyboard.up(held); held = k; if (k) await page.keyboard.down(k); };
+    while (Date.now() - t0 < 45000) {
+      const st0 = await st(page);
+      if (st0 === 'over') { await hold(null); break; }
+      if (st0 !== 'playing') { await sleep(50); continue; }
+      const d = await dbg(page);
+      maxWave = Math.max(maxWave, d.wave);
+      if (d.mode === 'pick') { await page.keyboard.press('Enter'); await sleep(60); continue; }
+      if (d.mode === 'perk') { await hold(null); await page.keyboard.press('Enter'); perks++; await sleep(80); continue; }
+      const h = d.hero; let near = null, nd = 1e9;
+      d.zombies.forEach((z) => { const dd = Math.abs(z.x - h.x); if (dd < nd) { nd = dd; near = z; } });
+      if (d.waves.some((w) => Math.abs(w.x - h.x) < 140) && h.ground) await page.keyboard.press('KeyW');
+      if (h.ink >= 100) await page.keyboard.press('KeyL');
+      if (near) {
+        const dir = near.x > h.x ? 'ArrowRight' : 'ArrowLeft';
+        if (nd > 70) await hold(dir); else { await hold(null); if ((near.x > h.x ? 1 : -1) !== h.face) { await page.keyboard.down(dir); await sleep(30); await page.keyboard.up(dir); } await page.keyboard.press('KeyJ'); }
+        if (nd > 140 && nd < 520) await page.keyboard.press('KeyK');
+      } else await hold(null);
+      if (![h.x, h.y, h.hp].every(Number.isFinite)) { fail('hero state became NaN'); break; }
+      if (d.zombies.some((z) => !Number.isFinite(z.x) || !Number.isFinite(z.hp))) { fail('zombie state became NaN'); break; }
+      await sleep(25);
+    }
+    await hold(null);
+    const d = await dbg(page);
+    info.push('reached wave ' + maxWave + ', kills ' + d.kills + ', perks ' + perks + ', score ' + (await score(page)));
+    if (maxWave < 3) fail('bot only reached wave ' + maxWave);
+    if (d.kills < 15) fail('only ' + d.kills + ' kills — combat may be broken');
+  },
+
   'wiggle-snake': async (page, fail, info) => {
     const D = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }, KEY = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
     await page.keyboard.press('ArrowUp');

@@ -206,5 +206,31 @@
       "fr": "Glisse ou touche l’écran pour tourner. Mange les fruits pour grandir et attrape l’étoile dorée pour des points bonus. Le serpent accélère en grandissant. Évite les murs et ta propre queue. Clavier : flèches.",
       "ar": "اسحب أو المس الشاشة لتدير الثعبان. كُل الفاكهة لتطول والتقط النجمة الذهبية لنقاط إضافية. يزداد الثعبان سرعة كلما طال. لا تصطدم بالجدران أو بذيلك. لوحة المفاتيح: الأسهم."
     }
+  },
+  {
+    "id": "ink-heroes",
+    "category": "action",
+    "color": "#FF3B4E",
+    "isNew": true,
+    "title": {
+      "en": "Ink Heroes: Zombie Night",
+      "fr": "Héros d’Encre : Nuit Zombie",
+      "ar": "أبطال الحبر: ليلة الزومبي"
+    },
+    "desc": {
+      "en": "Fight endless waves of zombies as a stickman hero. Combo punches, grab weapons, recruit buddies and beat the boss in this free stickman fighting game.",
+      "fr": "Affronte des vagues infinies de zombies avec un héros stickman. Enchaîne les combos, ramasse des armes, recrute des alliés et bats le boss. Jeu de combat gratuit.",
+      "ar": "قاتل موجات لا تنتهي من الزومبي مع بطل ستيكمان. سلاسل ضربات وأسلحة وأصدقاء يقاتلون معك وزعيم عملاق في لعبة قتال مجانية."
+    },
+    "keywords": {
+      "en": "stickman games, zombie games, stickman fighting, beat em up, action games",
+      "fr": "jeux de stickman, jeux de zombie, jeux de combat, jeux d'action",
+      "ar": "ألعاب ستيكمان, ألعاب زومبي, ألعاب قتال, ألعاب أكشن"
+    },
+    "howto": {
+      "en": "Move with the arrows, tap HIT for a 3-hit combo (the third hit is a finisher), FIRE to shoot, JUMP to dodge shockwaves and HIT in the air for a dive kick. Fill the power bar and press POWER for your hero’s special. Grab crates for new weapons and pick a power-up after every wave. Keyboard: arrows, W jump, J hit, K fire, L power, R reload.",
+      "fr": "Bouge avec les flèches, touche FRAPPE pour un combo de 3 coups (le troisième est un coup final), TIR pour tirer, SAUT pour éviter les ondes de choc et FRAPPE en l’air pour un coup plongeant. Remplis la barre et appuie sur POUVOIR. Ramasse des caisses d’armes et choisis un bonus après chaque vague. Clavier : flèches, W, J, K, L, R.",
+      "ar": "تحرك بالأسهم، اضغط ضرب لسلسلة من 3 ضربات (الثالثة قاضية)، نار لإطلاق النار، قفز لتفادي الموجات الصادمة، وضرب في الهواء لركلة غاطسة. املأ شريط القوة واضغط قوة. التقط صناديق الأسلحة واختر قوة بعد كل موجة. لوحة المفاتيح: الأسهم، W، J، K، L، R."
+    }
   }
 ]

@@ -113,12 +113,14 @@ async function testGame(browser, id) {
   await page.click('#bDaily');
   if (await page.$('#bClaim')) fail('daily bonus claimable twice');
   await page.click('#bBack');
-  await page.click('#bSkins');
-  await page.evaluate(() => localStorage.setItem('bubzi:coins', '500'));
-  await page.click('.skin[data-id="mint"]');
-  const sk = await page.evaluate(() => localStorage.getItem('bubzi:skin'));
-  if (sk !== '"mint"') fail('skin purchase failed: ' + sk);
-  await page.click('#bBack2');
+  if (await page.$('#bSkins')) {
+    await page.click('#bSkins');
+    await page.evaluate(() => localStorage.setItem('bubzi:coins', '500'));
+    await page.click('.skin[data-id="mint"]');
+    const sk = await page.evaluate(() => localStorage.getItem('bubzi:skin'));
+    if (sk !== '"mint"') fail('skin purchase failed: ' + sk);
+    await page.click('#bBack2');
+  } else notes.push('no skins menu');
   // sound toggle
   await page.click('#bSoundM');
   if ((await page.evaluate(() => localStorage.getItem('bubzi:mute'))) !== 'true') fail('mute not saved');

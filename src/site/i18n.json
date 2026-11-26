@@ -67,7 +67,8 @@
       "cars": "Cars",
       "quick": "5-minute fun",
       "brain": "Brain games",
-      "chill": "Chill & relax"
+      "chill": "Chill & relax",
+      "action": "Action"
     },
     "catTitle": {
       "puzzle": "Puzzle games",
@@ -77,7 +78,8 @@
       "cars": "Car games",
       "quick": "Quick 5-minute games",
       "brain": "Brain games",
-      "chill": "Relaxing games"
+      "chill": "Relaxing games",
+      "action": "Action games"
     },
     "catDesc": {
       "puzzle": "Free puzzle games to play online: block puzzles, merge games and more. No download needed.",
@@ -87,7 +89,8 @@
       "cars": "Free car games: drive, jump and flip over wild hills. Play on phone or PC.",
       "quick": "Short games you can finish in a few minutes: perfect for a break.",
       "brain": "Brain games that train memory, logic and quick thinking.",
-      "chill": "Calm, relaxing free games with no rush and no timer pressure: perfect to unwind."
+      "chill": "Calm, relaxing free games with no rush and no timer pressure: perfect to unwind.",
+      "action": "Free action games: stickman fights, zombie waves and boss battles. Play instantly on phone or PC, no download."
     },
     "about": "About",
     "privacy": "Privacy",
@@ -197,7 +200,8 @@
       "cars": "Voitures",
       "quick": "5 minutes de fun",
       "brain": "Jeux de cerveau",
-      "chill": "Détente"
+      "chill": "Détente",
+      "action": "Action"
     },
     "catTitle": {
       "puzzle": "Jeux de réflexion",
@@ -207,7 +211,8 @@
       "cars": "Jeux de voiture",
       "quick": "Jeux rapides de 5 minutes",
       "brain": "Jeux de cerveau",
-      "chill": "Jeux relaxants"
+      "chill": "Jeux relaxants",
+      "action": "Jeux d’action"
     },
     "catDesc": {
       "puzzle": "Jeux de réflexion gratuits en ligne : puzzles de blocs, jeux de fusion et plus. Sans téléchargement.",
@@ -217,7 +222,8 @@
       "cars": "Jeux de voiture gratuits : roule, saute et fais des saltos sur des collines folles.",
       "quick": "Des parties courtes de quelques minutes, parfaites pour une pause.",
       "brain": "Des jeux qui entraînent la mémoire, la logique et la rapidité.",
-      "chill": "Des jeux gratuits calmes et relaxants, sans stress ni chrono : parfaits pour souffler."
+      "chill": "Des jeux gratuits calmes et relaxants, sans stress ni chrono : parfaits pour souffler.",
+      "action": "Jeux d’action gratuits : combats de stickman, vagues de zombies et boss. Joue sur mobile ou PC sans téléchargement."
     },
     "about": "À propos",
     "privacy": "Confidentialité",
@@ -327,7 +333,8 @@
       "cars": "سيارات",
       "quick": "متعة 5 دقائق",
       "brain": "ألعاب ذكاء",
-      "chill": "استرخاء"
+      "chill": "استرخاء",
+      "action": "أكشن"
     },
     "catTitle": {
       "puzzle": "ألعاب ألغاز",
@@ -337,7 +344,8 @@
       "cars": "ألعاب سيارات",
       "quick": "ألعاب سريعة 5 دقائق",
       "brain": "ألعاب ذكاء",
-      "chill": "ألعاب مريحة"
+      "chill": "ألعاب مريحة",
+      "action": "ألعاب أكشن"
     },
     "catDesc": {
       "puzzle": "ألعاب ألغاز مجانية أونلاين: ألغاز بلوك وألعاب دمج والمزيد، بدون تحميل.",
@@ -347,7 +355,8 @@
       "cars": "ألعاب سيارات مجانية: قُد واقفز ونفّذ الشقلبات فوق التلال.",
       "quick": "ألعاب قصيرة تنتهي في دقائق، مثالية للاستراحة.",
       "brain": "ألعاب تدرب الذاكرة والمنطق وسرعة التفكير.",
-      "chill": "ألعاب مجانية هادئة ومريحة بلا ضغط ولا استعجال، مثالية للاسترخاء بعد يوم طويل."
+      "chill": "ألعاب مجانية هادئة ومريحة بلا ضغط ولا استعجال، مثالية للاسترخاء بعد يوم طويل.",
+      "action": "ألعاب أكشن مجانية: قتال ستيكمان وموجات زومبي ومعارك زعماء. العب فوراً على الجوال أو الكمبيوتر بدون تحميل."
     },
     "about": "من نحن",
     "privacy": "الخصوصية",

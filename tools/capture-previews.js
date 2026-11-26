@@ -8,7 +8,7 @@ const ROOT = path.join(__dirname, '..');
 const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/games.json'), 'utf8')).map((g) => g.id);
 const only = process.argv.slice(2);
 const FRAMES = 12, FW = 240, FH = 240, GAP = 190, VW = 360, VH = 640;
-const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170 };
+const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170, 'ink-heroes': 250 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const dbg = (p) => p.evaluate(() => JSON.parse(JSON.stringify(window.__bubzi.K.dbg())));
 const playing = (p) => p.evaluate(() => window.__bubzi.state() === 'playing');
@@ -59,6 +59,14 @@ const ACT = {
     for (const k of [i, j]) { if (k < 0) continue; const c = d.cards[k]; await p.mouse.click(box.x + d.gx + c.c * (d.cw + d.gap) + d.cw / 2, box.y + d.gy + c.r * (d.ch + d.gap) + d.ch / 2); await sleep(260); }
     await sleep(300);
   },
+  'ink-heroes': async (p, box, s) => {
+    const d = await dbg(p);
+    if (d.mode !== 'fight') { await p.keyboard.press('Enter'); await sleep(80); return; }
+    const h = d.hero; let near = null, nd = 1e9; d.zombies.forEach((z) => { const dd = Math.abs(z.x - h.x); if (dd < nd) { nd = dd; near = z; } });
+    if (h.ink >= 100) await p.keyboard.press('KeyL');
+    if (near) { const dir = near.x > h.x ? 'ArrowRight' : 'ArrowLeft'; if (nd > 70) { await p.keyboard.down(dir); await sleep(60); await p.keyboard.up(dir); } else await p.keyboard.press('KeyJ'); if (nd > 140 && Math.random() < 0.4) await p.keyboard.press('KeyK'); }
+    await sleep(20);
+  },
   'wiggle-snake': async (p, box, s) => {
     const D = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }, KEY = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
     const d = await dbg(p); if (d.waiting) { await p.keyboard.press('ArrowUp'); return; }
@@ -83,7 +91,7 @@ const ACT = {
     const box = await p.locator('#game').boundingBox();
     const s = {}; let stop = false;
     const loop = (async () => { while (!stop) { try { if (await playing(p)) await ACT[id](p, box, s); else { await p.evaluate(() => window.__bubzi.start()); } } catch (e) { await sleep(50); } } })();
-    await sleep(id === 'memo-match' ? 2600 : id === 'jelly-drop' ? 11000 : 3200);
+    await sleep(id === 'memo-match' ? 2600 : id === 'jelly-drop' ? 11000 : id === 'ink-heroes' ? 9000 : 3200);
     const frames = [];
     for (let i = 0; i < FRAMES; i++) { frames.push((await p.screenshot({ type: 'jpeg', quality: 88, clip: { x: 0, y: Y0[id], width: VW, height: VW } })).toString('base64')); await sleep(GAP); }
     stop = true; await loop;

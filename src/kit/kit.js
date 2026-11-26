@@ -120,7 +120,15 @@
     eat: function () { tone(600, 1000, 0.06, 'square', 0.1); tone(900, 1400, 0.06, 'sine', 0.15, 0.04); },
     reward: function () { arp([523, 784, 1047, 1568], 0.08, 'triangle', 0.22, 0.18); },
     grab: function () { tone(700, 500, 0.06, 'triangle', 0.25); },
-    engine: function () { tone(70, 90, 0.08, 'sawtooth', 0.05); }
+    engine: function () { tone(70, 90, 0.08, 'sawtooth', 0.05); },
+    shot: function () { noise(0.07, 0.32, 3200); tone(190, 80, 0.06, 'square', 0.08); },
+    punch: function () { tone(140, 55, 0.09, 'sine', 0.45); noise(0.05, 0.22, 1400); },
+    heavy: function () { tone(90, 35, 0.18, 'sine', 0.55); noise(0.12, 0.3, 900); },
+    boom: function () { noise(0.55, 0.55, 650); tone(95, 30, 0.55, 'sine', 0.45); },
+    groan: function () { tone(120 + Math.random() * 40, 70, 0.55, 'sawtooth', 0.05); },
+    reload: function () { tone(900, 900, 0.03, 'square', 0.06); tone(620, 620, 0.04, 'square', 0.07, 0.14); },
+    block: function () { tone(1300, 900, 0.06, 'triangle', 0.12); noise(0.04, 0.15, 5000); },
+    boss: function () { tone(70, 50, 1.1, 'sawtooth', 0.12); tone(105, 70, 1.1, 'sawtooth', 0.08, 0.05); }
   };
   function sfx(n) { if (muted) return; var f = SFX[n]; if (f) { try { f(); } catch (e) { } } }
   function haptic(ms) { if (!muted && navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) { } } }
@@ -193,6 +201,7 @@
     ctx.fill(HAND); ctx.stroke(HAND); ctx.restore();
   }
   function bubziSVG(mood, size) {
+    if (cfg && cfg.mascot) return cfg.mascot(mood, size);
     var sk = skin(), c = sk.c, d = sk.d, leaf = c === '#14C8A0' ? '#FFC93C' : '#14C8A0';
     var face = mood === 'sad'
       ? '<path d="M18 33l9 8M27 33l-9 8M37 33l9 8M46 33l-9 8" stroke="#241B4D" stroke-width="3.4" stroke-linecap="round"/><path d="M26 52q6-6 12 0" stroke="#241B4D" stroke-width="3" fill="none" stroke-linecap="round"/>'
@@ -263,6 +272,8 @@
     store.set('coins', wallet() + n); K.coinsRound += n; updateHud(false);
     if (x !== undefined) { floatText(x, y, '+' + n, '#FFC93C', 22); sfx('coin'); }
   };
+  K.wallet = function () { return wallet(); };
+  K.spend = function (n) { if (wallet() < n) return false; store.set('coins', wallet() - n); updateHud(false); return true; };
   K.info = function (txt) { if (ui.info && ui.info.textContent !== txt) ui.info.textContent = txt; };
   K.tutorialDone = function () { if (K.tutorial) { K.tutorial = false; store.set('tut:' + cfg.id, true); } };
   K.gameOver = function (o) {
@@ -392,7 +403,7 @@
     state = 'menu'; closeScreens(); ui.hud.classList.add('hidden'); Ads.gameplayStop();
     var di = dailyInfo();
     var s = screen('menu',
-      '<div class="topbar"><a class="brand" target="_top" href="../' + (K.lang === 'en' ? '' : K.lang + '/') + 'index.html" aria-label="Bubzi">' + bubziSVG('happy', 34) + '<span>bubzi</span></a>' +
+      '<div class="topbar"><a class="brand" target="_top" href="../' + (K.lang === 'en' ? '' : K.lang + '/') + 'index.html" aria-label="Bubzi">' + (cfg.mascot ? '' : bubziSVG('happy', 34)) + '<span>bubzi</span></a>' +
       '<span class="pill">' + ICON.coin + '<b>' + fmt(wallet()) + '</b></span></div>' +
       bubziSVG('happy').replace('class="mascot-svg"', 'class="mascot"') +
       '<h1 class="title">' + esc(cfg.title[K.lang] || cfg.title.en) + '</h1>' +
@@ -401,13 +412,13 @@
       '<p class="tag">' + esc(K.t('best')) + ': <b>' + fmt(bestScore()) + '</b></p>' +
       '<div class="bottom">' +
       '<button class="btn ghost" id="bDaily">' + ICON.gift + esc(K.t('daily')) + (di.can ? '<span class="dot"></span>' : '') + '</button>' +
-      '<button class="btn ghost" id="bSkins">' + ICON.shirt + esc(K.t('skins')) + '</button>' +
+      (cfg.noSkins ? '' : '<button class="btn ghost" id="bSkins">' + ICON.shirt + esc(K.t('skins')) + '</button>') +
       '<button class="btn icon" id="bSoundM"></button>' +
       '<select class="lang" id="selLang" aria-label="' + esc(K.t('lang')) + '"><option value="en">English</option><option value="fr">Français</option><option value="ar">العربية</option></select>' +
       '</div>');
     $('bPlay').onclick = function () { unlockAudio(); sfx('click'); startRound(); };
     $('bDaily').onclick = function () { sfx('click'); showDaily(); };
-    $('bSkins').onclick = function () { sfx('click'); showSkins(); };
+    if ($('bSkins')) $('bSkins').onclick = function () { sfx('click'); showSkins(); };
     $('bSoundM').onclick = toggleSound;
     var sel = $('selLang'); sel.value = K.lang;
     sel.onchange = function () { setLang(sel.value); showMenu(); };
@@ -624,7 +635,7 @@
       game = g; cfg = g;
       var l = Q.get('lang') || store.get('lang', null) || (navigator.language || 'en').slice(0, 2).toLowerCase();
       K.lang = LANGS.indexOf(l) >= 0 ? l : 'en'; K.rtl = K.lang === 'ar';
-      var th = Q.get('theme') || store.get('theme', null); if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th);
+      var th = cfg.theme || Q.get('theme') || store.get('theme', null); if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th);
       buildDom(); bindInput(); resize();
       if (game.init) game.init(K);
       game.reset(K);
