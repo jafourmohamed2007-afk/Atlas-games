@@ -388,5 +388,31 @@
       "fr": "Bouge avec les flèches, touche FRAPPE pour un combo de 3 coups (le troisième est un coup final), TIR pour tirer, SAUT pour éviter les ondes de choc et FRAPPE en l’air pour un coup plongeant. Remplis la barre et appuie sur POUVOIR. Ramasse des caisses d’armes et choisis un bonus après chaque vague. Clavier : flèches, W, J, K, L, R. Histoire : remplis l’objectif de chaque niveau (tout vaincre, libérer les survivants, survivre, protéger la lanterne, battre le boss) et gagne 3 étoiles.",
       "ar": "تحرك بالأسهم، اضغط ضرب لسلسلة من 3 ضربات (الثالثة قاضية)، نار لإطلاق النار، قفز لتفادي الموجات الصادمة، وضرب في الهواء لركلة غاطسة. املأ شريط القوة واضغط قوة. التقط صناديق الأسلحة واختر قوة بعد كل موجة. لوحة المفاتيح: الأسهم، W، J، K، L، R. القصة: حقق هدف كل مرحلة (اهزم الجميع، حرّر الناجين، انجُ، احمِ الفانوس، اهزم الزعيم) واجمع 3 نجوم."
     }
+  },
+  {
+    "id": "ink-heroes-remastered",
+    "category": "action",
+    "color": "#E0233A",
+    "isNew": true,
+    "title": {
+      "en": "Ink Heroes Remastered: Zombie Night",
+      "fr": "Héros d’Encre Remasterisé : Nuit Zombie",
+      "ar": "أبطال الحبر المُحسَّنة: ليلة الزومبي"
+    },
+    "desc": {
+      "en": "The remastered stickman zombie brawler: 3D-rendered heroes and bosses, a new soundtrack, gun upgrades, daily missions and a Zombie Book to complete. Play the 40-level story “The Inkfall” or the endless Infinity mode. Free online, no download.",
+      "fr": "Le jeu de combat stickman contre les zombies, remasterisé : héros et boss en 3D, nouvelle bande-son, armes à améliorer, missions quotidiennes et un Livre des zombies à compléter. Joue l’histoire de 40 niveaux « La Chute d’encre » ou le mode Infini. Gratuit, sans téléchargement.",
+      "ar": "لعبة قتال ستيكمان ضد الزومبي بنسخة مُحسَّنة: أبطال وزعماء بتصميم ثلاثي الأبعاد، موسيقى جديدة، ترقية الأسلحة، مهام يومية وكتاب زومبي لإكماله. العب قصة «سقوط الحبر» من 40 مرحلة أو الوضع اللانهائي. مجاناً وبدون تحميل."
+    },
+    "keywords": {
+      "en": "stickman games, zombie games, stickman fighting, beat em up, remastered, action games",
+      "fr": "jeux de stickman, jeux de zombie, jeux de combat, remasterisé, jeux d'action",
+      "ar": "ألعاب ستيكمان, ألعاب زومبي, ألعاب قتال, نسخة محسنة, ألعاب أكشن"
+    },
+    "howto": {
+      "en": "Move with the arrows, tap HIT for a 3-hit combo (the third hit is a finisher), FIRE to shoot, JUMP to dodge shockwaves and HIT in the air for a dive kick. Fill the power bar and press POWER for your hero’s special. Grab crates for new weapons and pick a power-up after every wave. Keyboard: arrows, W jump, J hit, K fire, L power, R reload. Story: clear each level’s goal (defeat all, free survivors, survive, protect the lantern, beat the boss) and earn 3 stars.",
+      "fr": "Bouge avec les flèches, touche FRAPPE pour un combo de 3 coups (le troisième est un coup final), TIR pour tirer, SAUT pour éviter les ondes de choc et FRAPPE en l’air pour un coup plongeant. Remplis la barre et appuie sur POUVOIR. Ramasse des caisses d’armes et choisis un bonus après chaque vague. Clavier : flèches, W, J, K, L, R. Histoire : remplis l’objectif de chaque niveau (tout vaincre, libérer les survivants, survivre, protéger la lanterne, battre le boss) et gagne 3 étoiles.",
+      "ar": "تحرك بالأسهم، اضغط ضرب لسلسلة من 3 ضربات (الثالثة قاضية)، نار لإطلاق النار، قفز لتفادي الموجات الصادمة، وضرب في الهواء لركلة غاطسة. املأ شريط القوة واضغط قوة. التقط صناديق الأسلحة واختر قوة بعد كل موجة. لوحة المفاتيح: الأسهم، W، J، K، L، R. القصة: حقق هدف كل مرحلة (اهزم الجميع، حرّر الناجين، انجُ، احمِ الفانوس، اهزم الزعيم) واجمع 3 نجوم."
+    }
   }
 ]

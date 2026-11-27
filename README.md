@@ -17,6 +17,7 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `memo-match.html` | Memory cards | Tap cards · arrows + Enter |
 | `wiggle-snake.html` | Snake | Swipe / tap · arrows |
 | `ink-heroes.html` | 2.5D stickman brawler: 40-level story + Infinity | On-screen buttons · arrows, W, J, K, L, R, 1-7 |
+| `ink-heroes-remastered.html` | Remastered Ink Heroes: 3D-rendered art, ElevenLabs music, upgrades, missions, Zombie Book | Same as Ink Heroes · M missions, Z Zombie Book |
 | `spear-hills.html` | Turn-based spear duel | Pull back and let go · Up/Down angle, Left/Right power, Space |
 | `merge-blasters.html` | Merge blasters, pop goo blobs before your wall | Drag same numbers together · B buys, arrows + Space |
 | `tiny-siege.html` | Lane war: miners, stick army, enemy tower | Tap the unit buttons · 1-4 send units, H Attack/Defend |
@@ -50,6 +51,9 @@ node tests/run.js                         # browser tests: menus, ads, saving, l
 node tests/bots.js                        # gameplay bots that play each game and check the rules
 node tests/ink-features.js                # Ink Heroes: shop, all 11 guns, all 8 items, heart revive
 node tests/ink-story.js                   # Ink Heroes story: 40 levels, cutscenes, 5 bosses, stars, unlocks, Nightmare
+node tests/ink-remastered.js              # all Ink tests again, against the Remastered build
+blender -b -P tools/art/ink/render.py     # Remastered 3D art → games/art/ink-heroes/
+tools/art/ink/gen-audio.sh && tools/art/ink/process-audio.sh   # Remastered music/SFX (ElevenLabs) → games/audio/ink-heroes/
 node tests/goals.js                       # daily goal + beat-your-best on every game
 node tests/grove.js                       # Pocket Grove (3D): grow, harvest, shop, events, pets, offline growth
 ```

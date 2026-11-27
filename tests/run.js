@@ -15,6 +15,7 @@ const url = (id, q) => 'file://' + path.join(ROOT, 'games', id + '.html') + (q ?
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function watch(page, errors) {
+  page.on('crash', () => errors.push('PAGE CRASHED'));
   page.on('pageerror', (e) => errors.push('pageerror: ' + (e.stack || e.message)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 }

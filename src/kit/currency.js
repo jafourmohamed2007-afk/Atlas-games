@@ -40,7 +40,9 @@ var BubziCur = (function () {
     'merge-blasters': { n: { en: 'Goo Cells', fr: 'Cellules de gelée', ar: 'خلايا الهلام' }, c: '#5FD4FF', d: '#1A6FB0', rate: 1,
       p: 'M8 3h8v3.5h1.5a1.5 1.5 0 0 1 1.5 1.5v11.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5V8a1.5 1.5 0 0 1 1.5-1.5H8z', x: [{ f: '#B9F0FF', d: 'M8 13h8v5H8z' }] },
     'ink-heroes': { n: { en: 'Ink Drops', fr: "Gouttes d'encre", ar: 'قطرات الحبر' }, c: '#4A4FC4', d: '#15163F', rate: 2,
-      p: 'M12 2.5c3 4.5 7 8.5 7 12a7 7 0 0 1-14 0c0-3.5 4-7.5 7-12z', x: [{ s: '#AEB2FF', d: 'M8.6 14.6a3.5 3.5 0 0 0 2.6 3.5' }] }
+      p: 'M12 2.5c3 4.5 7 8.5 7 12a7 7 0 0 1-14 0c0-3.5 4-7.5 7-12z', x: [{ s: '#AEB2FF', d: 'M8.6 14.6a3.5 3.5 0 0 0 2.6 3.5' }] },
+    'ink-heroes-remastered': { n: { en: 'Ink Drops', fr: "Gouttes d'encre", ar: 'قطرات الحبر' }, c: '#E0233A', d: '#4A0A14', rate: 2,
+      p: 'M12 2.5c3 4.5 7 8.5 7 12a7 7 0 0 1-14 0c0-3.5 4-7.5 7-12z', x: [{ s: '#FFB0B8', d: 'M8.6 14.6a3.5 3.5 0 0 0 2.6 3.5' }] }
   };
   var IDS = Object.keys(C);
   function get(id) { if (id === 'bubzi') return B; var c = C[id]; if (!c) return DEF; c.id = id; return c; }

@@ -23,7 +23,7 @@ for (const g of games) {
   const BUNDLED = { 'pocket-grove': 'src/grove/main.js' };
   const src = path.join(ROOT, BUNDLED[g.id] || path.join('src/games', g.id + '.js'));
   if (!fs.existsSync(src)) { console.log('skip (no source yet):', g.id); continue; }
-  const code = BUNDLED[g.id] ? require('esbuild').buildSync({ entryPoints: [src], bundle: true, format: 'iife', minify: true, write: false, target: 'es2019', loader: { '.glb': 'binary' }, legalComments: 'none' }).outputFiles[0].text : ['-art.js', '-music.js', '-fight.js'].map((suf) => path.join(ROOT, 'src/games', g.id.split('-')[0] + suf)).filter((f) => fs.existsSync(f)).map((f) => fs.readFileSync(f, 'utf8') + '\n').join('') + fs.readFileSync(src, 'utf8');
+  const code = BUNDLED[g.id] ? require('esbuild').buildSync({ entryPoints: [src], bundle: true, format: 'iife', minify: true, write: false, target: 'es2019', loader: { '.glb': 'binary' }, legalComments: 'none' }).outputFiles[0].text : (g.id.endsWith('-remastered') ? ['-music.js', '-fight.js'] : ['-fight.js']).map((suf) => path.join(ROOT, 'src/games', g.id.split('-')[0] + suf)).filter((f) => fs.existsSync(f)).map((f) => fs.readFileSync(f, 'utf8') + '\n').join('') + fs.readFileSync(src, 'utf8');
   const url = `${SITE}/play/${g.id}.html`;
   const title = `${g.title.en} – Play Free Online | Bubzi`;
   const ld = {
