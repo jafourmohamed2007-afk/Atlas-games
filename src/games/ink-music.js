@@ -1,4 +1,4 @@
-/* Ink Heroes — adaptive music, synthesised with the kit's voices (no audio files).
+/* Adaptive game music (Ink Heroes, Arrow Rampart via GameMusic(opts)), synthesised with the kit's voices (no audio files).
    One 16-step sequencer; the "mood" picks tempo, drums, bass and lead layers:
    menu (dark pad), cut (soft pad), explore (tense pulse), fight (drums + bass), boss (faster, heavier).
    Notes are scheduled a little ahead of K.time so frame hiccups do not make it stutter.
@@ -35,7 +35,8 @@
       .then(function (b) { bufs[name] = b; }, function () { bufs[name] = null; loading[name] = 'failed'; });
     return null;
   }
-  function make() {
+  function make(opts) { // opts (other games): { base, sfx: [file names], variants: { name: [files] } }
+    if (opts) { if (opts.base) BASE = opts.base; if (opts.sfx) SFX_FILES = opts.sfx; if (opts.variants) VARIANTS = opts.variants; }
     var rec = null, recMood = '', lastCall = 0, watch = 0;
     function recPlay(K, m, track) { // crossfade to the recorded loop for this mood/track; returns false if it is not ready
       var o = K.audioOut && K.audioOut(); if (!o) return false;
@@ -101,5 +102,5 @@
       state: function () { return { mood: cur, want: want, vol: vol, bar: bar }; }
     };
   }
-  window.InkMusic = make;
+  window.InkMusic = make; window.GameMusic = make; // GameMusic: the same player for other Bubzi games (tools/build.js MODULES)
 })();

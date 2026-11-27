@@ -235,6 +235,7 @@ const BOTS = {
     await page.evaluate(() => { window.__bubzi.K.fastX = 1.5; });
     const act = async (p, box) => {
     const d = await dbg(p);
+    if (d.phase === 'hub') { await p.keyboard.press('Enter'); await sleep(100); return ''; } // the hub: start the selected mode (Siege)
     if (d.cards) { const pref = ['multi', 'power', 'quick', 'pierce', 'fire', 'stone', 'repair']; const c = d.cards.slice().sort((a, b) => pref.indexOf(a.id) - pref.indexOf(b.id))[0]; await sleep(400); await p.mouse.click(box.x + c.x, box.y + c.y); await sleep(200); return 'card'; }
     if (d.reload > 0 || !d.foes.length) { await sleep(80); return ''; }
     const f = d.foes.slice().sort((a, b) => a.x - b.x)[0];
