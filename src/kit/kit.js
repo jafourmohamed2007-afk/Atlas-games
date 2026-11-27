@@ -413,6 +413,10 @@
     if (state === 'menu') showMenu(); return true;
   }
   K.creatorEnter = creatorEnter; // CREATOR (tests)
+  /* Games can hide the BEST/score column (e.g. on their own menus or story levels) and the phone banner during play */
+  K.audioOut = function () { var a = audio(); return a && master ? { ctx: a, out: master, muted: muted } : null; }; // for games that stream their own music/samples
+  K.hudMid = function (score) { if (ui.hud) ui.hud.classList.toggle('noscore', !score); };
+  K.bannerOff = function (off) { var b = $('banner'); if (b && !EMBED) b.classList.toggle('play', !!off); };
   K.info = function (txt) { if (ui.info && ui.info.textContent !== txt) ui.info.textContent = txt; };
   K.tutorialDone = function () { if (K.tutorial) { K.tutorial = false; store.set('tut:' + cfg.id, true); } };
   K.gameOver = function (o) {
@@ -588,7 +592,7 @@
   function screen(id, html, dim) { var old = $(id); if (old) old.remove(); var s = el('div', { 'class': 'screen' + (dim ? ' dim' : ''), id: id }, html); stage.appendChild(s); return s; }
 
   function showMenu() {
-    state = 'menu'; closeScreens(); ui.hud.classList.add('hidden'); Ads.gameplayStop();
+    state = 'menu'; closeScreens(); ui.hud.classList.add('hidden'); Ads.gameplayStop(); K.bannerOff(false);
     var di = dailyInfo();
     var s = screen('menu',
       '<div class="topbar"><a class="brand" target="_top" href="../' + (K.lang === 'en' ? '' : K.lang + '/') + 'index.html" aria-label="Bubzi">' + (cfg.mascot ? '' : bubziSVG('happy', 34)) + '<span>bubzi</span></a>' +
@@ -711,7 +715,7 @@
   }
   function pause() {
     if (state !== 'playing') return;
-    state = 'paused'; Ads.gameplayStop(); ptrs = {};
+    K.bannerOff(false); state = 'paused'; Ads.gameplayStop(); ptrs = {};
     if (game.pointerCancel) game.pointerCancel(K);
     screen('pauseScr', '<div class="card"><h2>' + esc(K.t('paused')) + '</h2><div class="col">' +
       '<button class="btn big mint" id="bResume">' + ICON.play + esc(K.t('resume')) + '</button>' +
@@ -735,7 +739,7 @@
     if (g && !g.done) h += '<p class="goal small">' + curIcon() + '<span>' + esc(K.t('goal')) + ': <b>' + fmt(Math.min(K.score, g.target)) + ' / ' + fmt(g.target) + '</b></span><em>+' + GOAL_COINS + '</em></p>';
     return h;
   }
-  function showOver() {
+  function showOver() { K.bannerOff(false);
     state = 'over';
     var rate = cfg.coinRate || 0.02;
     var bonus = Math.max(0, Math.floor(K.score * rate) - bonusPaid); bonusPaid += bonus;

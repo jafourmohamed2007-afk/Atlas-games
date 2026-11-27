@@ -46,6 +46,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 #banner .slot{width:320px;max-width:calc(100% - 16px);height:50px;border:2px dashed #9A90C9;border-radius:10px;display:flex;
   align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);background:var(--panel)}
 #banner.off{display:none}
+@media (max-height:520px),(max-width:520px){#banner.play{display:none}}
 
 /* ---------- HUD ---------- */
 .hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between;padding:10px 12px;
@@ -56,6 +57,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 .hud .score{font-size:40px;font-weight:800;color:var(--violet)}
 .hud .info{margin-top:4px;padding:2px 10px;border-radius:12px;background:var(--panel);font-size:14px;font-weight:800;color:var(--ink);box-shadow:0 3px 0 var(--line)}
 .hud .info:empty{display:none}
+.hud.noscore .best,.hud.noscore .score{display:none}
+.hud.noscore .info{margin-top:6px}
 .hud .side{display:flex;gap:8px;align-items:center}
 .hidden{display:none !important}
 
@@ -658,6 +661,9 @@ var BubziCur = (function () {
     if (state === 'menu') showMenu(); return true;
   }
   K.creatorEnter = creatorEnter; // CREATOR (tests)
+  /* Games can hide the BEST/score column (e.g. on their own menus or story levels) and the phone banner during play */
+  K.hudMid = function (score) { if (ui.hud) ui.hud.classList.toggle('noscore', !score); };
+  K.bannerOff = function (off) { var b = $('banner'); if (b && !EMBED) b.classList.toggle('play', !!off); };
   K.info = function (txt) { if (ui.info && ui.info.textContent !== txt) ui.info.textContent = txt; };
   K.tutorialDone = function () { if (K.tutorial) { K.tutorial = false; store.set('tut:' + cfg.id, true); } };
   K.gameOver = function (o) {
@@ -833,7 +839,7 @@ var BubziCur = (function () {
   function screen(id, html, dim) { var old = $(id); if (old) old.remove(); var s = el('div', { 'class': 'screen' + (dim ? ' dim' : ''), id: id }, html); stage.appendChild(s); return s; }
 
   function showMenu() {
-    state = 'menu'; closeScreens(); ui.hud.classList.add('hidden'); Ads.gameplayStop();
+    state = 'menu'; closeScreens(); ui.hud.classList.add('hidden'); Ads.gameplayStop(); K.bannerOff(false);
     var di = dailyInfo();
     var s = screen('menu',
       '<div class="topbar"><a class="brand" target="_top" href="../' + (K.lang === 'en' ? '' : K.lang + '/') + 'index.html" aria-label="Bubzi">' + (cfg.mascot ? '' : bubziSVG('happy', 34)) + '<span>bubzi</span></a>' +
@@ -956,7 +962,7 @@ var BubziCur = (function () {
   }
   function pause() {
     if (state !== 'playing') return;
-    state = 'paused'; Ads.gameplayStop(); ptrs = {};
+    K.bannerOff(false); state = 'paused'; Ads.gameplayStop(); ptrs = {};
     if (game.pointerCancel) game.pointerCancel(K);
     screen('pauseScr', '<div class="card"><h2>' + esc(K.t('paused')) + '</h2><div class="col">' +
       '<button class="btn big mint" id="bResume">' + ICON.play + esc(K.t('resume')) + '</button>' +
@@ -980,7 +986,7 @@ var BubziCur = (function () {
     if (g && !g.done) h += '<p class="goal small">' + curIcon() + '<span>' + esc(K.t('goal')) + ': <b>' + fmt(Math.min(K.score, g.target)) + ' / ' + fmt(g.target) + '</b></span><em>+' + GOAL_COINS + '</em></p>';
     return h;
   }
-  function showOver() {
+  function showOver() { K.bannerOff(false);
     state = 'over';
     var rate = cfg.coinRate || 0.02;
     var bonus = Math.max(0, Math.floor(K.score * rate) - bonusPaid); bonusPaid += bonus;
