@@ -49,7 +49,8 @@ addEventListener('resize', resize); if (mq) try { mq.addEventListener('change', 
 if (window.matchMedia) try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors); } catch (e) { }
 resize();
 
-var TAU = Math.PI * 2, clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; }, rand = function (a, b) { return a + Math.random() * (b - a); };
+var SEED = (+Q.get('seed') || (Date.now() % 100000)) >>> 0, RNG = function () { SEED = (SEED + 0x6D2B79F5) >>> 0; var t = SEED; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+var TAU = Math.PI * 2, clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; }, rand = function (a, b) { return a + RNG() * (b - a); };
 function shade(hex, k) { var n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; var f = function (c) { return Math.round(k < 0 ? c * (1 + k) : c + (255 - c) * k); }; return 'rgb(' + f(r) + ',' + f(g) + ',' + f(b) + ')'; }
 var easeOutBack = function (k) { var c = 1.9, m = k - 1; return 1 + (c + 1) * m * m * m + c * m * m; };
 
@@ -68,11 +69,11 @@ function tone(f1, f2, dur, vol, drive) {
   n.connect(g); g.connect(OUT); o.start(t); o.stop(t + dur + 0.1);
 }
 function hiss(f1, f2, dur, vol, q, type) {
-  var a = AC; if (!a) return; if (!NB) { NB = a.createBuffer(1, a.sampleRate, a.sampleRate); var d = NB.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  var a = AC; if (!a) return; if (!NB) { NB = a.createBuffer(1, a.sampleRate, a.sampleRate); var d = NB.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = RNG() * 2 - 1; }
   var t = a.currentTime, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
   s.buffer = NB; s.loop = true; f.type = type || 'bandpass'; f.Q.value = q || 1; f.frequency.setValueAtTime(f1, t); f.frequency.exponentialRampToValueAtTime(f2, t + dur);
   g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + Math.min(0.03, dur / 3)); g.gain.setTargetAtTime(0.0001, t + dur * 0.4, dur / 4);
-  s.connect(f); f.connect(g); g.connect(OUT); s.start(t, Math.random()); s.stop(t + dur + 0.1);
+  s.connect(f); f.connect(g); g.connect(OUT); s.start(t, RNG()); s.stop(t + dur + 0.1);
 }
 var SND = {
   whoosh: function () { hiss(500, 2100, 0.13, 0.16, 1.2); },
@@ -108,6 +109,7 @@ var POSE = {
   tuck:     P(0.12, 0.05, 0.65, 1.60, 0.30, 2.00, 1.30, -2.05, 0.60, -1.85),
   airJab:   P(0.22, -0.05, 1.60, 0.04, 0.30, 2.10, 0.95, -1.55, 0.15, -1.40),
   airCross: P(0.32, -0.08, 0.40, 1.90, 1.55, 0.03, 1.05, -1.65, 0.10, -1.30),
+  airKnee:  P(0.30, 0.00, 0.80, 1.60, -0.30, 1.90, 2.00, -2.50, 0.10, -0.90),
   axeUp:    P(-0.34, 0.20, 1.25, 0.80, -0.85, 1.00, 2.95, -0.08, 0.20, -0.85),
   axeDown:  P(0.40, -0.10, -0.40, 1.20, 0.95, 0.90, 0.95, -0.04, -0.30, -0.60),
   land:     P(0.34, -0.05, 0.50, 1.70, -0.20, 1.90, 0.85, -1.25, -0.32, -1.00),
@@ -130,7 +132,7 @@ function Fighter(x, face, color) {
   this.j = {}; for (var i = 0; i < KEYS.length; i++) this.j[KEYS[i]] = spring(POSE.stance[KEYS[i]]);
   this.target = POSE.stance; this.f = 8; this.z = 0.55;
   this.queue = []; this.cur = null; this.curT = 0; this.state = 'idle'; this.flash = 0; this.trails = { h1: [], h2: [], f1: [], f2: [] };
-  this.pts = null; this.downT = 0; this.xSpring = false; this.seed = Math.random() * 10; this.whip = 0; this.rotLock = false;
+  this.pts = null; this.downT = 0; this.xSpring = false; this.seed = RNG() * 10; this.whip = 0; this.rotLock = false;
 }
 Fighter.prototype.setPose = function (p, f, z) { this.target = typeof p === 'string' ? POSE[p] : p; this.f = f || 8; this.z = z == null ? 0.55 : z; };
 Fighter.prototype.busy = function () { return !!this.cur || this.queue.length > 0; };
@@ -154,23 +156,25 @@ Fighter.prototype.solve = function () {
 Fighter.prototype.world = function (P, n) { return [this.x + this.face * P[n][0], GROUND - P.low - this.air + P[n][1]]; };
 
 /* ---------------- moves ---------------- */
-// step: { p: pose, d: seconds, f: spring Hz, z: damping, reach: auto step-in distance, hit: {...}, jump: vAir, sfx }
-var REACH = { punch: 40, kick: 46, high: 46, upper: 33 };
+// step: { p: pose, d: seconds, f: spring Hz, z: damping, aim: where the strike must land, hit: contact strike, jump, sfx }
+// A hit only happens when the striking hand / foot / knee physically touches the other body.
+function aimG(p, from, mode) { return { p: p, from: from, mode: mode || 'edge' }; }
 var MOVES = {
-  jab: [{ p: 'jabWind', d: 0.06, f: 11, reach: REACH.punch }, { p: 'jab', d: 0.13, f: 17, z: 0.5, sfx: 'whoosh', hit: { at: 0.035, from: 'h1', kind: 'head', power: 1 } }, { p: 'stance', d: 0.1, f: 9 }],
-  cross: [{ p: 'cross', d: 0.15, f: 17, z: 0.5, reach: REACH.punch, sfx: 'whoosh', hit: { at: 0.04, from: 'h2', kind: 'head', power: 1 } }, { p: 'stance', d: 0.1, f: 9 }],
-  fkick: [{ p: 'fkChamb', d: 0.08, f: 14, reach: REACH.kick }, { p: 'fkExt', d: 0.15, f: 18, z: 0.5, sfx: 'whoosh', hit: { at: 0.04, from: 'f1', kind: 'gut', power: 2 } }, { p: 'fkChamb', d: 0.07, f: 13 }, { p: 'stance', d: 0.1, f: 9 }],
-  hkick: [{ p: 'hkChamb', d: 0.1, f: 13, reach: REACH.high }, { p: 'hkExt', d: 0.17, f: 19, z: 0.45, sfx: 'whooshBig', hit: { at: 0.05, from: 'f1', kind: 'head', power: 3 } }, { p: 'stance', d: 0.16, f: 9 }],
-  upper: [{ p: 'upCrouch', d: 0.11, f: 13, reach: REACH.upper }, { p: 'upper', d: 0.22, f: 18, z: 0.5, sfx: 'whooshBig', jump: 210, hit: { at: 0.05, from: 'h2', kind: 'launch', power: 3 } }, { p: 'stance', d: 0.12, f: 9 }],
-  airJab: [{ p: 'airJab', d: 0.11, f: 19, z: 0.5, sfx: 'whoosh', hit: { at: 0.03, from: 'h1', kind: 'air', power: 1 } }, { p: 'tuck', d: 0.05, f: 14 }],
-  airCross: [{ p: 'airCross', d: 0.12, f: 19, z: 0.5, sfx: 'whoosh', hit: { at: 0.03, from: 'h2', kind: 'air', power: 2 } }, { p: 'tuck', d: 0.04, f: 14 }],
-  axe: [{ p: 'axeUp', d: 0.13, f: 14 }, { p: 'axeDown', d: 0.16, f: 22, z: 0.5, sfx: 'whooshBig', hit: { at: 0.04, from: 'f1', kind: 'slam', power: 4 } }, { p: 'tuck', d: 0.1, f: 10, untilLand: true }, { p: 'land', d: 0.2, f: 12 }, { p: 'stance', d: 0.2, f: 8 }],
-  jumpIn: [{ p: 'tuck', d: 0.17, f: 12, jump: 610, chase: true }]
+  jab: [{ p: 'jabWind', d: 0.07, f: 11, aim: aimG('jab', 'h1') }, { p: 'jab', d: 0.15, f: 17, z: 0.5, sfx: 'whoosh', aim: aimG('jab', 'h1'), hit: { from: 'h1', kind: 'head', power: 1 } }, { p: 'stance', d: 0.1, f: 9 }],
+  cross: [{ p: 'cross', d: 0.17, f: 17, z: 0.5, sfx: 'whoosh', aim: aimG('cross', 'h2'), hit: { from: 'h2', kind: 'head', power: 1 } }, { p: 'stance', d: 0.1, f: 9 }],
+  fkick: [{ p: 'fkChamb', d: 0.09, f: 14, noStep: 1, aim: aimG('fkExt', 'f1') }, { p: 'fkExt', d: 0.16, f: 18, z: 0.5, noStep: 1, sfx: 'whoosh', aim: aimG('fkExt', 'f1'), hit: { from: 'f1', kind: 'gut', power: 2 } }, { p: 'fkChamb', d: 0.07, f: 13, noStep: 1 }, { p: 'stance', d: 0.1, f: 9 }],
+  hkick: [{ p: 'hkChamb', d: 0.1, f: 13, noStep: 1, aim: aimG('hkExt', 'f1') }, { p: 'hkExt', d: 0.19, f: 19, z: 0.45, noStep: 1, sfx: 'whooshBig', aim: aimG('hkExt', 'f1'), hit: { from: 'f1', kind: 'head', power: 3 } }, { p: 'stance', d: 0.16, f: 9 }],
+  upper: [{ p: 'upCrouch', d: 0.12, f: 13, aim: aimG('upper', 'h2', 'under') }, { p: 'upper', d: 0.22, f: 18, z: 0.5, sfx: 'whooshBig', jump: 210, hit: { from: 'h2', kind: 'launch', power: 3 } }, { p: 'stance', d: 0.12, f: 9 }],
+  airJab: [{ p: 'airJab', d: 0.17, f: 19, z: 0.5, sfx: 'whoosh', aim: aimG('airJab', 'h1', 'air'), hit: { from: 'h1', kind: 'air', power: 1 } }, { p: 'tuck', d: 0.05, f: 14, aim: aimG('airCross', 'h2', 'air') }],
+  airCross: [{ p: 'airCross', d: 0.18, f: 19, z: 0.5, sfx: 'whoosh', aim: aimG('airCross', 'h2', 'air'), hit: { from: 'h2', kind: 'air', power: 2 } }, { p: 'tuck', d: 0.05, f: 14, aim: aimG('airJab', 'h1', 'air') }],
+  airKnee: [{ p: 'airKnee', d: 0.18, f: 18, z: 0.5, sfx: 'whoosh', aim: aimG('airKnee', 'k1', 'air'), hit: { from: 'k1', kind: 'air', power: 2, lift: 1 } }, { p: 'tuck', d: 0.05, f: 14, aim: aimG('axeDown', 'f1', 'above') }],
+  axe: [{ p: 'axeUp', d: 0.15, f: 14, noStep: 1, aim: aimG('axeDown', 'f1', 'above') }, { p: 'axeDown', d: 0.2, f: 22, z: 0.5, noStep: 1, sfx: 'whooshBig', aim: aimG('axeDown', 'f1', 'above'), hit: { from: 'f1', kind: 'slam', power: 4 } }, { p: 'tuck', d: 0.1, f: 10, untilLand: true }, { p: 'land', d: 0.2, f: 12 }, { p: 'stance', d: 0.2, f: 8 }],
+  jumpIn: [{ p: 'tuck', d: 0.17, f: 12, jumpTo: { p: 'airJab', from: 'h1', T: 0.24 } }]
 };
-var AUTO = ['jab', 'cross', 'fkick', 'hkick', 'upper', 'jumpIn', 'airJab', 'airCross', 'airJab', 'axe', 'win'];
+var AUTO = ['jab', 'cross', 'fkick', 'hkick', 'upper', 'jumpIn', 'airJab', 'airCross', 'airKnee', 'axe', 'win'];
 
 /* ---------------- world ---------------- */
-var GROUND = 0, G = 1900;
+var GROUND = 0, G = 1900, LOG = [];
 var A, B, fx = [], stopT = 0, slowT = 0, trauma = 0, zoomK = spring(1), cam = { x: 0, ox: 0, oy: 0 }, simT = 0;
 var combo = { n: 0, t: 0, pop: 0, best: 0 }, impactT = 0, speedT = 0, autoOn = false, autoI = 0, autoWait = 0;
 function reset() {
@@ -181,37 +185,135 @@ function reset() {
 reset();
 
 function startStep(F, s) {
-  F.cur = s; F.curT = 0; F.setPose(s.p, s.f, s.z); s._hit = false;
-  if (s.reach && B.state !== 'down' && F === A) F.xT = B.x - F.face * s.reach, F.xSpring = true;
+  F.cur = s; F.curT = 0; F.setPose(s.p, s.f, s.z); s._hit = false; s._done = false;
   if (s.jump) { F.vAir = s.jump; F.grounded = false; F.gS = 1; }
-  if (s.chase) { F.xT = B.x - F.face * 40; F.xSpring = true; }
+  if (s.jumpTo) planJump(F, F === A ? B : A, s.jumpTo);
   if (s.sfx) snd(s.sfx);
 }
+
+/* ---------- body geometry for contact ---------- */
+function capsules(F) {
+  var P = F.pts || (F.pts = F.solve()), w = function (n) { return F.world(P, n); };
+  var hip = w('hip'), nk = w('neck'), hd = w('head');
+  return [
+    { a: hd, b: hd, r: LEN.head, part: 'head' }, { a: hip, b: nk, r: 4.6, part: 'torso' },
+    { a: w('sh'), b: w('e1'), r: 2.8, part: 'arm' }, { a: w('e1'), b: w('h1'), r: 2.8, part: 'arm' },
+    { a: w('sh'), b: w('e2'), r: 2.8, part: 'arm' }, { a: w('e2'), b: w('h2'), r: 2.8, part: 'arm' },
+    { a: hip, b: w('k1'), r: 3.4, part: 'leg' }, { a: w('k1'), b: w('f1'), r: 3.2, part: 'leg' },
+    { a: hip, b: w('k2'), r: 3.4, part: 'leg' }, { a: w('k2'), b: w('f2'), r: 3.2, part: 'leg' }
+  ];
+}
+function closest(a, b, p) { var dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy, t = L ? clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L, 0, 1) : 0; return [a[0] + dx * t, a[1] + dy * t]; }
+var EFF_R = { h1: 3.2, h2: 3.2, f1: 3.6, f2: 3.6, k1: 4.2, k2: 4.2 };
+function touch(E, er, vic, skipLimbs) {
+  var best = null, caps = capsules(vic);
+  for (var i = 0; i < caps.length; i++) {
+    var c = caps[i]; if (skipLimbs && c.part === 'arm') continue;
+    var q = closest(c.a, c.b, E), d = Math.hypot(E[0] - q[0], E[1] - q[1]), pen = c.r + er - d;
+    if (pen > 0 && (!best || pen > best.pen)) { var nx = d > 1e-4 ? (E[0] - q[0]) / d : 1, ny = d > 1e-4 ? (E[1] - q[1]) / d : 0; best = { pen: pen, part: c.part, n: [nx, ny], pt: [q[0] + nx * c.r, q[1] + ny * c.r], cap: c }; }
+  }
+  return best;
+}
+// x of the front surface of a body at height y (the side facing the attacker)
+function frontEdge(vic, y, face) {
+  var caps = capsules(vic), best = null;
+  for (var i = 0; i < caps.length; i++) {
+    var c = caps[i]; if (c.part === 'arm') continue;
+    for (var k = 0; k <= 10; k++) { var px = c.a[0] + (c.b[0] - c.a[0]) * k / 10, py = c.a[1] + (c.b[1] - c.a[1]) * k / 10, dy = Math.abs(py - y); if (dy >= c.r) continue; var ex = px - face * Math.sqrt(c.r * c.r - dy * dy); if (best == null || face * ex < face * best) best = ex; }
+  }
+  return best;
+}
+// joint offsets of a pose, relative to the fighter's root (x forward, y from the ground contact line)
+var POSE_CACHE = {};
+function poseOff(pose, from) {
+  var key = pose + ':' + from; if (POSE_CACHE[key]) return POSE_CACHE[key];
+  var tmp = { j: {}, rot: { v: 0 } }; for (var i = 0; i < KEYS.length; i++) tmp.j[KEYS[i]] = { v: POSE[pose][KEYS[i]] };
+  var P = Fighter.prototype.solve.call(tmp); return (POSE_CACHE[key] = [P[from][0], P[from][1] - P.low]);
+}
+function vicCore(vic) { var P = vic.pts || vic.solve(), h = vic.world(P, 'hip'), n = vic.world(P, 'neck'); return [h[0] * 0.45 + n[0] * 0.55, h[1] * 0.45 + n[1] * 0.55]; }
+// where the attacker's root must be so the strike lands
+function aimRoot(F, vic, aim) {
+  var off = poseOff(aim.p, aim.from), f = F.face, baseY = GROUND - F.air;
+  if (aim.mode === 'edge') {
+    var ey = baseY + off[1], edge = frontEdge(vic, ey, f);
+    if (edge == null) { var hd = vic.world(vic.pts || vic.solve(), 'head'); edge = hd[0] - f * LEN.head; }
+    return { x: edge + f * 5 - f * off[0] };
+  }
+  if (aim.mode === 'under') { var hd2 = vic.world(vic.pts || vic.solve(), 'head'); return { x: hd2[0] - f * 4 - f * off[0] }; }
+  var core = vicCore(vic);
+  if (aim.mode === 'above') return { x: core[0] - f * off[0] + f * 2, air: GROUND - (core[1] + 12) + off[1] };
+  return { x: core[0] + f * 8 - f * off[0], air: GROUND - core[1] + off[1] }; // 'air': the fist is driven through the body's centre, so it meets the surface on the way
+}
+function predict(F, T) { var x = F.x, a = F.air, vx = F.vx, va = F.vAir, h = 1 / 240; for (var t = 0; t < T; t += h) { va -= G * F.gS * h; a += va * h; vx *= Math.pow(0.35, h); x += vx * h; if (a < 0) { a = 0; va = 0; } } return { x: x, air: a, vAir: va }; }
+function planJump(F, vic, jt) {
+  var T = jt.T, pv = predict(vic, T), P = vic.pts || vic.solve(), h = vic.world(P, 'hip'), n = vic.world(P, 'neck');
+  var coreOffY = (h[1] + n[1]) / 2 - (GROUND - vic.air), off = poseOff(jt.p, jt.from);
+  var needAir = pv.air - coreOffY + off[1], needX = pv.x + (vicCore(vic)[0] - vic.x) - F.face * 4 - F.face * off[0];
+  F.grounded = false; F.gS = 1; F.vAir = clamp((needAir + 0.5 * G * T * T) / T, 380, 900); F.vx = clamp((needX - F.x) / T, -500, 500); F.xSpring = false;
+}
+
 function updateFighter(F, dt) {
+  var vic = F === A ? B : A;
   // timeline
   if (F.cur) {
     F.curT += dt; var s = F.cur;
-    if (s.hit && !s._hit && F.curT >= s.hit.at) { s._hit = true; landHit(F, F === A ? B : A, s.hit); }
     var done = s.untilLand ? (F.grounded && F.curT > 0.02) : F.curT >= s.d;
+    if (done && s.hit && !s._hit && F === A && vic.state !== 'down') { var Pm = F.pts || F.solve(), Em = F.world(Pm, s.hit.from), cm = vicCore(vic); LOG.push('miss ' + s.p + ' eff ' + Em.map(Math.round) + ' core ' + cm.map(Math.round) + ' Aair ' + Math.round(F.air) + ' Bair ' + Math.round(vic.air) + ' Bst ' + vic.state); }
     if (done) { F.cur = null; if (s.then) s.then(); }
   }
   if (!F.cur && F.queue.length) { var nx = F.queue.shift(); if (typeof nx === 'function') nx(); else startStep(F, nx); }
   if (!F.cur && !F.queue.length && F.state === 'idle' && F.target !== POSE.stance && F.target !== POSE.victory) F.setPose('stance', 8);
-  // joint springs (sub-stepped for stiff springs)
-  var n = Math.max(1, Math.ceil(dt * 240)), h = dt / n, w0 = TAU * F.f, z = F.z, tg = F.target, AIRT = F.state === 'juggled' ? airTargets(F) : null;
-  for (var k = 0; k < KEYS.length; k++) {
-    var key = KEYS[k], sp = F.j[key], target = tg[key];
-    if (AIRT) { target = AIRT[key]; w0 = TAU * (key === 't' ? 6 : key === 'h' ? 5 : 4.6); z = 0.3; }
-    if (F.state === 'idle' && !F.cur && tg === POSE.stance && (key === 'k1' || key === 'k2')) target += Math.sin(simT * 7 + (F.face > 0 ? 0 : 1.3)) * 0.09; // fighting bounce
-    for (var i = 0; i < n; i++) { sp.w += (w0 * w0 * (target - sp.v) - 2 * z * w0 * sp.w) * h; sp.v += sp.w * h; }
+  var cur = F.cur, strike = cur && cur.hit && !cur._hit && vic.state !== 'down' ? cur.hit : null, pushing = cur && cur.hit && vic.state !== 'down';
+  // aiming: ground strikes step in, air strikes steer (continuous motion, never a snap)
+  F.steer = null;
+  if (cur && cur.aim && !cur._hit && vic.state !== 'down' && F === A) {
+    var r = aimRoot(F, vic, cur.aim);
+    if (F.grounded && vic.grounded) { F.xT = Math.abs(r.x - vic.x) < 16 ? vic.x - F.face * 16 : r.x; F.xSpring = true; }
+    else if (!F.grounded && r.air != null) F.steer = r;
   }
-  // whole-body rotation spring
+  // stepping legs while the root moves on the ground (no foot sliding)
+  var spd = Math.abs(F.vx), stepK = F.grounded && F.state !== 'down' && F.state !== 'juggled' && !(cur && cur.noStep) ? clamp((spd - 30) / 220, 0, 1) : 0;
+  if (stepK > 0) F.stepPh = (F.stepPh || 0) + spd * dt * 0.12;
+  var ph = F.stepPh || 0;
+  // joint springs, sub-stepped; the strike is tested for contact on every sub-step
+  var n = Math.max(1, Math.ceil(dt * 240)), h = dt / n, tg = F.target, AIRT = F.state === 'juggled' ? airTargets(F) : null;
   var rw = TAU * 3.2, rz = 0.45;
-  if (F.state === 'juggled' && !F.grounded) { rw = TAU * 1.3; rz = 0.22; if (!F.rotLock) F.rotT = -0.8 + clamp(F.vAir / 1100, -0.65, 0.3); } // loose spin carried by momentum
-  for (i = 0; i < n; i++) { F.rot.w += (rw * rw * (F.rotT - F.rot.v) - 2 * rz * rw * F.rot.w) * h; F.rot.v += F.rot.w * h; }
-  // root x: spring toward step-in target, or free slide with friction
-  if (F.xSpring) { var xw = TAU * 5; F.vx += (xw * xw * (F.xT - F.x) - 2 * 0.9 * xw * F.vx) * dt; if (Math.abs(F.xT - F.x) < 0.5 && Math.abs(F.vx) < 5) F.xSpring = false; }
-  else F.vx *= Math.pow(F.grounded ? 0.0009 : 0.35, dt);
+  if (F.state === 'juggled' && !F.grounded) { rw = TAU * 1.3; rz = 0.22; if (!F.rotLock) F.rotT = -0.8 + clamp(F.vAir / 1100, -0.65, 0.3); }
+  var TT = {};
+  for (var k = 0; k < KEYS.length; k++) {
+    var key = KEYS[k], target = AIRT ? AIRT[key] : tg[key];
+    if (!AIRT && F.state === 'idle' && !cur && tg === POSE.stance && (key === 'k1' || key === 'k2')) target += Math.sin(simT * 7 + (F.face > 0 ? 0 : 1.3)) * 0.09;
+    if (stepK > 0) { if (key === 'l1') target += Math.sin(ph) * 0.38 * stepK; if (key === 'l2') target -= Math.sin(ph) * 0.38 * stepK; if (key === 'k1') target -= Math.max(0, Math.cos(ph)) * 0.8 * stepK; if (key === 'k2') target -= Math.max(0, -Math.cos(ph)) * 0.8 * stepK; }
+    TT[key] = target;
+  }
+  for (var i = 0; i < n; i++) {
+    for (k = 0; k < KEYS.length; k++) {
+      key = KEYS[k]; var sp = F.j[key], w0 = AIRT ? TAU * (key === 't' ? 6 : key === 'h' ? 5 : 4.6) : TAU * F.f, z = AIRT ? 0.3 : F.z;
+      sp.w += (w0 * w0 * (TT[key] - sp.v) - 2 * z * w0 * sp.w) * h; sp.v += sp.w * h;
+    }
+    F.rot.w += (rw * rw * (F.rotT - F.rot.v) - 2 * rz * rw * F.rot.w) * h; F.rot.v += F.rot.w * h;
+    if (pushing) {
+      var Pn = F.pts = F.solve(), E = F.world(Pn, cur.hit.from), prev = F.prevE || E; F.prevE = E;
+      var tc = touch(E, EFF_R[cur.hit.from] || 3.4, vic, false);
+      if (tc && strike) {
+        cur._hit = true; strike = null;
+        var vel = [(E[0] - prev[0]) / h, (E[1] - prev[1]) / h];
+        landHit(F, vic, cur.hit, tc, vel);
+        // stop the limb on the surface: the rest of this frame is not integrated
+        for (k = 0; k < KEYS.length; k++) F.j[KEYS[k]].w *= 0.25;
+        break;
+      } else if (tc && cur._hit) { // follow-through pushes the body instead of passing through it
+        var push = Math.min(tc.pen, 3) * 0.6; vic.x -= tc.n[0] * push; if (!vic.grounded) vic.air = Math.max(0, vic.air + tc.n[1] * push);
+      }
+    }
+  }
+  if (!pushing) F.prevE = null;
+  // root x: step-in spring, air steering, or free slide with friction
+  if (F.xSpring && F.grounded) { var xw = TAU * 5; F.vx += (xw * xw * (F.xT - F.x) - 2 * 0.9 * xw * F.vx) * dt; if (Math.abs(F.xT - F.x) < 0.5 && Math.abs(F.vx) < 5) F.xSpring = false; }
+  else if (F.steer) {
+    var sw = TAU * 6, ax = sw * sw * (F.steer.x - F.x) + 2 * sw * (vic.vx - F.vx), ay = sw * sw * (F.steer.air - F.air) + 2 * sw * (vic.vAir - F.vAir) + G * F.gS * 0.85;
+    F.vx += clamp(ax, -5000, 5000) * dt; F.vAir += clamp(ay, -5000, 5000) * dt;
+  } else { F.xSpring = F.grounded && F.xSpring; F.vx *= Math.pow(F.grounded ? 0.0009 : 0.35, dt); }
   F.x += F.vx * dt;
   // vertical
   if (!F.grounded) {
@@ -219,7 +321,7 @@ function updateFighter(F, dt) {
     if (F.air <= 0) {
       F.air = 0;
       if (F.state === 'juggled' && F.vAir < -420 && F.bounces > 0) { F.bounces--; F.vAir = -F.vAir * 0.32; dust(F, 1.4); snd('land'); addTrauma(0.35); F.rot.w -= 3; whip(F, 0.9); }
-      else { var hard = F.vAir < -500; F.vAir = 0; F.grounded = true; dust(F, hard ? 1.2 : 0.6); snd('land'); if (F.state === 'juggled') knockDown(F); else if (hard && F === A) addTrauma(0.15); }
+      else { var hard = F.vAir < -500; F.vAir = 0; F.grounded = true; F.gS = 1; dust(F, hard ? 1.2 : 0.6); snd('land'); if (F.state === 'juggled') knockDown(F); else if (hard && F === A) addTrauma(0.15); }
     }
   }
   // down / get up
@@ -230,7 +332,7 @@ function updateFighter(F, dt) {
   }
   if (F.state === 'hurt' && !F.cur) F.state = 'idle';
   F.flash = Math.max(0, F.flash - dt); F.whip = Math.max(0, F.whip - dt * 1.8);
-  // smear trails (time-stamped joint pairs)
+  // smear trails (time-stamped joint pairs, relative to the root)
   var P = F.pts = F.solve(), map = { h1: 'e1', h2: 'e2', f1: 'k1', f2: 'k2' };
   for (var e in map) { var tr = F.trails[e]; tr.push({ t: simT, m: [F.face * P[map[e]][0], P[map[e]][1] - P.low], x: [F.face * P[e][0], P[e][1] - P.low] }); while (tr.length && simT - tr[0].t > 0.075) tr.shift(); }
 }
@@ -258,43 +360,48 @@ function airTargets(F) {
 function whip(F, s) { F.whip = Math.min(1.2, F.whip + 0.6 * s); for (var i = 0; i < KEYS.length; i++) F.j[KEYS[i]].w += rand(-1, 1) * 22 * s; }
 
 /* ---------------- hits ---------------- */
-function landHit(att, vic, hit) {
-  if (vic.state === 'down') return; // whiff on a downed foe
-  var P = att.pts || att.solve(), fist = att.world(P, hit.from), pw = hit.power, f = att.face;
-  var VP = vic.pts || vic.solve(), tgt = vic.world(VP, hit.kind === 'gut' ? 'hip' : hit.kind === 'slam' ? 'neck' : 'head');
-  if (hit.kind === 'gut') { var nk0 = vic.world(VP, 'neck'); tgt = [(tgt[0] + nk0[0]) / 2, (tgt[1] + nk0[1]) / 2]; }
-  var at = [fist[0] * 0.45 + tgt[0] * 0.55, fist[1] * 0.45 + tgt[1] * 0.55];
+function landHit(att, vic, hit, tc, vel) {
+  var pw = hit.power, f = att.face, at = tc.pt, part = tc.part, sp = Math.hypot(vel[0], vel[1]) || 1, dx = vel[0] / sp, dy = vel[1] / sp;
   combo.n = combo.t > 0 ? combo.n + 1 : 1; combo.t = 1.1; combo.pop = 1; combo.best = Math.max(combo.best, combo.n);
-  vic.flash = 0.1 + pw * 0.02; vic.state = vic.grounded ? 'hurt' : vic.state;
-  var J = vic.j;
-  if (hit.kind === 'head') {
-    vic.play([{ p: 'hurtHead', d: 0.2 + pw * 0.06, f: 9, z: 0.4 }, { p: 'stance', d: 0.12, f: 7 }], true);
-    J.t.w -= 10 + pw * 4; J.h.w -= 16 + pw * 5; J.a1.w -= 8; J.a2.w -= 10; vic.vx += f * (60 + pw * 45); vic.xSpring = false;
-  } else if (hit.kind === 'gut') {
-    vic.play([{ p: 'hurtGut', d: 0.34, f: 10, z: 0.4 }, { p: 'stance', d: 0.12, f: 7 }], true);
-    J.t.w += 14; J.h.w += 10; vic.vx += f * 190; vic.xSpring = false; dust(vic, 0.7);
-  } else if (hit.kind === 'launch') {
+  vic.flash = 0.1 + pw * 0.02;
+  var J = vic.j, kind = hit.kind, hipW = vic.world(vic.pts || vic.solve(), 'hip');
+  // the body part that was touched decides the reaction on the ground
+  if ((kind === 'head' || kind === 'gut') && vic.grounded) {
+    var high = part === 'head' || (part === 'torso' && at[1] < hipW[1] - 18) || part === 'arm';
+    vic.state = 'hurt'; vic.xSpring = false;
+    if (high) {
+      vic.play([{ p: 'hurtHead', d: 0.2 + pw * 0.06, f: 9, z: 0.4 }, { p: 'stance', d: 0.12, f: 7 }], true);
+      J.t.w -= 10 + pw * 4; J.h.w -= (part === 'head' ? 18 : 8) + pw * 5; J.h.w += dy * 14; J.a1.w -= 8; J.a2.w -= 10; vic.vx += f * (60 + pw * 45);
+    } else {
+      vic.play([{ p: 'hurtGut', d: 0.34, f: 10, z: 0.4 }, { p: 'stance', d: 0.12, f: 7 }], true);
+      J.t.w += 14; J.h.w += 10; vic.vx += f * (120 + pw * 35); dust(vic, 0.7);
+      if (part === 'leg') { J.l1.w -= 10; J.k1.w -= 12; }
+    }
+  } else if (kind === 'launch') {
     vic.state = 'juggled'; vic.grounded = false; vic.vAir = 500; vic.gS = 0.62; vic.bounces = 1; vic.vx = f * 40; vic.xSpring = false;
     vic.play([{ p: 'tumble', d: 0.1, f: 7, z: 0.4 }], true); vic.rotLock = false; vic.rot.w -= 7; J.t.w -= 12; whip(vic, 1);
-  } else if (hit.kind === 'air') {
-    // magnetise the juggle so air hits connect, then pop the victim back up
-    vic.state = 'juggled'; vic.grounded = false; vic.gS = 0.5;
-    vic.air += (att.air + 4 - vic.air) * 0.85; vic.x += (att.x + f * 36 - vic.x) * 0.85; vic.vAir = Math.max(vic.vAir, 300); vic.vx = f * 30;
-    vic.play([{ p: 'tumble', d: 0.1, f: 9, z: 0.35 }], true); vic.rotLock = false; vic.rot.w += (Math.random() < 0.5 ? -1 : 1) * (5 + pw * 2.5); J.t.w -= 10; J.h.w -= 14; whip(vic, 0.8 + pw * 0.2);
-  } else if (hit.kind === 'slam') {
-    vic.air += (att.air - 8 - vic.air) * 0.8; vic.x += (att.x + f * 34 - vic.x) * 0.8;
+  } else if (kind === 'air' || ((kind === 'head' || kind === 'gut') && !vic.grounded)) {
+    // the hit carries both bodies: the victim pops along the strike, the attacker rides the momentum
+    vic.state = 'juggled'; vic.grounded = false; vic.gS = 0.55;
+    vic.vAir = Math.max(Math.min(vic.vAir, 260), 210 + (hit.lift ? 60 : 0)) - dy * 40; vic.vx = f * 85 + dx * 40;
+    att.vAir = Math.max(att.vAir, vic.vAir * 0.95); att.vx = vic.vx * 0.9; att.gS = 0.55;
+    vic.play([{ p: 'tumble', d: 0.1, f: 9, z: 0.35 }], true); vic.rotLock = false;
+    // spin from where the blow landed relative to the hips (a real torque)
+    var arm = [at[0] - hipW[0], at[1] - hipW[1]], tq = (arm[0] * dy - arm[1] * dx) / 30;
+    vic.rot.w += f * tq * (4 + pw * 2) + (RNG() - 0.5) * 3; J.t.w -= 10; J.h.w -= 14; whip(vic, 0.8 + pw * 0.2);
+  } else if (kind === 'slam') {
     vic.state = 'juggled'; vic.grounded = false; vic.gS = 1.6; vic.vAir = -1100; vic.vx = f * 140; vic.bounces = 1;
     vic.rotT = -1.57; vic.rotLock = true; vic.rot.w -= 9; J.t.w -= 16; whip(vic, 1.2);
+    att.vAir = 150; att.vx *= 0.3; att.gS = 1;
   }
-  // feedback scaled by power
+  // feedback scaled by power, all placed exactly at the contact point
   var big = pw >= 4;
   stopT = Math.max(stopT, [0, 0.05, 0.07, 0.1, 0.16][pw]);
   addTrauma([0, 0.22, 0.32, 0.45, 0.85][pw]);
   if (!RM()) zoomK.w += [0, 0.5, 0.8, 1.2, 2.4][pw];
-  cam.punchX = -f * 3;
-  star(at[0] + f * 3, at[1], 10 + pw * 4.5, big);
+  star(at[0], at[1], 10 + pw * 4.5, big);
   ring(at[0], at[1], 8 + pw * 4, pw);
-  sparks(at[0], at[1], f, 5 + pw * 3, pw);
+  sparksDir(at[0], at[1], dx, dy, 5 + pw * 3, pw);
   if (big) { impactT = RM() ? 0 : 0.05; speedT = RM() ? 0 : 0.45; slowT = RM() ? 0 : 0.32; snd('finisher'); }
   else snd(pw >= 3 ? 'heavy' : pw >= 2 ? 'medium' : 'light');
 }
@@ -304,6 +411,7 @@ function addTrauma(a) { if (!RM()) trauma = Math.min(1, trauma + a); }
 /* ---------------- fx ---------------- */
 function star(x, y, r, big) { fx.push({ k: 'star', x: x, y: y, r: r, t: 0, life: big ? 0.3 : 0.2, rot: rand(0, TAU), pts: big ? 12 : 9, big: big }); }
 function ring(x, y, r, pw) { fx.push({ k: 'ring', x: x, y: y, r: r, t: 0, life: 0.18 + pw * 0.03, pw: pw }); }
+function sparksDir(x, y, dx, dy, n, pw) { if (RM()) n = Math.ceil(n / 3); var b = Math.atan2(dy, dx); for (var i = 0; i < n; i++) { var a = b + rand(-1.1, 1.1), s = rand(260, 520) * (0.7 + pw * 0.15); fx.push({ k: 'spark', x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: rand(0.12, 0.24), w: rand(1.5, 3) }); } }
 function sparks(x, y, f, n, pw) { if (RM()) n = Math.ceil(n / 3); for (var i = 0; i < n; i++) { var a = (f > 0 ? 0 : Math.PI) + rand(-1.1, 1.1), s = rand(260, 520) * (0.7 + pw * 0.15); fx.push({ k: 'spark', x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: rand(0.12, 0.24), w: rand(1.5, 3) }); } }
 function dust(F, s) { var y = GROUND; for (var i = 0; i < (RM() ? 2 : 6); i++) fx.push({ k: 'dust', x: F.x + rand(-14, 14) * s, y: y - rand(0, 4), vx: rand(-60, 60) * s, vy: rand(-40, -10), r: rand(3, 6) * s, t: 0, life: rand(0.3, 0.5) }); }
 function updateFx(dt) {
@@ -318,9 +426,8 @@ function doMove(m) {
   if (A.queue.length > 1) return; // small input buffer
   if (B.state === 'down') return;
   if (!B.grounded) {
-    if (A.grounded && m !== 'kick') { A.play(MOVES.jumpIn); A.play(m === 'punch' ? MOVES.airJab : MOVES.airCross); A.play(untilLandSteps()); }
-    else if (!A.grounded) A.play(m === 'kick' ? MOVES.axe : MOVES.airJab);
-    else { A.play(MOVES.jumpIn); A.play(MOVES.axe); }
+    if (A.grounded) { A.play(MOVES.jumpIn); A.play(m === 'kick' ? MOVES.airKnee : MOVES.airJab); A.play(untilLandSteps()); }
+    else { A.queue = A.queue.filter(function (q) { return !q.untilLand && q.p !== 'land' && q.p !== 'stance'; }); A.play(m === 'kick' ? MOVES.axe : m === 'upper' ? MOVES.airKnee : (A.lastA === 'airJab' ? (A.lastA = 'airCross', MOVES.airCross) : (A.lastA = 'airJab', MOVES.airJab))); if (m !== 'kick') A.play(untilLandSteps()); }
     return;
   }
   var pick = m === 'punch' ? (A.lastP === 'jab' ? 'cross' : 'jab') : m === 'kick' ? (A.lastK === 'fkick' ? 'hkick' : 'fkick') : 'upper';
@@ -338,6 +445,8 @@ function autoStep(dt) {
   if (A.busy()) return;
   var m = AUTO[autoI++];
   if (!m) { autoOn = false; return; }
+  if (m === 'jumpIn' && B.state === 'juggled' && predict(B, 0.26).air < 45) { m = 'upper'; autoI--; }
+  if (['jumpIn', 'airJab', 'airCross', 'airKnee', 'axe'].indexOf(m) >= 0 && B.state !== 'juggled') { if (B.state === 'down') { autoI = AUTO.length - 1; return; } autoI = AUTO.indexOf('upper'); m = 'upper'; autoI++; }
   if (m === 'win') { A.play([{ p: 'stance', d: 0.35, f: 7 }, { p: 'victory', d: 1.4, f: 6, z: 0.45 }, function () { if (CAPTURE || Q.has('loop')) setTimeout(function () { }, 0); }]); return; }
   A.play(MOVES[m]);
 }
@@ -350,11 +459,11 @@ function step(dt) {
   autoStep(sdt);
   updateFighter(A, sdt); updateFighter(B, sdt);
   // keep the pair from overlapping on the ground
-  if (A.grounded && B.grounded && B.state !== 'down') { var gap = (B.x - A.x) * A.face; if (gap < 26) { var push = (26 - gap) / 2; A.x -= A.face * push; B.x += A.face * push; } }
+  if (A.grounded && B.grounded && B.state !== 'down') { var minGap = A.cur && A.cur.hit ? 16 : 28, gap = (B.x - A.x) * A.face; if (gap < minGap) { var push = Math.min(3, (minGap - gap) / 2); A.x -= A.face * push; B.x += A.face * push; } }
   // drift back to centre stage when idle and far
   if (!A.busy() && A.state === 'idle' && B.state === 'idle' && !autoOn) { var mid = (A.x + B.x) / 2; A.x -= mid * Math.min(1, dt * 0.6); B.x -= mid * Math.min(1, dt * 0.6); }
   updateFx(sdt);
-  if (combo.t > 0) { combo.t -= dt; if (combo.t <= 0) combo.n = 0; }
+  if (combo.t > 0) { if (B.state !== 'juggled') combo.t -= dt; if (combo.t <= 0) combo.n = 0; }
   combo.pop = Math.max(0, combo.pop - dt * 4);
   impactT = Math.max(0, impactT - dt); speedT = Math.max(0, speedT - dt);
   decayCam(dt);
@@ -363,7 +472,7 @@ function decayCam(dt) {
   trauma = Math.max(0, trauma - dt * 1.6);
   var zw = TAU * 4; for (var i = 0; i < 4; i++) { var h = dt / 4; zoomK.w += (zw * zw * (1 - zoomK.v) - 2 * 0.5 * zw * zoomK.w) * h; zoomK.v += zoomK.w * h; }
   var mid = (A.x + B.x) / 2; cam.x += (mid - cam.x) * (1 - Math.exp(-5 * dt));
-  var ty = Math.max(0, Math.max(A.air, B.air) * 0.75 - 30); cam.y = (cam.y || 0) + (ty - (cam.y || 0)) * (1 - Math.exp(-6 * dt));
+  var ty = Math.max(0, (A.air + B.air) / 2 * 0.95 - 25); cam.y = (cam.y || 0) + (ty - (cam.y || 0)) * (1 - Math.exp(-6 * dt));
   var s = trauma * trauma, tt = performance.now() / 1000 * 30;
   cam.ox = s * 12 * (Math.sin(tt * 1.7) * 0.6 + Math.sin(tt * 3.9 + 1) * 0.4); cam.oy = s * 9 * (Math.sin(tt * 2.3 + 2) * 0.6 + Math.sin(tt * 4.7) * 0.4); cam.r = s * 0.035 * Math.sin(tt * 1.3);
 }
@@ -439,7 +548,7 @@ function render() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   var inv = impactT > 0; // one-beat impact frame: inverted colours
   ctx.fillStyle = inv ? COL.ink : COL.bg; ctx.fillRect(0, 0, W, H);
-  var uiH = 96, s = Math.min(W / 235, (H - uiH - 40) / 190) * zoomK.v, gy = Math.min(H - uiH - 30, H * 0.72);
+  var uiH = 96, s = Math.min(W / 235, (H - uiH - 40) / 190) * zoomK.v * clamp(1 - (Math.max(A.air, B.air) - 70) / 500, 0.8, 1), gy = Math.min(H - uiH - 30, H * 0.72);
   if (speedT > 0) drawSpeedLines(W / 2, gy - 60 * s, s);
   ctx.save();
   ctx.translate(W / 2 + cam.ox, gy + cam.oy + (cam.y || 0) * s); ctx.rotate(cam.r || 0); ctx.scale(s, s); ctx.translate(-cam.x, 0);
@@ -449,7 +558,7 @@ function render() {
   var saved = COL.p1, saved2 = COL.p2; if (inv) { COL.p1 = COL.bg; COL.p2 = COL.bg; }
   drawFighter(B, 1); drawFighter(A, 1);
   COL.p1 = saved; COL.p2 = saved2;
-  drawFx();
+  if (!Q.has('nofx')) drawFx();
   ctx.restore();
   // combo counter (HUD: never shakes)
   if (combo.n >= 2) {
@@ -471,7 +580,7 @@ function frame(ts) {
   var dt = Math.min(0.05, (ts - (last || ts)) / 1000); last = ts;
   step(dt); render();
 }
-window.__lab = { advance: function (dt) { step(dt); }, render: render, auto: function () { doMove('auto'); }, move: doMove, state: function () { return { combo: combo.n, best: combo.best, A: [A.x, A.air, A.state], B: [B.x, B.air, B.state, B.rot.v], auto: autoOn }; } };
+window.__lab = { log: LOG, advance: function (dt) { step(dt); }, render: render, auto: function () { doMove('auto'); }, move: doMove, state: function () { return { combo: combo.n, best: combo.best, A: [A.x, A.air, A.state], B: [B.x, B.air, B.state, B.rot.v], auto: autoOn }; } };
 if (!CAPTURE) { requestAnimationFrame(frame); setTimeout(function () { doMove('auto'); }, 700); }
 else render();
 })();
