@@ -104,6 +104,32 @@
     }
   },
   {
+    "id": "arrow-rampart",
+    "category": "action",
+    "color": "#E8364F",
+    "isNew": true,
+    "title": {
+      "en": "Arrow Rampart",
+      "fr": "Rempart des Flèches",
+      "ar": "سور السهام"
+    },
+    "desc": {
+      "en": "Stand on the castle wall, pull back your bow and stop waves of raiders, runners, flyers and big chiefs. Pick a new upgrade after every wave. A free archery defense game.",
+      "fr": "Monte sur le rempart, bande ton arc et arrête des vagues de pillards, coureurs, volants et grands chefs. Choisis une amélioration après chaque vague. Un jeu de tir à l'arc gratuit.",
+      "ar": "قف على سور القلعة واسحب قوسك وأوقف موجات الغزاة والعدّائين والطائرين والزعماء الكبار. اختر تحسيناً جديداً بعد كل موجة. لعبة رماية ودفاع مجانية."
+    },
+    "keywords": {
+      "en": "archery game, bow and arrow game, defend the wall, castle defense game, free archer game",
+      "fr": "jeu de tir à l'arc, jeu d'arc et flèches, défendre le château, jeu gratuit",
+      "ar": "لعبة رماية, لعبة القوس والسهم, الدفاع عن القلعة, لعبة رماة مجانية"
+    },
+    "howto": {
+      "en": "Press anywhere, pull back and let go to shoot: pull farther for a stronger shot, and follow the white dots to see where the arrow will fly. Hit raiders before they reach your wall; head hits do double damage. After each wave, tap one of three cards to upgrade your arrows or fix the wall. If the wall breaks, the game is over. Keyboard: Up/Down aim, hold Space to draw and let go to shoot, 1-3 pick a card.",
+      "fr": "Appuie n'importe où, tire vers l'arrière et lâche pour tirer : plus tu tires loin, plus le tir est fort, et les points blancs montrent la trajectoire. Touche les pillards avant qu'ils n'atteignent ton mur ; un tir à la tête fait double dégât. Après chaque vague, touche une des trois cartes pour améliorer tes flèches ou réparer le mur. Si le mur tombe, la partie est finie. Clavier : Haut/Bas pour viser, maintiens Espace pour bander et lâche pour tirer, 1-3 pour choisir une carte.",
+      "ar": "اضغط في أي مكان واسحب للخلف ثم أفلت لتطلق: كلما سحبت أكثر كانت الرمية أقوى، والنقاط البيضاء تُظهر مسار السهم. أصب الغزاة قبل أن يصلوا إلى سورك، وإصابة الرأس تضاعف الضرر. بعد كل موجة، المس إحدى البطاقات الثلاث لتحسين سهامك أو إصلاح السور. إذا انهار السور تنتهي اللعبة. لوحة المفاتيح: أعلى/أسفل للتصويب، اضغط مطولاً على المسافة للشد وأفلت للإطلاق، 1-3 لاختيار بطاقة."
+    }
+  },
+  {
     "id": "block-bloom",
     "category": "puzzle",
     "color": "#7B4DFF",

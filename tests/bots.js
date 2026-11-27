@@ -230,6 +230,41 @@ const BOTS = {
     if (d.kills < 15) fail('only ' + d.kills + ' kills — combat may be broken');
   },
 
+  'arrow-rampart': async (page, fail, info) => {
+    const box = await page.locator('#game').boundingBox(); const p = page;
+    await page.evaluate(() => { window.__bubzi.K.fastX = 1.5; });
+    const act = async (p, box) => {
+    const d = await dbg(p);
+    if (d.cards) { const pref = ['multi', 'power', 'quick', 'pierce', 'fire', 'stone', 'repair']; const c = d.cards.slice().sort((a, b) => pref.indexOf(a.id) - pref.indexOf(b.id))[0]; await sleep(400); await p.mouse.click(box.x + c.x, box.y + c.y); await sleep(200); return 'card'; }
+    if (d.reload > 0 || !d.foes.length) { await sleep(80); return ''; }
+    const f = d.foes.slice().sort((a, b) => a.x - b.x)[0];
+    const head = Math.random() < 0.4, v = d.vmax * 0.92;
+    let tx = (head ? f.hx : f.x), ty = (head ? f.hy : f.y);
+    let ang = 0;
+    for (let k = 0; k < 3; k++) {
+      const X = tx - d.archer.x, Y = d.archer.y - ty, disc = v ** 4 - d.G * (d.G * X * X + 2 * Y * v * v);
+      if (disc < 0) { ang = -Math.PI / 4; break; }
+      ang = -Math.atan((v * v - Math.sqrt(disc)) / (d.G * X));
+      const tf = X / (v * Math.cos(ang)); tx = (head ? f.hx : f.x) - f.spd * tf;
+    }
+    const pow = (0.92 - 0.35) / 0.65, L = pow * d.dragFull, sx = box.width * 0.5, sy = box.height * 0.5;
+    await p.mouse.move(box.x + sx, box.y + sy); await p.mouse.down();
+    await p.mouse.move(box.x + sx - Math.cos(ang) * L, box.y + sy - Math.sin(ang) * L, { steps: 3 }); await p.mouse.up();
+    return head ? 'head' : 'body';
+  };
+    const did = {}; let d, t0 = Date.now();
+    while (Date.now() - t0 < 70000) {
+      if ((await st(page)) !== 'playing') break;
+      const r = await act(p, box); if (r) did[r] = (did[r] || 0) + 1;
+      d = await dbg(page); if (d.wave >= 6 && d.phase !== 'wave') break;
+    }
+    d = await dbg(page);
+    info.push(JSON.stringify(did) + ', wave ' + d.wave + ', ' + d.kills + ' kills, ' + d.heads + ' headshots, wall ' + d.hp + '/' + d.maxHp + ', ' + JSON.stringify(d.up));
+    if (d.shots < 10) fail('could not shoot (' + d.shots + ')');
+    if (d.kills < 15) fail('arrows did not stop raiders (' + d.kills + ')');
+    if ((did.card || 0) < 2) fail('could not pick upgrade cards');
+    if (d.wave < 4) fail('did not reach wave 4 (' + d.wave + ')');
+  },
   'bubble-bastion': async (page, fail, info) => {
     const box = await page.locator('#game').boundingBox(); const p = page;
     await page.evaluate(() => { window.__bubzi.K.fastX = 3; });

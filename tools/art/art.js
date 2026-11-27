@@ -288,6 +288,50 @@
       sparkle(c, W * 0.86, H * 0.5, 14 * s, '#FFD23F'); sparkle(c, W * 0.3, H * 0.3, 10 * s);
       vignette(c, W, H, 0.25);
     },
+    'arrow-rampart': function (c, W, H) {
+      c.fillStyle = lin(c, 0, 0, 0, H, [[0, '#7FD0FF'], [1, '#E6F7FF']]); c.fillRect(0, 0, W, H);
+      var s = Math.min(W, H) / 512, gy = H * 0.84, wx = W * 0.5 - 250 * s + 150 * s;
+      rays(c, W * 0.8, H * 0.2, 12, W, 'rgba(255,255,255,0.12)', 0.1);
+      c.fillStyle = '#BFE8B0'; c.beginPath(); c.moveTo(0, gy); for (var x = 0; x <= W; x += 16) c.lineTo(x, gy - 70 * s - Math.sin(x * 0.01) * 25 * s); c.lineTo(W, gy); c.fill();
+      c.fillStyle = '#7ED957'; c.fillRect(0, gy, W, H); c.fillStyle = '#5BBF3A'; c.fillRect(0, gy + 18 * s, W, H);
+      // wall
+      var wt = gy - 230 * s; shadowOn(c, 20 * s, 6 * s); c.fillStyle = '#8F88B0'; c.fillRect(0, wt, wx, gy - wt + 4); shadowOff(c);
+      c.fillStyle = '#B4AED0'; c.fillRect(0, wt, wx - 10 * s, gy - wt + 4);
+      c.strokeStyle = 'rgba(80,70,120,0.35)'; c.lineWidth = 3 * s; for (var r = 0; wt + r * 34 * s < gy; r++) { var yy = wt + r * 34 * s; c.beginPath(); c.moveTo(0, yy); c.lineTo(wx - 10 * s, yy); c.stroke(); for (var k = (r % 2) * 0.5; k * 64 * s < wx; k++) { c.beginPath(); c.moveTo(k * 64 * s, yy); c.lineTo(k * 64 * s, yy + 34 * s); c.stroke(); } }
+      for (x = 0; x < wx - 4; x += 76 * s) { c.fillStyle = '#B4AED0'; c.fillRect(x, wt - 36 * s, Math.min(38 * s, wx - x), 38 * s); }
+      // archer
+      c.save(); c.translate(wx - 62 * s, wt - 62 * s); c.scale(s * 2.05, s * 2.05);
+      c.fillStyle = '#6A55E0'; A.roundRect(c, -14, -4, 28, 30, 10); c.fill();
+      c.fillStyle = '#FFD9B8'; c.beginPath(); c.arc(0, -18, 12, 0, TAU); c.fill();
+      c.fillStyle = '#3FA34D'; c.beginPath(); c.arc(0, -20, 14, Math.PI * 0.95, Math.PI * 2.05); c.lineTo(-18, -6); c.fill();
+      c.fillStyle = '#E8364F'; c.beginPath(); c.moveTo(-3, -33); c.lineTo(-20, -42); c.lineTo(-8, -29); c.fill();
+      c.fillStyle = '#241B4D'; c.beginPath(); c.arc(5, -17, 2, 0, TAU); c.fill();
+      c.rotate(-0.35); c.strokeStyle = '#8A5A2B'; c.lineWidth = 4.5; c.lineCap = 'round'; c.beginPath(); c.arc(8, 0, 24, -1.15, 1.15); c.stroke();
+      c.strokeStyle = '#F4EFE4'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(8 + Math.cos(1.15) * 24, -Math.sin(1.15) * 24); c.lineTo(-10, 0); c.lineTo(8 + Math.cos(1.15) * 24, Math.sin(1.15) * 24); c.stroke();
+      c.fillStyle = '#8A5A2B'; c.fillRect(-10, -1, 44, 2); c.fillStyle = '#9AA7B8'; c.beginPath(); c.moveTo(34, -3); c.lineTo(42, 0); c.lineTo(34, 3); c.fill();
+      c.restore();
+      // flying arrows
+      function arrow(x, y, a, L) { c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = '#8A5A2B'; c.fillRect(-L, -2.5 * s, L, 5 * s); c.fillStyle = '#9AA7B8'; c.beginPath(); c.moveTo(0, -7 * s); c.lineTo(14 * s, 0); c.lineTo(0, 7 * s); c.fill(); c.fillStyle = '#E8364F'; c.beginPath(); c.moveTo(-L, 0); c.lineTo(-L - 10 * s, -8 * s); c.lineTo(-L + 12 * s, 0); c.lineTo(-L - 10 * s, 8 * s); c.fill(); c.restore(); }
+      speedLines(c, W * 0.62, H * 0.36, 3, 60 * s, 0.25, 'rgba(255,255,255,0.8)');
+      arrow(W * 0.66, H * 0.38, 0.3, 70 * s); arrow(W * 0.6, H * 0.47, 0.42, 70 * s);
+      // raiders
+      function raider(x, sz, col, dark, helm) {
+        var y = gy, q = sz * s; c.save(); c.translate(x, y); shadowOn(c, 12 * s, 5 * s);
+        c.fillStyle = dark; c.fillRect(-18 * q, -24 * q, 12 * q, 24 * q); c.fillRect(6 * q, -24 * q, 12 * q, 24 * q);
+        c.fillStyle = col; A.roundRect(c, -32 * q, -90 * q, 64 * q, 68 * q, 26 * q); c.fill(); shadowOff(c);
+        c.fillStyle = '#FFFFFF'; c.beginPath(); c.arc(-14 * q, -62 * q, 9 * q, 0, TAU); c.arc(6 * q, -62 * q, 9 * q, 0, TAU); c.fill();
+        c.fillStyle = '#241B4D'; c.beginPath(); c.arc(-17 * q, -61 * q, 4.5 * q, 0, TAU); c.arc(3 * q, -61 * q, 4.5 * q, 0, TAU); c.fill();
+        c.strokeStyle = '#241B4D'; c.lineWidth = 3 * q; c.beginPath(); c.moveTo(-24 * q, -74 * q); c.lineTo(-8 * q, -70 * q); c.moveTo(14 * q, -74 * q); c.lineTo(0, -70 * q); c.stroke();
+        c.fillStyle = helm; c.beginPath(); c.arc(-3 * q, -86 * q, 28 * q, Math.PI, 0); c.fill();
+        c.save(); c.translate(-30 * q, -50 * q); c.rotate(-0.6); c.fillStyle = '#8A5A2B'; A.roundRect(c, -4 * q, -48 * q, 9 * q, 48 * q, 4 * q); c.fill(); c.fillStyle = '#A8733E'; c.beginPath(); c.arc(0, -48 * q, 10 * q, 0, TAU); c.fill(); c.restore();
+        c.restore();
+      }
+      raider(W * 0.95, 1.5, '#B98BFF', '#6A43C2', '#6E6890'); raider(W * 0.78, 1.15, '#7ED957', '#3C9A1E', '#A9A3C4');
+      // a hit sparkle on the near raider
+      for (var i = 0; i < 6; i++) { var a = i / 6 * TAU; sparkle(c, W * 0.78 + Math.cos(a) * 40 * s, gy - 90 * s + Math.sin(a) * 40 * s, 9 * s, i % 2 ? '#FFFFFF' : '#FFD23F'); }
+      arrow(W * 0.76, gy - 95 * s, 0.55, 60 * s);
+      vignette(c, W, H, 0.2);
+    },
     'bubble-bastion': function (c, W, H) {
       c.fillStyle = lin(c, 0, 0, 0, H, [[0, '#9BE37A'], [1, '#5BBF3A']]); c.fillRect(0, 0, W, H);
       var s = Math.min(W, H) / 512, cx = W / 2, cy = H / 2, r = rng(7);

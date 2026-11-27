@@ -8,7 +8,7 @@ const ROOT = path.join(__dirname, '..');
 const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/games.json'), 'utf8')).map((g) => g.id);
 const only = process.argv.slice(2);
 const FRAMES = 12, FW = 240, FH = 240, GAP = 190, VW = 360, VH = 640;
-const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170, 'ink-heroes': 250, 'pocket-grove': 200, 'spear-hills': 200, 'merge-blasters': 150, 'tiny-siege': 120, 'bubble-bastion': 120 };
+const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170, 'ink-heroes': 250, 'pocket-grove': 200, 'spear-hills': 200, 'merge-blasters': 150, 'tiny-siege': 120, 'bubble-bastion': 120, 'arrow-rampart': 120 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const dbg = (p) => p.evaluate(() => JSON.parse(JSON.stringify(window.__bubzi.K.dbg())));
 const playing = (p) => p.evaluate(() => window.__bubzi.state() === 'playing');
@@ -72,6 +72,25 @@ const ACT = {
       for (let i = 0; i < st.open; i++) { const pl = st.plots[i]; if (!pl) { const id = ids[(i + Math.floor(Math.random() * 5)) % 5]; g.seeds(id, 1); g.plant(i, id); } else if (Date.now() + (window.__groveOffset || 0) >= pl.t0 + pl.dur && Math.random() < 0.35) g.harvest(i); }
       g.skip(240); g.camYaw(0.4 + Math.sin(Date.now() / 2500) * 0.35); });
     await p.keyboard.press('Backspace'); await sleep(170);
+  },
+  'arrow-rampart': async (p, box) => {
+    const d = await dbg(p);
+    if (d.cards) { const pref = ['multi', 'power', 'quick', 'pierce', 'fire', 'stone', 'repair']; const c = d.cards.slice().sort((a, b) => pref.indexOf(a.id) - pref.indexOf(b.id))[0]; await sleep(400); await p.mouse.click(box.x + c.x, box.y + c.y); await sleep(200); return 'card'; }
+    if (d.reload > 0 || !d.foes.length) { await sleep(80); return ''; }
+    const f = d.foes.slice().sort((a, b) => a.x - b.x)[0];
+    const head = Math.random() < 0.4, v = d.vmax * 0.92;
+    let tx = (head ? f.hx : f.x), ty = (head ? f.hy : f.y);
+    let ang = 0;
+    for (let k = 0; k < 3; k++) {
+      const X = tx - d.archer.x, Y = d.archer.y - ty, disc = v ** 4 - d.G * (d.G * X * X + 2 * Y * v * v);
+      if (disc < 0) { ang = -Math.PI / 4; break; }
+      ang = -Math.atan((v * v - Math.sqrt(disc)) / (d.G * X));
+      const tf = X / (v * Math.cos(ang)); tx = (head ? f.hx : f.x) - f.spd * tf;
+    }
+    const pow = (0.92 - 0.35) / 0.65, L = pow * d.dragFull, sx = box.width * 0.5, sy = box.height * 0.5;
+    await p.mouse.move(box.x + sx, box.y + sy); await p.mouse.down();
+    await p.mouse.move(box.x + sx - Math.cos(ang) * L, box.y + sy - Math.sin(ang) * L, { steps: 3 }); await p.mouse.up();
+    return head ? 'head' : 'body';
   },
   'bubble-bastion': async (p, box) => {
     const d = await dbg(p); const click = async (q) => { await p.mouse.click(box.x + q.x, box.y + q.y); await sleep(70); };
@@ -137,7 +156,7 @@ const ACT = {
     const box = await p.locator('#game').boundingBox();
     const s = {}; let stop = false;
     const loop = (async () => { while (!stop) { try { if (await playing(p)) await ACT[id](p, box, s); else { await p.evaluate(() => window.__bubzi.start()); } } catch (e) { await sleep(50); } } })();
-    await sleep(id === 'memo-match' ? 2600 : id === 'jelly-drop' ? 11000 : id === 'ink-heroes' ? 9000 : id === 'pocket-grove' ? 4000 : id === 'merge-blasters' ? 16000 : id === 'tiny-siege' ? 14000 : id === 'bubble-bastion' ? 16000 : 3200);
+    await sleep(id === 'memo-match' ? 2600 : id === 'jelly-drop' ? 11000 : id === 'ink-heroes' ? 9000 : id === 'pocket-grove' ? 4000 : id === 'merge-blasters' ? 16000 : id === 'tiny-siege' ? 14000 : id === 'bubble-bastion' ? 16000 : id === 'arrow-rampart' ? 15000 : 3200);
     const frames = [];
     for (let i = 0; i < FRAMES; i++) { frames.push((await p.screenshot({ type: 'jpeg', quality: 88, clip: { x: 0, y: Y0[id], width: VW, height: VW } })).toString('base64')); await sleep(GAP); }
     stop = true; await loop;
