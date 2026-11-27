@@ -2103,7 +2103,8 @@
   // the hero's body each frame: the engine drives during a combo, otherwise it mirrors the game physics
   var TURN_POSE = IF.D({ px: 1, py: 32.5, t1: 0.45, t2: 0.25, tw: 0.1, h: 0.55, a1: 1.5, e1: 0.12, a2: 1.35, e2: 0.2, p1: 10, p2: -16 });
   var DASH_POSE = IF.D({ px: 8, py: 30, t1: 0.38, t2: 0.22, tw: -0.2, h: 0.2, a1: -0.55, e1: 0.6, a2: -0.9, e2: 0.4, fa2: 1, p1: 20, p2: -18 });
-  function heroBody(K, dt) {
+  function heroBody(K, dt) { var r = heroBody0(K, dt); feetCheck(K, 'body'); return r; }
+  function heroBody0(K, dt) {
     var h = hero, F = h.F, S = heroS(), def = h.def;
     F.weaponShown = !!F.weapon;
     if (h.grab || h.turnT > 0) { // the struggle (or the turn): the game owns the pose, the feet stay planted
@@ -2136,6 +2137,10 @@
     F.ghostOn = h.dashT > 0;
     IF.update(F, dt, { drive: false, vic: null, others: [], reduce: K.reduceMotion });
     return false;
+  }
+  function feetCheck(K, tag) { // test builds: remember the worst foot-to-body distance and what was going on
+    if (!K.test || !hero || !hero.F) return; var F = hero.F, d = Math.max(F.legIK[0] ? Math.abs(F.feet[0].x - F.x) : 0, F.legIK[1] ? Math.abs(F.feet[1].x - F.x) : 0);
+    var w = window.__inkFeet = window.__inkFeet || { max: 0 }; if (d > w.max) { w.max = d; w.tag = tag; w.st = { grab: !!hero.grab, turn: hero.turnT, cmb: !!hero.cmb, busy: F.busy(), ground: hero.ground, g: F.grounded, ik: F.legIK.slice(), dash: hero.dashT, hurt: hero.hurtT, vx: hero.vx, cur: F.cur && F.cur.name }; }
   }
   function drawHeroBody(c, K) {
     var h = hero, F = h.F, S = heroS(), def = h.def, lw = def.lw * def.size * 0.85 / S, hr = 15 * def.size / S, k = sc * S;
@@ -2599,8 +2604,11 @@
     c.fillStyle = 'rgba(0,0,0,0.22)'; c.beginPath(); c.ellipse(sx((J.hip[0] + J.neck[0]) / 2), gyS + 2 * sc, (z.downT > 0 ? 55 : 30) * s * sc, 6 * sc, 0, 0, TAU); c.fill();
     var lw = (d.boss ? 12 : d.heavy ? 12 : 9) * s;
     var flash = z.stun > 0.18 && !z.corpse;
-    if (z.fuse > 0) { c.shadowColor = '#FF3B4E'; c.shadowBlur = 20 * sc * (0.5 + 0.5 * Math.sin(K.time * 40)); }
-    else if (z.elite) { c.shadowColor = '#FFD43B'; c.shadowBlur = (16 + 6 * Math.sin(K.time * 6)) * sc; }
+    if (z.fuse > 0 || z.elite) { // a soft glow behind the body (a gradient: canvas blur is far too slow on phones with many zombies)
+      var gx = sx((J.hip[0] + J.neck[0]) / 2), gy = sy((J.hip[1] + J.neck[1]) / 2), gr = 75 * s * sc * (z.fuse > 0 ? 0.8 + 0.3 * Math.sin(K.time * 40) : 1 + 0.08 * Math.sin(K.time * 6));
+      var ag = c.createRadialGradient(gx, gy, gr * 0.15, gx, gy, gr); ag.addColorStop(0, z.fuse > 0 ? 'rgba(255,59,78,0.5)' : 'rgba(255,212,59,0.42)'); ag.addColorStop(1, 'rgba(255,212,59,0)');
+      c.fillStyle = ag; c.fillRect(gx - gr, gy - gr, gr * 2, gr * 2);
+    }
     var zc = z.ice > 0 ? '#CDEFFF' : z.frozen > 0 ? mix(d.col, '#9BE7FF', 0.55) : d.col;
     drawRig(c, J, flash ? '#FFFFFF' : zc, flash ? '#FFFFFF' : (z.ice > 0 ? '#8FD3FF' : d.dark), lw, z.ice > 0 ? '#38B6FF' : z.elite ? '#FFD43B' : '#1A1020');
     c.shadowBlur = 0;
@@ -2616,7 +2624,7 @@
     // glowing eyes
     if (z.corpse) { if (z.rise > 0) c.restore(); return; }
     var eyeCol = z.t === 'hollow' ? '#FFFFFF' : d.boss ? '#FFE15A' : '#F4FFB0';
-    c.shadowColor = d.boss ? eyeCol : '#E8FF5A'; c.shadowBlur = 10 * sc; c.fillStyle = z.t === 'hollow' ? '#05020A' : eyeCol;
+    c.shadowColor = d.boss ? eyeCol : '#E8FF5A'; c.shadowBlur = touchUI ? 0 : 10 * sc; c.fillStyle = z.t === 'hollow' ? '#05020A' : eyeCol;
     c.beginPath(); c.arc(hx + f * r * 0.35, hy - r * 0.1, r * (z.t === 'hollow' ? 0.27 : 0.2), 0, TAU); c.arc(hx + f * r * 0.75, hy - r * 0.05, r * (z.t === 'hollow' ? 0.22 : 0.15), 0, TAU); c.fill(); c.shadowBlur = 0;
     z._eye = [hx + f * r * 0.5, hy - r * 0.08, r, eyeCol];
     if (z.grabH || z.grabP) drawGrabMouth(c, K, z, J);

@@ -319,15 +319,20 @@ var InkFight = (function () {
   function stepFeet(F, dt, ctx) {
     if (!F.grounded) return;
     var want = [F.target.p1 != null ? F.target.p1 : 12, F.target.p2 != null ? F.target.p2 : -12], other = function (i) { return F.feet[1 - i].sw; };
+    var reach = LEG * 0.9;
     for (var i = 0; i < 2; i++) {
       var ft = F.feet[i]; if (!F.legIK[i]) continue;
+      // a foot never stays further than the leg can reach: when the body moves fast it is dragged along (no stretched legs)
+      var rel = ft.x - F.x; if (rel > reach || rel < -reach) { ft.x = F.x + (rel > 0 ? reach : -reach); if (ft.sw) ft.sw.x0 = ft.x; }
       if (ft.sw) {
+        // a step aims at where the body is now, not where it was when the step began
+        var g2 = F.x + F.face * want[i] + clamp(F.vx * 0.09, -16, 16); ft.sw.x1 += (g2 - ft.sw.x1) * Math.min(1, dt * 30);
         ft.sw.t += dt; var k = clamp(ft.sw.t / ft.sw.d, 0, 1), e = k * k * (3 - 2 * k);
-        ft.x = ft.sw.x0 + (ft.sw.x1 - ft.sw.x0) * e; ft.lift = ft.sw.h0 * (1 - e) + Math.sin(Math.PI * k) * ft.sw.arc;
+        ft.x = clamp(ft.sw.x0 + (ft.sw.x1 - ft.sw.x0) * e, F.x - reach, F.x + reach); ft.lift = ft.sw.h0 * (1 - e) + Math.sin(Math.PI * k) * ft.sw.arc;
         if (k >= 1) { ft.sw = null; ft.lift = 0; }
         continue;
       }
-      var goal = F.x + F.face * want[i] + F.vx * 0.09, err = Math.abs(ft.x - goal);
+      var goal = F.x + F.face * want[i] + clamp(F.vx * 0.09, -16, 16), err = Math.abs(ft.x - goal);
       if (err > 5.5 && (!other(i) || err > 18)) ft.sw = { t: 0, d: clamp(0.09 + err / 500, 0.09, 0.2), x0: ft.x, x1: goal, h0: ft.lift, arc: Math.min(7, 1.5 + err * 0.22) };
     }
   }
