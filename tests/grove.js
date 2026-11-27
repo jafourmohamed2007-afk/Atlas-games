@@ -7,6 +7,8 @@ const { chromium } = require('playwright');
 const URL = 'file://' + path.join(__dirname, '..', 'games', 'pocket-grove.html') + '?test';
 const SHOTS = process.env.SHOTS || '';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// clock pinned to TODAY (local), so the first session and the pinned clock agree on the date
+const T0 = new Date(), at = (day, h, m) => new Date(T0.getFullYear(), T0.getMonth(), T0.getDate() + day, h, m).getTime();
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const errs = [], fails = [], ok = [];
@@ -16,7 +18,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const p = await ctx.newPage(); p.on('pageerror', (e) => errs.push(e.message));
     const d = () => p.evaluate(() => window.__bubzi.K.dbg()), ev = (f, a) => p.evaluate(f, a), shot = async (n) => { if (SHOTS) await p.screenshot({ path: path.join(SHOTS, n + '.png') }); };
     await p.goto(URL);
-    await ev(() => window.__groveOffset = new Date(2026, 10, 26, 12, 0).getTime() - Date.now()); // noon, no event
+    await ev((ms) => { window.__groveOffset = ms - Date.now(); }, at(0, 12, 0)); // noon, no event
     await (phone ? p.tap('#bPlay') : p.click('#bPlay')); await sleep(400);
     const t0 = Date.now(); while (!(await d()).ready3d && Date.now() - t0 < 15000) await sleep(100);
     return { p, ctx, d, ev, shot };
@@ -70,7 +72,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   if (s.popup !== 'rare') F('rare harvest popup missing'); else ok.push('rare harvest popup with x2 ad');
   await shot('g08-rare-popup'); await p.keyboard.press('Enter');
   // events by clock
-  const evAt = async (h, m) => { await ev(([h, m]) => window.__grove.setClock(new Date(2026, 10, 26, h, m).getTime()), [h, m]); await sleep(150); return (await d()).ev; };
+  const evAt = async (h, m) => { await ev((ms) => window.__grove.setClock(ms), at(0, h, m)); await sleep(150); return (await d()).ev; };
   const e1 = await evAt(14, 35), e2 = await evAt(19, 10), e3 = await evAt(21, 30), e4 = await evAt(15, 35);
   if (e1 !== 'rain' || e2 !== 'golden' || e3 !== 'moon' || e4 !== null) F('event schedule wrong ' + [e1, e2, e3, e4]); else ok.push('events: Ink Rain 14:30, Golden Hour 19:00, Moonlight 21:00');
   await evAt(14, 36); await sleep(700); await shot('g09-rain');
@@ -92,7 +94,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   // offline growth: plant, close the game for 2 hours, come back
   await ev(() => { window.__grove.seeds('potato', 1); window.__grove.plant(0, 'potato'); });
   await ev(() => { const K = window.__bubzi.K; const st = window.__grove.state(); K.store.set('grove', st); });
-  await p.reload(); await ev(() => { window.__groveOffset = new Date(2026, 10, 27, 14, 10).getTime() - Date.now(); });
+  await p.reload(); await ev((ms) => { window.__groveOffset = ms - Date.now(); }, at(1, 14, 10));
   await p.click('#bPlay'); await sleep(800); s = await d();
   if (!s.plots[0] || s.plots[0].g < 1) F('potato did not grow while the game was closed ' + JSON.stringify(s.plots[0])); else ok.push('offline growth: potato ready after 2 h away');
   if (s.popup !== 'welcome') F('no welcome-back summary'); else ok.push('welcome-back summary with daily gift');
