@@ -3042,7 +3042,7 @@ var InkFight = (function () {
     startGrab(K, z); return true;
   }
   function startGrab(K, z) {
-    var h = hero, df = grabDiff(z), n0 = Math.round(6 + df * 9), rmin = 2 + df * 1.2, w0 = 0.5;
+    var h = hero, df = grabDiff(z), n0 = Math.round(8 + df * 8), rmin = 3 + df * 1.2, w0 = 0.5; // the zombie pulls 3 to 4.2 taps a second: tap faster than that to win
     if (h.cmb || h.F.busy()) { endCombo(); h.F.stop(); }
     h.atkT = 0; h.dive = false; h.vx = 0; h.vy = 0; h.y = 0; h.ground = true;
     var side = z.x < h.x ? -1 : 1; h.face = side; flipFace(h.F, side);
