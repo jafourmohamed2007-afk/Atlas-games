@@ -294,6 +294,7 @@
       // banner
       ctx.fillStyle = '#8A5A2B'; ctx.fillRect(wallX - u * 0.4, wallTop - u * 2.6, 3, u * 2); ctx.fillStyle = '#E8364F'; ctx.beginPath(); ctx.moveTo(wallX - u * 0.4 + 3, wallTop - u * 2.6); ctx.lineTo(wallX + u * 0.5, wallTop - u * 2.35 + Math.sin(K.time * 5) * 2); ctx.lineTo(wallX - u * 0.4 + 3, wallTop - u * 2.05); ctx.fill();
       ctx.restore();
+      K.steady(ctx, function () { // HUD layer: stays still while the scene shakes
       // wall health bar
       var hbw = Math.min(W * 0.4, 190), hbx = 12, hby = K.hudH + 14;
       ctx.fillStyle = 'rgba(36,27,77,0.15)'; K.roundRect(ctx, hbx, hby + 3, hbw, 18, 9); ctx.fill();
@@ -303,6 +304,7 @@
       // upgrades owned
       var ux = hbx; ctx.font = K.font(14); ctx.textAlign = 'left';
       ['power', 'quick', 'multi', 'pierce', 'fire'].forEach(function (k) { if (up[k]) { var t = CARD_ICON[k] + (up[k] > 1 ? up[k] : ''); ctx.fillText(t, ux, hby + 34); ux += ctx.measureText(t).width + 8; } });
+      });
       // aim guide
       var showPow = aimPow > 0.05;
       if (showPow) {
@@ -317,6 +319,7 @@
       arrows.forEach(function (ar) { arrowShape(ctx, K, ar.x, ar.y, Math.atan2(ar.vy, ar.vx), u * 0.9, up.fire); });
       // reload ring
       if (reload > 0) { var rr = 0.6 * Math.pow(0.78, up.quick); ctx.strokeStyle = 'rgba(36,27,77,0.35)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(archer.x, archer.y - u * 1.6, u * 0.32, -Math.PI / 2, -Math.PI / 2 + K.TAU * (1 - reload / rr)); ctx.stroke(); }
+      K.steady(ctx, function () { // HUD layer: stays still while the scene shakes
       // upgrade cards
       if (phase === 'cards' && cards) {
         ctx.fillStyle = 'rgba(36,27,77,0.45)'; ctx.fillRect(0, 0, W, H);
@@ -345,6 +348,7 @@
         K.drawHand(ctx, hx, hy, k2 < 0.75, Math.min(W, H) / 220);
         ctx.font = K.font(20); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#241B4D'; ctx.fillText(K.t('hint'), W / 2, Math.max(K.hudH + 70, wallTop - u * 4));
       }
+      });
     }
   });
 })();

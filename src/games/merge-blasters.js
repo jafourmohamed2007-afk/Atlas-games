@@ -177,7 +177,7 @@
       ctx.fillStyle = 'rgba(255,255,255,0.55)'; K.roundRect(ctx, fx, fieldTop, fw, wallY - fieldTop + 6, 22); ctx.fill();
       ctx.fillStyle = 'rgba(123,77,255,0.07)'; for (var y = fieldTop + 26, row = 0; y < wallY - 10; y += 46, row++) for (var x = fx + 22 + (row % 2) * 23; x < fx + fw - 10; x += 46) { ctx.beginPath(); ctx.arc(x, y, 3, 0, K.TAU); ctx.fill(); }
       // wall (hearts)
-      var wy = wallY, ox = shake > 0 ? Math.sin(K.time * 80) * 4 : 0;
+      var wy = wallY, ox = shake > 0 && !K.reduceMotion ? Math.sin(K.time * 80) * 4 : 0;
       var nb = Math.max(6, Math.round(fw / 60)), bw = (fw + 8) / nb;
       ctx.fillStyle = '#C9B8FF'; K.roundRect(ctx, fx - 8 + ox, wy - 6, fw + 16, 18, 9); ctx.fill();
       ctx.fillStyle = '#9B6BFF'; for (var k = 0; k < nb; k++) { K.roundRect(ctx, fx - 4 + ox + k * bw, wy - 4, bw - 4, 14, 5); ctx.fill(); }
@@ -196,6 +196,7 @@
         if ((i === kbCur || i === kbHold) && (kbHold >= 0 || kb)) { ctx.strokeStyle = i === kbHold ? '#FFD23F' : '#FF8A1F'; ctx.lineWidth = 4; K.roundRect(ctx, p.x - cs / 2 + 2, p.y - cs / 2 + 2, cs - 4, cs - 4, cs * 0.2); ctx.stroke(); }
       }
       if (hold && grid[hold.from]) drawBlaster(ctx, K, hold.x, hold.y - cs * 0.25, grid[hold.from], cs * 1.1);
+      K.steady(ctx, function () { // HUD layer: stays still while the scene shakes
       // buy button
       var can = gold >= price && grid.some(function (q) { return !q; }), bb = buyB;
       ctx.fillStyle = can ? '#3C9A1E' : '#9C94C7'; K.roundRect(ctx, bb.x, bb.y + 5, bb.w, bb.h, bb.h / 2); ctx.fill();
@@ -213,6 +214,7 @@
         if (pair && !hold) { var A = cellC(pair[0]), B = cellC(pair[1]), e = Math.min(1, Math.max(0, (k2 - 0.15) / 0.6)); K.drawHand(ctx, A.x + (B.x - A.x) * e, A.y + (B.y - A.y) * e + cs * 0.2, k2 > 0.1 && k2 < 0.8, sc); }
         else if (!pair && can) { K.drawHand(ctx, bb.x + bb.w / 2, bb.y + bb.h * 0.6 + (k2 < 0.5 ? k2 : 1 - k2) * 14, k2 > 0.4 && k2 < 0.6, sc); }
       }
+      });
     }
   });
 })();

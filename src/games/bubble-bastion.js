@@ -315,6 +315,7 @@
         z.pts.forEach(function (p, i) { if (!i) { ctx.moveTo(p.x, p.y); return; } var a = z.pts[i - 1]; for (var k = 1; k <= 4; k++) { var t = k / 4; ctx.lineTo(a.x + (p.x - a.x) * t + (k < 4 ? K.rand(-5, 5) : 0), a.y + (p.y - a.y) * t + (k < 4 ? K.rand(-5, 5) : 0)); } }); ctx.stroke();
       });
       rings.forEach(function (r) { var k = r.t / 0.35; ctx.strokeStyle = r.c; ctx.globalAlpha = 1 - k; ctx.lineWidth = r.frost ? 3 : 2.5; ctx.beginPath(); ctx.arc(r.x, r.y, r.frost ? r.r * (0.3 + k * 0.7) : r.r * (0.6 + k * 0.8), 0, K.TAU); ctx.stroke(); ctx.globalAlpha = 1; });
+      K.steady(ctx, function () { // HUD layer: stays still while the scene shakes
       // info row: lives, gold, next wave
       ctx.font = K.font(20); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
       var ix = btns[0].x; heart(ctx, ix + 11, infoY, 10, '#FF5E7E'); ctx.fillStyle = '#241B4D'; ctx.fillText(lives, ix + 26, infoY + 1);
@@ -355,6 +356,7 @@
         if (!pick) { var bb = btns[0]; K.drawHand(ctx, bb.x + bb.w / 2, bb.y + bb.h * 0.55 + (k2 < 0.5 ? k2 : 1 - k2) * 14, k2 > 0.4 && k2 < 0.6, sc); }
         else { var tc = L2S(3.5, 3.5); K.drawHand(ctx, tc.x, tc.y + cs * 0.2 + (k2 < 0.5 ? k2 : 1 - k2) * 14, k2 > 0.4 && k2 < 0.6, sc); }
       }
+      });
     }
   });
 })();

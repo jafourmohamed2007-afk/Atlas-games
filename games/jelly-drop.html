@@ -323,65 +323,174 @@ var BubziCur = (function () {
   }
 
   /* ---------------- sound (WebAudio synth, no files) ---------------- */
-  var AC = null, master = null, noiseBuf = null, muted = !!store.get('mute', false);
+  // Soft cartoon style (see .claude/skills/game-sfx): layered voices = transient + body + tail,
+  // sine/triangle + FM bells, wood/marimba partials, spring vibrato, a small room, gentle bus
+  // compression, a 11 kHz lowpass, and +-1 semitone pitch variation per play. No square-wave buzz.
+  // SOUND-START
+  var AC = null, master = null, muted = !!store.get('mute', false), NB = null, CURVES = {}, PV = 1, GV = 1, lastPlay = {};
   function audio() {
     if (AC) return AC;
     var C = window.AudioContext || window.webkitAudioContext;
     if (!C) return null;
-    try { AC = new C(); master = AC.createGain(); master.gain.value = 0.5; master.connect(AC.destination); } catch (e) { AC = null; }
+    try { AC = new C(); buildChain(AC); } catch (e) { AC = null; }
     return AC;
   }
+  function roomIR(a, decay) {
+    var n = Math.floor(a.sampleRate * decay * 1.2), pre = Math.floor(a.sampleRate * 0.009), b = a.createBuffer(2, n, a.sampleRate);
+    for (var ch = 0; ch < 2; ch++) {
+      var d = b.getChannelData(ch), lp = 0;
+      for (var i = pre; i < n; i++) { lp += (Math.random() * 2 - 1 - lp) * 0.3; d[i] = lp * Math.exp(-6.9 * (i - pre) / (a.sampleRate * decay)); }
+    }
+    return b;
+  }
+  function buildChain(a) {
+    // highpass 40 Hz -> lowpass 11 kHz -> soft clipper (linear below -4.4 dB, no look-ahead latency)
+    var hp = a.createBiquadFilter(), lp = a.createBiquadFilter(), clip = a.createWaveShaper(), c = new Float32Array(2048);
+    hp.type = 'highpass'; hp.frequency.value = 40; lp.type = 'lowpass'; lp.frequency.value = 11000; lp.Q.value = 0.5;
+    for (var i = 0; i < 2048; i++) { var x = i / 1023.5 - 1, ax = Math.abs(x); c[i] = ax < 0.6 ? x : (x < 0 ? -1 : 1) * (0.6 + 0.4 * Math.tanh((ax - 0.6) / 0.4)); }
+    clip.curve = c; clip.oversample = '2x';
+    master = a.createGain(); master.gain.value = 0.6;
+    master.connect(hp); hp.connect(lp); lp.connect(clip); clip.connect(a.destination);
+    try { var cv = a.createConvolver(), wet = a.createGain(); cv.buffer = roomIR(a, 0.4); wet.gain.value = 0.14; master.connect(cv); cv.connect(wet); wet.connect(hp); } catch (e) { }
+  }
   function unlockAudio() { var a = audio(); if (a && a.state === 'suspended') { try { a.resume(); } catch (e) { } } }
+  // param follows a path [[t, value], ...]; equal times = a step
+  function sched(p, path, mul, t0) {
+    p.setValueAtTime(path[0][1] * mul, t0);
+    for (var i = 1; i < path.length; i++) {
+      var v = Math.max(0.01, path[i][1] * mul);
+      if (path[i][0] <= path[i - 1][0]) p.setValueAtTime(v, t0 + path[i][0]); else p.exponentialRampToValueAtTime(v, t0 + path[i][0]);
+    }
+  }
+  function curve(k) {
+    if (CURVES[k]) return CURVES[k];
+    var c = new Float32Array(1024), n = Math.tanh(k);
+    for (var i = 0; i < 1024; i++) { var x = i / 511.5 - 1; c[i] = Math.tanh(k * x) / n; }
+    return (CURVES[k] = c);
+  }
+  // amplitude envelope: attack, hold, then a natural exponential release (~-35 dB at r)
+  function env(a, g, t0, vol, A, Hd, R) {
+    g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + A);
+    g.gain.setValueAtTime(vol, t0 + A + Hd); g.gain.setTargetAtTime(0.0001, t0 + A + Hd, R / 4);
+    return t0 + A + Hd + R + 0.05;
+  }
+  function filt(a, node, type, f, q, t0) {
+    var b = a.createBiquadFilter(); b.type = type;
+    if (typeof f === 'number') b.frequency.value = f; else sched(b.frequency, f, 1, t0);
+    if (q) b.Q.value = q; node.connect(b); return b;
+  }
+  var WOOD = [[1, 0, 1], [2.76, -8, 0.5], [5.4, -16, 0.3]], MARIMBA = [[1, 0, 1], [3.93, -14, 0.4], [9.2, -26, 0.2]],
+    BELL = [[1, 0, 1], [2.4, -10, 0.8], [5.95, -18, 0.5]], RICH = [[1, 0, 1], [2, -10, 0.6], [3, -18, 0.4]];
+  // one voice: f (Hz or path), w wave, vol, a/h/r envelope, at delay, p partials [[ratio, dB, releaseScale]],
+  // fm [ratio, index0, index1], vib [rateHz, [[t, semitones], ...]], drive, hp, lp (Hz)
+  function vo(o) {
+    var a = audio(); if (!a || muted || !master) return;
+    var ps = o.p || [[1, 0, 1]];
+    for (var k = 0; k < ps.length; k++) voice1(a, o, ps[k]);
+  }
+  function voice1(a, o, pr) {
+    var t0 = a.currentTime + 0.001 + (o.at || 0), mul = PV * pr[0], vol = (o.vol || 0.3) * GV * Math.pow(10, pr[1] / 20);
+    var path = typeof o.f === 'number' ? [[0, o.f]] : o.f, f0 = path[0][1] * mul;
+    if (f0 > 15000) return;
+    var osc = a.createOscillator(); osc.type = o.w || 'sine'; sched(osc.frequency, path, mul, t0);
+    var A = o.a || 0.002, Hd = o.h || 0, R = (o.r || 0.15) * pr[2], end = t0 + A + Hd + R + 0.05, nodes = [osc];
+    if (o.fm) {
+      var m = a.createOscillator(), mg = a.createGain(), dev = f0 * o.fm[0];
+      sched(m.frequency, path, mul * o.fm[0], t0);
+      mg.gain.setValueAtTime(dev * o.fm[1], t0); mg.gain.exponentialRampToValueAtTime(Math.max(1, dev * o.fm[2]), t0 + A + Hd + R);
+      m.connect(mg); mg.connect(osc.frequency); nodes.push(m);
+    }
+    if (o.vib) {
+      var l = a.createOscillator(), lg = a.createGain(), vp = o.vib[1];
+      l.frequency.value = o.vib[0]; lg.gain.setValueAtTime(0, t0);
+      for (var i = 0; i < vp.length; i++) lg.gain.linearRampToValueAtTime(f0 * (Math.pow(2, vp[i][1] / 12) - 1), t0 + vp[i][0]);
+      l.connect(lg); lg.connect(osc.frequency); nodes.push(l);
+    }
+    var node = osc;
+    if (o.drive) { var ws = a.createWaveShaper(); ws.curve = curve(1 + o.drive); node.connect(ws); node = ws; }
+    if (o.hp) node = filt(a, node, 'highpass', o.hp, 0.7, t0);
+    if (o.lp) node = filt(a, node, 'lowpass', o.lp, 0.7, t0);
+    var g = a.createGain(); env(a, g, t0, vol, A, Hd, R); node.connect(g); g.connect(master);
+    nodes.forEach(function (n) { n.start(t0); n.stop(end); });
+  }
+  // filtered noise: bp/hp/lp = Hz or path, q, vol, a/h/r, at
+  function nz(o) {
+    var a = audio(); if (!a || muted || !master) return;
+    if (!NB || NB.c !== a) { var b = a.createBuffer(1, a.sampleRate, a.sampleRate), d = b.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; NB = { c: a, b: b }; }
+    var t0 = a.currentTime + 0.001 + (o.at || 0), s = a.createBufferSource(), node = s;
+    s.buffer = NB.b; s.loop = true;
+    if (o.bp) node = filt(a, node, 'bandpass', o.bp, o.q || 1, t0);
+    if (o.hp) node = filt(a, node, 'highpass', o.hp, 0.7, t0);
+    if (o.lp) node = filt(a, node, 'lowpass', o.lp, 0.7, t0);
+    var g = a.createGain(), end = env(a, g, t0, (o.vol || 0.3) * GV, o.a || 0.001, o.h || 0, o.r || 0.1);
+    node.connect(g); g.connect(master); s.start(t0, Math.random() * 0.8); s.stop(end);
+  }
+  // legacy helpers (kept for games that call K.synth directly); buzzy waves are rounded off with a lowpass
   function tone(f1, f2, dur, type, vol, delay) {
-    var a = audio(); if (!a || muted) return;
-    var t = a.currentTime + (delay || 0);
-    var o = a.createOscillator(), g = a.createGain();
-    o.type = type || 'sine'; o.frequency.setValueAtTime(f1, t);
-    if (f2 && f2 !== f1) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.3, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03);
+    var buzzy = type === 'square' || type === 'sawtooth';
+    vo({ f: f2 && f2 !== f1 ? [[0, f1], [dur, f2]] : f1, w: type || 'sine', vol: (vol || 0.3) * (buzzy ? 0.8 : 1), a: 0.004, r: dur, at: delay, lp: buzzy ? Math.min(3200, Math.max(f1, f2 || f1) * 6) : 0 });
   }
-  function noise(dur, vol, freq, delay) {
-    var a = audio(); if (!a || muted) return;
-    if (!noiseBuf) { noiseBuf = a.createBuffer(1, Math.floor(a.sampleRate * 0.5), a.sampleRate); var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
-    var t = a.currentTime + (delay || 0);
-    var s = a.createBufferSource(); s.buffer = noiseBuf;
-    var f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq || 1200;
-    var g = a.createGain(); g.gain.setValueAtTime(vol || 0.3, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + 0.03);
-  }
-  function arp(fs, step, type, vol, dur) { fs.forEach(function (f, i) { tone(f, f, dur || 0.12, type || 'triangle', vol || 0.22, i * step); }); }
+  function noise(dur, vol, freq, delay) { nz({ lp: freq || 1200, vol: vol || 0.3, r: dur, at: delay }); }
+  function bells(fs, step, vol, r, ratio) { fs.forEach(function (f, i) { vo({ f: f, fm: [ratio || 3, 2, 0.3], vol: vol, r: r, at: i * step, hp: 300 }); }); }
   var SFX = {
-    click: function () { tone(500, 800, 0.06, 'square', 0.1); },
-    pop: function () { tone(320, 900, 0.09, 'sine', 0.35); },
-    coin: function () { tone(988, 988, 0.07, 'square', 0.1); tone(1319, 1319, 0.14, 'square', 0.1, 0.07); },
-    jump: function () { tone(280, 720, 0.15, 'sine', 0.3); },
-    land: function () { tone(170, 90, 0.08, 'sine', 0.3); },
-    hit: function () { noise(0.25, 0.45, 900); tone(140, 60, 0.25, 'sawtooth', 0.18); },
-    place: function () { tone(230, 160, 0.07, 'triangle', 0.35); },
-    clear: function () { arp([523, 659, 784, 1047], 0.06); },
-    combo: function () { arp([659, 784, 988, 1319, 1568], 0.05, 'square', 0.1, 0.1); },
-    over: function () { tone(440, 110, 0.6, 'triangle', 0.3); tone(330, 82, 0.6, 'sine', 0.2, 0.1); },
-    whoosh: function () { noise(0.18, 0.22, 2500); },
-    star: function () { arp([1568, 2093, 2637], 0.05, 'triangle', 0.15, 0.08); },
-    merge: function () { tone(260, 620, 0.16, 'sine', 0.35); tone(520, 1240, 0.12, 'triangle', 0.12, 0.03); },
-    wrong: function () { tone(200, 180, 0.1, 'square', 0.14); tone(150, 140, 0.14, 'square', 0.14, 0.11); },
-    flip: function () { tone(400, 1200, 0.25, 'sine', 0.25); },
-    tick: function () { tone(1200, 1200, 0.03, 'square', 0.05); },
-    eat: function () { tone(600, 1000, 0.06, 'square', 0.1); tone(900, 1400, 0.06, 'sine', 0.15, 0.04); },
-    reward: function () { arp([523, 784, 1047, 1568], 0.08, 'triangle', 0.22, 0.18); },
-    grab: function () { tone(700, 500, 0.06, 'triangle', 0.25); },
-    engine: function () { tone(70, 90, 0.08, 'sawtooth', 0.05); },
-    shot: function () { noise(0.07, 0.32, 3200); tone(190, 80, 0.06, 'square', 0.08); },
-    punch: function () { tone(140, 55, 0.09, 'sine', 0.45); noise(0.05, 0.22, 1400); },
-    heavy: function () { tone(90, 35, 0.18, 'sine', 0.55); noise(0.12, 0.3, 900); },
-    boom: function () { noise(0.55, 0.55, 650); tone(95, 30, 0.55, 'sine', 0.45); },
-    groan: function () { tone(120 + Math.random() * 40, 70, 0.55, 'sawtooth', 0.05); },
-    reload: function () { tone(900, 900, 0.03, 'square', 0.06); tone(620, 620, 0.04, 'square', 0.07, 0.14); },
-    block: function () { tone(1300, 900, 0.06, 'triangle', 0.12); noise(0.04, 0.15, 5000); },
-    boss: function () { tone(70, 50, 1.1, 'sawtooth', 0.12); tone(105, 70, 1.1, 'sawtooth', 0.08, 0.05); }
+    click: function () { nz({ hp: 3000, lp: 9000, vol: 0.12, h: 0.001, r: 0.006 }); vo({ f: [[0, 2000], [0.03, 1700]], w: 'triangle', vol: 0.11, r: 0.025, hp: 300 }); },
+    tick: function () { vo({ f: 1500, p: WOOD, vol: 0.07, a: 0.0005, r: 0.035, hp: 400 }); },
+    pop: function () { vo({ f: [[0, 340], [0.06, 950]], p: RICH, vol: 0.28, a: 0.002, r: 0.08, hp: 200 }); nz({ hp: 4000, vol: 0.05, r: 0.012 }); },
+    coin: function () {
+      vo({ f: [[0, 988], [0.07, 988], [0.07, 1480]], fm: [3, 2.5, 0.3], vol: 0.2, a: 0.001, h: 0.07, r: 0.45, hp: 200 });
+      vo({ f: [[0, 1976], [0.07, 1976], [0.07, 2960]], p: [[1, 0, 1], [2.01, -6, 0.5]], vol: 0.05, h: 0.07, r: 0.25 });
+      nz({ hp: 7000, lp: 12000, vol: 0.03, r: 0.05, at: 0.07 });
+    },
+    jump: function () {
+      vo({ f: [[0, 220], [0.08, 540], [0.3, 480]], vib: [16, [[0.07, 0], [0.09, 1.5], [0.35, 0.2]]], p: RICH, drive: 0.5, vol: 0.26, a: 0.003, h: 0.05, r: 0.3, hp: 100 });
+      nz({ bp: [[0, 600], [0.14, 2500]], q: 1.5, vol: 0.05, a: 0.02, r: 0.12 });
+    },
+    land: function () { vo({ f: [[0, 190], [0.09, 70]], drive: 1, vol: 0.34, a: 0.001, r: 0.1 }); nz({ bp: 600, q: 0.8, vol: 0.08, r: 0.03 }); },
+    hit: function () {
+      vo({ f: [[0, 300], [0.015, 180], [0.15, 70]], drive: 2, vol: 0.4, a: 0.001, h: 0.01, r: 0.16 });
+      vo({ f: 520, p: WOOD, vol: 0.2, a: 0.0005, h: 0.002, r: 0.08 });
+      nz({ bp: 1800, q: 0.8, lp: 7000, vol: 0.16, a: 0.0005, h: 0.004, r: 0.03 });
+    },
+    place: function () { vo({ f: 340, p: WOOD, vol: 0.22, a: 0.0005, r: 0.09 }); vo({ f: [[0, 200], [0.06, 120]], vol: 0.22, a: 0.001, r: 0.07 }); },
+    clear: function () { [523, 659, 784, 1047].forEach(function (f, i) { vo({ f: f, p: MARIMBA, vol: 0.2, a: 0.001, r: 0.24, at: i * 0.06, hp: 200 }); }); vo({ f: 2093, fm: [3, 1.5, 0.2], vol: 0.04, r: 0.4, at: 0.18 }); },
+    combo: function () { bells([659, 784, 988, 1319, 1568], 0.045, 0.12, 0.16, 2); },
+    over: function () {
+      vo({ f: [[0, 392], [0.18, 370]], w: 'triangle', p: RICH, vol: 0.2, a: 0.01, h: 0.1, r: 0.12, lp: 2200 });
+      vo({ f: [[0, 349], [0.18, 330]], w: 'triangle', p: RICH, vol: 0.2, a: 0.01, h: 0.1, r: 0.12, lp: 2200, at: 0.2 });
+      vo({ f: [[0, 311], [0.5, 262]], w: 'triangle', p: RICH, vib: [6, [[0.1, 0], [0.25, 0.6], [0.6, 0.6]]], vol: 0.22, a: 0.01, h: 0.3, r: 0.3, lp: 2200, at: 0.4 });
+    },
+    whoosh: function () { nz({ bp: [[0, 400], [0.07, 1700], [0.18, 650]], q: 1, vol: 0.22, a: 0.03, h: 0.04, r: 0.12 }); },
+    star: function () { bells([1568, 2093, 2637], 0.05, 0.09, 0.22); },
+    merge: function () { vo({ f: [[0, 260], [0.12, 620]], p: RICH, vol: 0.26, a: 0.003, r: 0.14, hp: 120 }); vo({ f: 1047, fm: [3, 2, 0.3], vol: 0.08, r: 0.3, at: 0.09, hp: 300 }); },
+    wrong: function () { vo({ f: [[0, 330], [0.1, 300]], w: 'triangle', p: RICH, vol: 0.18, a: 0.004, h: 0.05, r: 0.08, lp: 1800 }); vo({ f: [[0, 247], [0.14, 220]], w: 'triangle', p: RICH, vol: 0.18, a: 0.004, h: 0.07, r: 0.12, lp: 1800, at: 0.12 }); },
+    flip: function () { nz({ bp: [[0, 1500], [0.06, 3500]], q: 1.2, vol: 0.12, a: 0.004, r: 0.05 }); vo({ f: [[0, 500], [0.08, 1100]], vol: 0.12, r: 0.08, hp: 300 }); },
+    eat: function () { vo({ f: [[0, 620], [0.05, 320]], drive: 1, vol: 0.2, r: 0.05, hp: 150 }); vo({ f: 760, p: WOOD, vol: 0.12, r: 0.05, at: 0.06, hp: 300 }); },
+    reward: function () { bells([523, 784, 1047, 1568], 0.08, 0.15, 0.45); nz({ hp: 7000, lp: 12000, vol: 0.03, r: 0.06, at: 0.24 }); },
+    grab: function () { vo({ f: [[0, 700], [0.06, 520]], w: 'triangle', vol: 0.18, r: 0.06, hp: 200 }); vo({ f: 900, p: WOOD, vol: 0.07, r: 0.04 }); },
+    engine: function () { vo({ f: [[0, 70], [0.08, 90]], w: 'triangle', vol: 0.08, a: 0.01, r: 0.08, lp: 500 }); },
+    shot: function () { nz({ bp: [[0, 2600], [0.06, 800]], q: 1.5, vol: 0.2, r: 0.05 }); vo({ f: [[0, 900], [0.07, 300]], vol: 0.13, r: 0.06 }); },
+    punch: function () { vo({ f: [[0, 220], [0.1, 60]], drive: 2, vol: 0.42, a: 0.001, r: 0.11 }); vo({ f: 380, p: WOOD, vol: 0.12, r: 0.06 }); nz({ bp: 1200, q: 0.8, vol: 0.16, r: 0.03 }); },
+    heavy: function () { vo({ f: [[0, 130], [0.2, 40]], drive: 2.5, vol: 0.5, a: 0.001, r: 0.24 }); vo({ f: 220, p: WOOD, vol: 0.12, r: 0.1 }); nz({ lp: 700, vol: 0.2, r: 0.15 }); },
+    boom: function () { vo({ f: [[0, 120], [0.45, 34]], drive: 3, vol: 0.5, a: 0.002, h: 0.03, r: 0.5 }); nz({ lp: [[0, 2000], [0.5, 260]], vol: 0.42, a: 0.003, h: 0.03, r: 0.5 }); nz({ bp: 3000, q: 1, vol: 0.06, r: 0.05 }); },
+    groan: function () { vo({ f: [[0, 130 + Math.random() * 40], [0.5, 85]], w: 'triangle', vib: [7, [[0.05, 0], [0.2, 0.8], [0.5, 0.5]]], p: RICH, vol: 0.1, a: 0.06, h: 0.15, r: 0.3, lp: 900 }); },
+    reload: function () { vo({ f: 1800, p: WOOD, vol: 0.09, a: 0.0005, r: 0.025 }); nz({ hp: 4000, vol: 0.05, r: 0.01 }); vo({ f: 1200, p: WOOD, vol: 0.1, a: 0.0005, r: 0.035, at: 0.14 }); nz({ hp: 4000, vol: 0.05, r: 0.012, at: 0.14 }); },
+    block: function () { vo({ f: 1300, fm: [1.4, 2, 0.2], vol: 0.13, a: 0.0005, r: 0.14, hp: 300 }); nz({ hp: 5000, vol: 0.06, r: 0.03 }); },
+    boss: function () { vo({ f: [[0, 70], [1.1, 55]], w: 'triangle', p: RICH, vib: [4, [[0.2, 0], [0.6, 0.5]]], vol: 0.3, a: 0.15, h: 0.4, r: 0.6, lp: 700 }); vo({ f: [[0, 105], [1.1, 80]], w: 'triangle', vol: 0.14, a: 0.2, h: 0.3, r: 0.6, lp: 600, at: 0.05 }); }
   };
-  function sfx(n) { if (muted) return; var f = SFX[n]; if (f) { try { f(); } catch (e) { } } }
+  // per-sound pitch variation in semitones (melodic cues vary less so chords stay sweet)
+  var VARY = { click: 0.5, tick: 0.4, coin: 0.5, clear: 0.25, combo: 0.25, reward: 0.2, star: 0.3, over: 0, boss: 0.3, wrong: 0.3 };
+  // loudness trims (dB) measured offline so the mix follows the ladder: impacts > pickups > UI
+  var TRIM = { hit: -3.1, punch: -0.1, heavy: -2.9, boom: -4.0, land: 0.6, boss: -3.8, over: -2.6, coin: -2.8, pop: 0.0, jump: -4.6, merge: 1.8, eat: 1.1, star: 1.3, reward: -1.6, combo: 0.3, clear: -0.9, shot: 7.9, whoosh: 5.9, click: 2.3, tick: 5.0, flip: 2.4, grab: 1.8, wrong: -3.3, reload: 4.8, block: 0.9, place: -2.4, groan: 0.1, engine: 2.8 };
+  function play(n, pv, gv) { var f = SFX[n]; if (!f) return; PV = pv; GV = gv * Math.pow(10, (TRIM[n] || 0) / 20); try { f(); } catch (e) { } PV = 1; GV = 1; }
+  function sfx(n) {
+    if (muted || !SFX[n]) return;
+    var now = (window.performance && performance.now()) || Date.now();
+    if (lastPlay[n] && now - lastPlay[n] < 35) return; // one copy per burst: stacked copies only get louder and muddier
+    lastPlay[n] = now;
+    var v = VARY[n] != null ? VARY[n] : 1;
+    play(n, Math.pow(2, (Math.random() * 2 - 1) * v / 12), Math.pow(10, (Math.random() * 2 - 1) / 20));
+  }
+  // SOUND-END
   function haptic(ms) { if (!muted && navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) { } } }
 
   /* ---------------- shared art: Bubzi, coin, hand ---------------- */
@@ -510,7 +619,12 @@ var BubziCur = (function () {
     store: store, clamp: clamp, lerp: lerp, rand: rand, randi: randi, pick: pick, fmt: fmt, roundRect: roundRect, TAU: TAU, FONT: FONT,
     sfx: sfx, haptic: haptic, drawBubzi: drawBubzi, drawCoin: drawCoin, drawHand: drawHand, skin: skin
   };
-  var state = 'boot', game = null, cfg = null, canvas, ctx, stage, dpr = 1, ui = {}, parts = [], shakeMag = 0, flashA = 0, flashC = '#fff',
+  (function () {
+    var q = Q.get('motion'), mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+    function upd() { K.reduceMotion = q === 'reduce' || (q !== 'full' && !!(mq && mq.matches)); }
+    upd(); if (mq) { try { mq.addEventListener('change', upd); } catch (e) { try { mq.addListener(upd); } catch (e2) { } } }
+  })();
+  var state = 'boot', game = null, cfg = null, canvas, ctx, stage, dpr = 1, ui = {}, parts = [], shakeMag = 0, shakeX = 0, shakeY = 0, stopT = 0, flashA = 0, flashC = '#fff',
     dyingT = 0, overInfo = null, bonusPaid = 0, roundsSinceAd = 0, ptrs = {};
 
   K.font = function (px, w) { return (w || 800) + ' ' + Math.round(px) + 'px ' + FONT; };
@@ -526,7 +640,7 @@ var BubziCur = (function () {
     if (x !== undefined) { floatText(x, y, '+' + n, '#FFC93C', 22); sfx('coin'); }
   };
   K.wallet = function () { return wallet(); };
-  K.synth = { tone: function () { tone.apply(null, arguments); }, noise: function () { noise.apply(null, arguments); }, muted: function () { return muted; } };
+  K.synth = { tone: function () { tone.apply(null, arguments); }, noise: function () { noise.apply(null, arguments); }, voice: vo, noiseVoice: nz, muted: function () { return muted; } };
   /* Rewarded ad from inside a game (e.g. "watch ad for coins") — goes through the same AD PLACEHOLDER hook */
   K.rewarded = function (done) { Ads.rewarded(function (ok) { done(!!ok); }); };
   K.spend = function (n) { if (K.creator) { creatorTopUp(); return true; } /* CREATOR */ if (wallet() < n) return false; setWallet(wallet() - n); updateHud(false); return true; };
@@ -557,6 +671,7 @@ var BubziCur = (function () {
   /* ---------------- particles ---------------- */
   function burst(x, y, color, n, spd, size) {
     n = n || 12; spd = spd || 220;
+    if (K.reduceMotion) { n = Math.ceil(n * 0.35); spd *= 0.55; }
     for (var i = 0; i < n; i++) {
       var a = Math.random() * TAU, s = spd * (0.35 + Math.random() * 0.8);
       parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - spd * 0.3, g: 700, life: 0, max: 0.45 + Math.random() * 0.5,
@@ -567,11 +682,23 @@ var BubziCur = (function () {
   function floatText(x, y, txt, color, size) { parts.push({ x: x, y: y, vx: 0, vy: -80, g: 0, life: 0, max: 0.9, color: color || '#fff', size: size || 26, kind: 'text', txt: String(txt) }); }
   function confetti(n) {
     var cs = ['#7B4DFF', '#FF8A1F', '#14C8A0', '#FF5FA2', '#FFC93C', '#38B6FF'];
-    for (var i = 0; i < (n || 70); i++) parts.push({ x: rand(0, K.W), y: rand(-60, -5), vx: rand(-70, 70), vy: rand(80, 260), g: 160, life: 0, max: rand(1.6, 2.6), color: pick(cs), size: rand(5, 9), kind: 'rect', rot: rand(0, 6), vr: rand(-8, 8) });
+    n = n || 70; if (K.reduceMotion) n = Math.ceil(n * 0.15);
+    for (var i = 0; i < n; i++) parts.push({ x: rand(0, K.W), y: rand(-60, -5), vx: rand(-70, 70), vy: rand(80, 260), g: 160, life: 0, max: rand(1.6, 2.6), color: pick(cs), size: rand(5, 9), kind: 'rect', rot: rand(0, 6), vr: rand(-8, 8) });
   }
   K.burst = burst; K.floatText = floatText; K.confetti = confetti;
-  K.shake = function (m) { shakeMag = Math.max(shakeMag, m); };
-  K.flash = function (c, a) { flashC = c || '#fff'; flashA = Math.max(flashA, a || 0.35); };
+  // Game feel (see .claude/skills/screen-shake-effects): shake moves only the play layer, from a fixed origin,
+  // with smooth noise that decays and a capped total. In-canvas HUD drawn inside K.steady() never shakes.
+  // Reduced motion (OS setting or ?motion=reduce): no shake or hit-stop, fewer particles, softer flashes;
+  // the same moment is still told by color, text and sound.
+  K.shake = function (m) {
+    if (K.reduceMotion) { if (m >= 8) K.flash('#ffffff', 0.08); return; }
+    shakeMag = Math.min(SHAKE_CAP(), Math.max(shakeMag, m) + Math.min(m, shakeMag) * 0.25);
+    if (m >= 12) K.hitstop(Math.min(0.07, 0.035 + (m - 12) * 0.005)); // the biggest hits freeze for a beat
+  };
+  K.flash = function (c, a) { flashC = c || '#fff'; flashA = Math.max(flashA, Math.min(K.reduceMotion ? 0.15 : 1, a || 0.35)); };
+  K.hitstop = function (sec) { if (!K.reduceMotion && !TEST) stopT = Math.max(stopT, Math.min(0.12, sec || 0.05)); };
+  K.steady = function (ctx, fn) { ctx.save(); ctx.translate(-shakeX, -shakeY); try { fn(); } finally { ctx.restore(); } };
+  function SHAKE_CAP() { return Math.max(6, Math.min(18, Math.min(K.W, K.H) * 0.025)); }
   function star(ctx, r) { ctx.beginPath(); for (var i = 0; i < 10; i++) { var rr = i % 2 ? r * 0.45 : r, a = i * Math.PI / 5 - Math.PI / 2; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); }
   K.star = star;
   function updateParts(dt) {
@@ -962,6 +1089,7 @@ var BubziCur = (function () {
   var last = 0;
   function step(dt) {
     K.time += dt; K.dt = dt;
+    if (stopT > 0) { stopT -= dt; updateParts(dt * 0.25); return; }
     if (state === 'playing') game.update(dt, K);
     else if (game.idle && (state === 'menu' || state === 'dying')) game.idle(dt, K, state);
     updateParts(dt);
@@ -973,7 +1101,12 @@ var BubziCur = (function () {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, K.W, K.H);
     ctx.save();
-    if (shakeMag > 0) ctx.translate(rand(-shakeMag, shakeMag), rand(-shakeMag, shakeMag));
+    if (shakeMag > 0) {
+      var tt = K.time * 31; // smooth noise: two detuned sines per axis instead of white-noise jitter
+      shakeX = shakeMag * (Math.sin(tt * 1.13) * 0.6 + Math.sin(tt * 2.71 + 1.7) * 0.4);
+      shakeY = shakeMag * (Math.sin(tt * 1.37 + 0.6) * 0.6 + Math.sin(tt * 3.07 + 2.9) * 0.4);
+      ctx.translate(shakeX, shakeY);
+    } else { shakeX = 0; shakeY = 0; }
     game.draw(ctx, K, state);
     drawParts(ctx);
     ctx.restore();
@@ -1003,7 +1136,9 @@ var BubziCur = (function () {
       Ads.loadingFinished();
       requestAnimationFrame(frame);
       window.__bubzi = { K: K, game: game, start: startRound, menu: showMenu, pause: pause, resume: resume,
-        over: function () { K.gameOver(); }, state: function () { return state; }, parts: function () { return parts.length; } };
+        over: function () { K.gameOver(); }, state: function () { return state; }, parts: function () { return parts.length; },
+        feel: function () { return { mag: shakeMag, x: shakeX, y: shakeY, cap: SHAKE_CAP(), stop: stopT, reduce: !!K.reduceMotion, flash: flashA }; },
+        sfxCheck: function () { audio(); var bad = []; for (var n in SFX) { try { PV = 1; GV = 1; SFX[n](); } catch (e) { bad.push(n + ': ' + e.message); } } return { ctx: !!AC, names: Object.keys(SFX).length, bad: bad }; } };
     }
   };
 })();
@@ -1157,6 +1292,7 @@ var BubziCur = (function () {
         drawJelly(ctx, K, cur, dx, dy + Math.sin(K.time * 4) * 2, R[cur] * sc, 1);
         ctx.globalAlpha = 1;
       }
+      K.steady(ctx, function () { // HUD layer: stays still while the scene shakes
       // next preview
       var nx = jx + w - 18, ny = K.hudH + 26;
       ctx.fillStyle = '#FFFFFF'; K.roundRect(ctx, nx - 46, ny - 22, 64, 44, 16); ctx.fill();
@@ -1170,6 +1306,7 @@ var BubziCur = (function () {
         var k = (tutT * 0.7) % 1, hx = jx + w * (0.3 + 0.4 * Math.sin(k * Math.PI)), hy = jy + h * 0.25;
         K.drawHand(ctx, hx, hy, k > 0.05 && k < 0.95, Math.min(W, H) / 200);
       }
+      });
     }
   });
 })();

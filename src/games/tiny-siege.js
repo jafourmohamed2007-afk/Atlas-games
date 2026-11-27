@@ -305,6 +305,7 @@
         ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.strokeStyle = '#6B4420'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(6, 0); ctx.stroke();
         ctx.fillStyle = '#C9D3E0'; ctx.beginPath(); ctx.moveTo(9, 0); ctx.lineTo(4, -3); ctx.lineTo(4, 3); ctx.fill(); ctx.restore();
       });
+      K.steady(ctx, function () { // HUD layer: stays still while the scene shakes
       // gold + mode toggle
       ctx.font = K.font(22); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; goldCoin(ctx, K, btns[0].x + 12, infoY, 11); ctx.fillStyle = '#241B4D'; ctx.fillText(K.fmt(Math.floor(gold)), btns[0].x + 30, infoY + 1);
       var mb = modeB, att = mode === 'attack';
@@ -330,6 +331,7 @@
         var bb = btns[1], k = (tutT * 0.9) % 1;
         K.drawHand(ctx, bb.x + bb.w / 2, bb.y + bb.h * 0.55 + (k < 0.5 ? k : 1 - k) * 14, k > 0.4 && k < 0.6, Math.min(W, H) / 220);
       }
+      });
     }
   });
 })();

@@ -145,6 +145,7 @@
         drawJelly(ctx, K, cur, dx, dy + Math.sin(K.time * 4) * 2, R[cur] * sc, 1);
         ctx.globalAlpha = 1;
       }
+      K.steady(ctx, function () { // HUD layer: stays still while the scene shakes
       // next preview
       var nx = jx + w - 18, ny = K.hudH + 26;
       ctx.fillStyle = '#FFFFFF'; K.roundRect(ctx, nx - 46, ny - 22, 64, 44, 16); ctx.fill();
@@ -158,6 +159,7 @@
         var k = (tutT * 0.7) % 1, hx = jx + w * (0.3 + 0.4 * Math.sin(k * Math.PI)), hy = jy + h * 0.25;
         K.drawHand(ctx, hx, hy, k > 0.05 && k < 0.95, Math.min(W, H) / 200);
       }
+      });
     }
   });
 })();

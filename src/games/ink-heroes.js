@@ -1881,7 +1881,7 @@
     draw: function (c, K, state) {
       if (!hero) return;
       if (mode === 'map') theme = CHAPTERS[mapCh].theme;
-      var W = K.W, H = K.H, zc = zoomK > 1.002, hxS = sx(hero.x), hyS = gyS - 70 * sc;
+      var W = K.W, H = K.H, zc = zoomK > 1.002 && !K.reduceMotion, hxS = sx(hero.x), hyS = gyS - 70 * sc;
       if (zc) { c.save(); c.translate(hxS, hyS); c.scale(zoomK, zoomK); c.translate(-hxS, -hyS); }
       drawWorld(c, K);
       if (mode === 'pick') { if (zc) c.restore(); drawPick(c, K); return; }
@@ -1909,11 +1909,13 @@
       // vignette + nightmare tint
       var vg = c.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.35, W / 2, H * 0.45, Math.max(W, H) * 0.78); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, theme === 'margin' ? 'rgba(60,40,20,0.22)' : 'rgba(0,0,0,0.42)'); c.fillStyle = vg; c.fillRect(0, 0, W, H);
       if (story && story.nm) { c.fillStyle = 'rgba(120,0,20,0.16)'; c.fillRect(0, 0, W, H); }
-      if (mode === 'cut') { drawCut(c, K); return; }
-      if (mode === 'win') { drawWin(c, K); return; }
-      drawHud(c, K);
-      if (mode === 'perk') drawPerks(c, K);
-      if (mode === 'down') drawDown(c, K);
+      K.steady(c, function () { // HUD and overlays stay still while the scene shakes
+        if (mode === 'cut') { drawCut(c, K); return; }
+        if (mode === 'win') { drawWin(c, K); return; }
+        drawHud(c, K);
+        if (mode === 'perk') drawPerks(c, K);
+        if (mode === 'down') drawDown(c, K);
+      });
     }
   });
 })();

@@ -262,6 +262,7 @@
       if (drag && aim) { ctx.strokeStyle = 'rgba(36,27,77,0.35)'; ctx.lineWidth = 4; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(drag.x0, drag.y0); ctx.lineTo(drag.x, drag.y); ctx.stroke(); ctx.setLineDash([]);
         ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(drag.x0, drag.y0, 9, 0, K.TAU); ctx.fill();
         ctx.font = K.font(18); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillStyle = '#241B4D'; ctx.fillText(Math.round(aim.pow * 100) + '%', drag.x, drag.y - 16); }
+      K.steady(ctx, function () { // HUD layer: stays still while the scene shakes
       // HP bars + wind
       var bw = Math.min(170, W * 0.36), by = K.hudH + 10;
       hpBar(ctx, K, 14, by, bw, hp1, max1, '#7B4DFF', K.t('you'), false);
@@ -278,6 +279,7 @@
         var k = (tutT * 0.7) % 1, hx = W * 0.45, hy = H * 0.55, e = Math.min(1, k / 0.6);
         K.drawHand(ctx, hx - e * maxPull(K) * 0.55, hy + e * maxPull(K) * 0.5, k > 0.05 && k < 0.7, Math.min(W, H) / 200);
       }
+      });
     }
   });
 })();
