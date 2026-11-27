@@ -662,6 +662,7 @@ var BubziCur = (function () {
   }
   K.creatorEnter = creatorEnter; // CREATOR (tests)
   /* Games can hide the BEST/score column (e.g. on their own menus or story levels) and the phone banner during play */
+  K.audioOut = function () { var a = audio(); return a && master ? { ctx: a, out: master, muted: muted } : null; }; // for games that stream their own music/samples
   K.hudMid = function (score) { if (ui.hud) ui.hud.classList.toggle('noscore', !score); };
   K.bannerOff = function (off) { var b = $('banner'); if (b && !EMBED) b.classList.toggle('play', !!off); };
   K.info = function (txt) { if (ui.info && ui.info.textContent !== txt) ui.info.textContent = txt; };
