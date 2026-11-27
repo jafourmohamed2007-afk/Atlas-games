@@ -1340,6 +1340,7 @@ var InkFight = (function () {
     airLeadUp: [{ p: 'airLeadUp', d: 0.16, f: 20, sfx: 'whoosh', needs: 'air', plan: 0.1, aim: aim('airLeadUp', 'h1', 'air'), hit: { eff: 'h1', power: 2, kind: 'air' } }, { p: 'tuck', d: 0.05, f: 14, needs: 'air' }],
     airRearUp: [{ p: 'airRearUp', d: 0.16, f: 20, sfx: 'whoosh', needs: 'air', plan: 0.1, aim: aim('airRearUp', 'h2', 'air'), hit: { eff: 'h2', power: 2, kind: 'air', lift: 1 } }, { p: 'tuck', d: 0.04, f: 14, needs: 'air' }],
     axe: [{ p: 'axeUp', d: 0.14, f: 15, needs: 'air', plan: 0.22, aim: aim('axeDown', 'an1', 'above') }, { p: 'axeDown', d: 0.2, f: 23, z: 0.5, sfx: 'whooshBig', needs: 'air', hit: { eff: 'foot1', power: 4, kind: 'slam' } }],
+    breakAway: [{ p: 'release', d: 0.16, f: 11, act: 'release' }, { p: 'stance', d: 0.12, f: 11 }],
     landing: [{ p: 'tuck', d: 0.1, f: 10, untilLand: true }, { p: 'land', d: 0.18, f: 12 }, { p: 'stance', d: 0.2, f: 8 }],
     // weapon basics (hammer, katana, axe pick-up): the weapon line is the striking part
     wSwing1: [{ p: 'wLoad1', d: 0.12, f: 12, aim: aim('wSwing1', 'wpn') }, { p: 'wSwing1', d: 0.16, f: 18, sfx: 'whooshBig', aim: aim('wSwing1', 'wpn'), hit: { eff: 'wpn', power: 2 } }, { p: 'wGuard', d: 0.12, f: 10 }],
@@ -1614,10 +1615,12 @@ var InkFight = (function () {
     c.globalAlpha = 1;
   }
 
+  // a key pose solved standing at x 0 (shop previews)
+  function poseL(n) { var P = POSE[n], T = { x: 0, face: 1, yo: 0, rot: { v: 0 }, _fk: [!!P.fk1, !!P.fk2] }; return Fighter.prototype.solve.call(T, function (k) { return P[k]; }); }
   return {
     LEN: LEN, KEYS: KEYS, POSE: POSE, D: D, MOVES: MOVES, G: G, Fighter: Fighter, aim: aim, runPose: runPose, capsules: capsules, effPts: effPts, touch: touch,
     update: update, plantFeet: plantFeet, setLegMode: setLegMode, fx: fx, star: star, ring: ring, sparksDir: sparksDir, dust: dust, quake: quake, updateFx: updateFx,
-    drawFx: drawFx, drawBody: drawBody, drawTrails: drawTrails, GHOST: GHOST, poseOff: poseOff, clamp: clamp
+    drawFx: drawFx, drawBody: drawBody, drawTrails: drawTrails, GHOST: GHOST, poseOff: poseOff, clamp: clamp, poseL: poseL
   };
 })();
 
@@ -2361,10 +2364,45 @@ var InkFight = (function () {
     punch: { moves: ['jab', 'jab', 'cross', 'hook', 'cross', 'overhand'], end: 1.6, name: { en: 'Boxer Rush', fr: 'Rafale de boxe', ar: 'هجمة الملاكم' } },
     kick: { moves: ['lowKick', 'teep', 'bodyKick', 'highKick'], end: 1.6, name: { en: 'Kick Ladder', fr: 'Échelle de coups de pied', ar: 'سلّم الركلات' } },
     head: { moves: ['clinchIn', 'knee', 'knee', 'headbutt', 'headbutt', 'headbuttKO'], end: 1.6, name: { en: 'Clinch Breaker', fr: 'Brise-corps', ar: 'كاسر الإمساك' } },
-    upper: { moves: ['leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'axe', 'landing'], end: 1.6, name: { en: 'Sky Breaker', fr: 'Brise-ciel', ar: 'كاسر السماء' } }
+    upper: { moves: ['leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'axe', 'landing'], end: 1.6, name: { en: 'Sky Breaker', fr: 'Brise-ciel', ar: 'كاسر السماء' } },
+    // 10 store combos: more hits = higher price (60 per hit) and a harder final blow (end = finisher damage multiplier)
+    jabStorm: { moves: ['jab', 'jab', 'jab', 'cross', 'overhand'], end: 2, name: { en: 'Jab Storm', fr: 'Tempête de directs', ar: 'عاصفة اللكمات' } },
+    legBreaker: { moves: ['lowKick', 'lowKick', 'jab', 'cross', 'bodyKick', 'highKick'], end: 2.2, name: { en: 'Leg Breaker', fr: 'Brise-jambes', ar: 'كاسر السيقان' } },
+    twinRocket: { moves: ['jab', 'cross', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'axe', 'landing'], end: 2.4, name: { en: 'Twin Rocket', fr: 'Double fusée', ar: 'الصاروخ المزدوج' } },
+    kneeMill: { moves: ['jab', 'cross', 'hook', 'bodyKick', 'clinchIn', 'knee', 'knee', 'knee', 'knee', 'headbutt', 'headbuttKO'], end: 2.6, name: { en: 'Knee Mill', fr: 'Moulin à genoux', ar: 'طاحونة الركب' } },
+    tornado: { moves: ['lowKick', 'bodyKick', 'jab', 'cross', 'hook', 'cross', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'axe', 'landing'], end: 2.8, name: { en: 'Ink Tornado', fr: 'Tornade d\'encre', ar: 'إعصار الحبر' } },
+    ironCage: { moves: ['jab', 'jab', 'cross', 'hook', 'lowKick', 'bodyKick', 'jab', 'cross', 'clinchIn', 'knee', 'knee', 'knee', 'headbutt', 'knee', 'headbutt', 'headbuttKO'], end: 3, name: { en: 'Iron Cage', fr: 'Cage de fer', ar: 'القفص الحديدي' } },
+    meteor: { moves: ['lowKick', 'lowKick', 'bodyKick', 'jab', 'jab', 'cross', 'hook', 'cross', 'clinchIn', 'knee', 'knee', 'headbutt', 'breakAway', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'airLeadUp', 'axe', 'landing'], end: 3.2, name: { en: 'Meteor Fall', fr: 'Chute de météore', ar: 'سقوط النيزك' } },
+    thunderChain: { moves: ['jab', 'cross', 'hook', 'lowKick', 'teep', 'jab', 'cross', 'bodyKick', 'clinchIn', 'knee', 'knee', 'knee', 'headbutt', 'knee', 'headbutt', 'breakAway', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'axe', 'landing'], end: 3.4, name: { en: 'Thunder Chain', fr: 'Chaîne du tonnerre', ar: 'سلسلة الرعد' } },
+    dragon: { moves: ['jab', 'jab', 'cross', 'hook', 'cross', 'lowKick', 'lowKick', 'bodyKick', 'jab', 'cross', 'hook', 'clinchIn', 'knee', 'knee', 'knee', 'headbutt', 'knee', 'knee', 'headbutt', 'breakAway', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'airLeadUp', 'axe', 'landing'], end: 3.7, name: { en: 'Dragon Hundred', fr: 'Cent coups du dragon', ar: 'ضربات التنين' } },
+    inkGod: { moves: ['jab', 'jab', 'jab', 'cross', 'hook', 'cross', 'lowKick', 'lowKick', 'bodyKick', 'jab', 'cross', 'hook', 'cross', 'jab', 'cross', 'bodyKick', 'clinchIn', 'knee', 'knee', 'knee', 'headbutt', 'knee', 'knee', 'headbutt', 'breakAway', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'airLeadUp', 'axe', 'landing'], end: 4, name: { en: 'Ink God Rampage', fr: 'Furie du dieu d\'encre', ar: 'غضب إله الحبر' } }
   };
+  var COMBO_ORDER = ['basic', 'punch', 'kick', 'head', 'upper', 'jabStorm', 'legBreaker', 'twinRocket', 'kneeMill', 'tornado', 'ironCage', 'meteor', 'thunderChain', 'dragon', 'inkGod'];
+  function comboPrice(id) { return COMBOS[id].free ? 0 : 60 * comboHits(id); }
+  function comboOwned(id) { return !!COMBOS[id].free || ownedCombos().indexOf(id) >= 0; }
+  function finPose(id) { if (id === 'basic') return 'bodyKick'; var p = 'stance'; COMBOS[id].moves.forEach(function (m) { IF.MOVES[m].forEach(function (st) { if (st.hit) p = st.p; }); }); return p; }
+  // the combo's finishing pose as a little stick figure, feet on y, about h tall
+  function drawComboPose(c, id, x, y, h, col) { // fitted into an h x 1.2h box, centred on x, feet on y
+    var Lp = IF.poseL(finPose(id)), x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, n, q;
+    for (n in Lp) { q = Lp[n]; if (!q || q.length !== 2 || n.indexOf('ikA') === 0) continue; x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1] - (n === 'head' ? IF.LEN.head : 0)); y1 = Math.max(y1, q[1]); }
+    var k = Math.min(h / (y1 - y0 + 4), h * 1.2 / (x1 - x0 + 4));
+    c.save(); c.translate(x, y); c.scale(k, k); c.translate(-(x0 + x1) / 2, -y1 - 2); IF.drawBody(c, function (m) { return Lp[m]; }, col, 'rgba(255,255,255,0.45)', 3.4, IF.LEN.head); c.restore();
+  }
+
+  function hitPips(c, x, y, w, n, col) { var r = Math.min(4, w / n / 2.6), gap = Math.min(r * 2.7, w / n), x0 = x - gap * (n - 1) / 2; c.fillStyle = col; for (var i = 0; i < n; i++) { c.beginPath(); c.arc(x0 + i * gap, y, i === n - 1 ? r * 1.6 : r, 0, TAU); c.fill(); } }
+  function comboAct(K, id, slot) {
+    if (!comboOwned(id)) {
+      if (K.spend(comboPrice(id))) { var o = ownedCombos(); o.push(id); K.store.set('ink:combos', o); setSlot(1, id); K.sfx('reward'); K.confetti(40); K.toast(K.t('slotB') + ' · ' + L(K, COMBOS[id].name)); }
+      else { K.sfx('wrong'); K.toast(K.t('needCoins')); }
+      return;
+    }
+    var sl = comboSlots(); if (sl[slot] === id) { K.sfx('tick'); return; }
+    if (sl[1 - slot] === id) sl[1 - slot] = sl[slot]; // it was in the other slot: swap
+    sl[slot] = id; if (!sl[0]) sl[0] = 'basic'; K.store.set('ink:slots', sl); K.sfx('reload');
+  }
+  function shopList() { return shopTab === 'guns' ? GUN_ORDER : shopTab === 'items' ? ITEM_ORDER : COMBO_ORDER; }
   var WPN_LEN = { hammer: [66, 7], katana: [90, 3.2], axe: [66, 6] }; // drawn length (game units), contact radius (eu)
-  var corpses = [], fightCtx = null, meleeKO = null, capFrame = 0;
+  var comboShow = null, corpses = [], fightCtx = null, meleeKO = null, capFrame = 0;
   function heroS() { return 1.45 * hero.def.size; }
   function heldKind() { return hero.melee ? hero.melee.id : hero.def.melee.kind; }
   function comboMoves(id) {
@@ -2475,13 +2513,13 @@ var InkFight = (function () {
     var src = pw >= 4 || fin ? 'finisher' : F.weapon && hero.melee && hero.melee.id === 'axe' ? 'axe' : 'melee', any = false;
     list.forEach(function (e, i) {
       var z = e.v.z, tc = e.tc, hp0 = z.hp, dmg = base * POW[pw] * (fin ? cm.end : 1) * (i && e.v !== fightCtx.vic ? 0.7 : 1);
-      if (cm) cm.hits++;
       meleeKO = { kind: kind, f: f }; hitZombie(K, z, dmg, f, 0, 0, src); meleeKO = null;
       if (z.hp === hp0 && !z.dead) return; // blocked by a shield
       any = true; zReact(K, z, kind, hit, tc, f, dx, dy, F);
       var at = tc.pt; IF.star(at[0], at[1], 9 + pw * 4.5, pw >= 4); IF.ring(at[0], at[1], 8 + pw * 4, pw); IF.sparksDir(at[0], at[1], dx, dy, 5 + pw * 3, pw, K.reduceMotion);
     });
     if (!any) return;
+    if (cm) { cm.hits++; comboShow = { n: cm.hits, at: K0.time, big: fin }; }
     hs = Math.max(hs, HSP[pw]); K.shake(TRA[pw] * 16); K.haptic(pw >= 4 ? 35 : 12);
     if (pw >= 4 || fin) { zoomK = Math.max(zoomK, 1.06); if (!K.reduceMotion) slow = Math.max(slow, 0.2); K.sfx('heavy'); K.sfx('boom'); }
     else K.sfx(pw >= 3 || F.weapon ? 'heavy' : 'punch');
@@ -3197,6 +3235,17 @@ var InkFight = (function () {
     if (story) drawObjective(c, K, top);
     if (introT > 0 && story) { c.globalAlpha = Math.min(1, introT * 2); c.textAlign = 'center'; c.font = K.font(Math.min(56, W / 8)); c.lineWidth = 9; c.strokeStyle = 'rgba(20,10,30,0.9)'; var lt = (story.nm ? K.t('nightmare') + ' ' : '') + lvName(story.d); c.strokeText(lt, W / 2, gyS * 0.42); c.fillStyle = story.nm ? '#FF3B4E' : CHAPTERS[story.d.ci].col; c.fillText(lt, W / 2, gyS * 0.42); c.font = K.font(Math.min(22, W / 17)); c.lineWidth = 6; var ot = objText(K, story.d); c.strokeText(ot, W / 2, gyS * 0.42 + Math.min(46, W / 9)); c.fillStyle = '#FFFFFF'; c.fillText(ot, W / 2, gyS * 0.42 + Math.min(46, W / 9)); c.globalAlpha = 1; }
     else if (introT > 0) { c.globalAlpha = Math.min(1, introT * 2); c.textAlign = 'center'; c.font = K.font(Math.min(64, W / 7)); c.lineWidth = 9; c.strokeStyle = 'rgba(20,10,30,0.9)'; var wt = (wave % 5 === 0 ? K.t('bossWave') + ' · ' : '') + '\u221E ' + K.t('wave') + ' ' + wave; c.strokeText(wt, W / 2, gyS * 0.5); c.fillStyle = wave % 5 === 0 ? '#FF3B4E' : '#FFE15A'; c.fillText(wt, W / 2, gyS * 0.5); c.globalAlpha = 1; }
+    // combo hit counter + equipped slots
+    if (comboShow && K.time - comboShow.at < 1.3 && comboShow.n > 1) {
+      var ca = Math.min(1, (1.3 - (K.time - comboShow.at)) * 3), pop = 1 + Math.max(0, 0.25 - (K.time - comboShow.at)) * (comboShow.big ? 2.4 : 1.2);
+      c.save(); c.globalAlpha = ca; c.translate(K.rtl ? 18 : W - 18, top + 96); c.scale(pop, pop); c.rotate(-0.06); c.textAlign = K.rtl ? 'left' : 'right'; c.textBaseline = 'middle';
+      c.font = K.font(Math.min(34, W / 14)); c.lineWidth = 7; c.strokeStyle = 'rgba(20,10,30,0.9)'; var ct = K.t('comboHud').replace('%n', comboShow.n);
+      c.strokeText(ct, 0, 0); c.fillStyle = comboShow.big ? '#FF5A4E' : '#FFE15A'; c.fillText(ct, 0, 0); c.restore();
+    }
+    if (mode === 'fight' && !touchUI) {
+      var slN = comboSlots(); c.save(); c.font = K.font(12, 800); c.textAlign = K.rtl ? 'right' : 'left'; c.textBaseline = 'middle'; c.fillStyle = 'rgba(255,255,255,0.8)';
+      c.fillText('J · ' + L(K, COMBOS[slN[0]].name) + (slN[1] ? '    U · ' + L(K, COMBOS[slN[1]].name) : ''), K.rtl ? W - 14 : 14, K.H - 34); c.restore();
+    }
     // touch controls
     if (touchUI && mode !== 'down') {
       var B = btns(K), lbl = { atk: K.t('bAtk'), atk2: 'B', jump: K.t('bJump'), shoot: K.t('bShoot'), spec: K.t('bSpec') }, col = { left: '#FFFFFF', right: '#FFFFFF', atk: '#FF3B4E', atk2: '#FF8A1F', jump: '#22C55E', shoot: '#3B82F6', spec: h.ink >= 100 ? '#FFE15A' : '#6B6B7B' };
@@ -3210,6 +3259,7 @@ var InkFight = (function () {
         c.fillStyle = '#FFFFFF';
         if (k === 'left' || k === 'right') { var dd = k === 'left' ? -1 : 1; c.beginPath(); c.moveTo(b.x + dd * b.r * 0.5, b.y); c.lineTo(b.x - dd * b.r * 0.3, b.y - b.r * 0.45); c.lineTo(b.x - dd * b.r * 0.3, b.y + b.r * 0.45); c.closePath(); c.fill(); }
         else { c.font = K.font(b.r * 0.42); c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.4)'; c.strokeText(lbl[k], b.x, b.y + (on ? 3 : 0)); c.fillText(lbl[k], b.x, b.y + (on ? 3 : 0)); }
+        if (k === 'atk' || k === 'atk2') { var slT = comboSlots()[k === 'atk' ? 0 : 1]; if (slT) { c.font = K.font(Math.max(9, b.r * 0.2), 800); c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.55)'; var nmT = L(K, COMBOS[slT].name); c.strokeText(nmT, b.x, b.y + b.r + 10); c.fillText(nmT, b.x, b.y + b.r + 10); } }
         if (k === 'spec' && h.ink >= 100) { c.strokeStyle = '#FFE15A'; c.lineWidth = 4; c.beginPath(); c.arc(b.x, b.y, b.r + 6 + Math.sin(K.time * 8) * 3, 0, TAU); c.stroke(); }
         if (k === 'shoot' && h.reloadT > 0) { c.strokeStyle = '#FFFFFF'; c.lineWidth = 4; c.beginPath(); c.arc(b.x, b.y, b.r + 5, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - h.reloadT / gunSpec().reload)); c.stroke(); }
       });
@@ -3286,6 +3336,7 @@ var InkFight = (function () {
   }
   /* ---------------- shop screen ---------------- */
   function shopAct(K) {
+    if (shopTab === 'combos') { comboAct(K, COMBO_ORDER[shopSel], 1); return; }
     if (shopTab === 'guns') {
       var id = GUN_ORDER[shopSel], g = GUNS[id], own = ownedGuns();
       if (own.indexOf(id) >= 0) { K.store.set('ink:gun', id); curGun = id; K.sfx('reload'); return; }
@@ -3303,21 +3354,35 @@ var InkFight = (function () {
     K.rewarded(function (ok) { if (ok) { K.addCoins(60); adReadyAt = Date.now() + 90000; K.sfx('reward'); K.toast('+60'); } });
   }
   function bar(c, x, y, w, v, col) { c.fillStyle = 'rgba(255,255,255,0.13)'; c.fillRect(x, y, w, 6); c.fillStyle = col; c.fillRect(x, y, w * Math.max(0.04, v), 6); }
+  function drawSlotLine(c, K, x, y, sl) {
+    var t = 'A · ' + L(K, COMBOS[sl[0]].name) + '     B · ' + (sl[1] ? L(K, COMBOS[sl[1]].name) : '—');
+    c.save(); c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = K.font(13, 800); c.fillStyle = 'rgba(255,255,255,0.85)'; c.fillText(t, x, y); c.restore();
+  }
+  function slotBtns(c, K, bx, by, bw, bh, id) {
+    var sl = comboSlots();
+    [0, 1].forEach(function (i) {
+      var x = bx + i * (bw / 2 + 4), w = bw / 2 - 4, on = sl[i] === id;
+      c.fillStyle = 'rgba(0,0,0,0.35)'; K.roundRect(c, x, by + 4, w, bh, bh / 2); c.fill(); c.fillStyle = on ? '#22C55E' : '#3B82F6'; K.roundRect(c, x, by, w, bh, bh / 2); c.fill();
+      c.fillStyle = '#FFFFFF'; c.textAlign = 'center'; c.font = K.font(Math.min(17, w / 7)); c.fillText((on ? '✓ ' : '') + K.t('slot') + ' ' + 'AB'[i], x + w / 2, by + bh / 2);
+      ui.push({ x: x, y: by, w: w, h: bh, act: 'slot', s: i });
+    });
+  }
   function drawShop(c, K) {
     var W = K.W, H = K.H; ui = [];
     c.fillStyle = 'rgba(12,6,22,0.86)'; c.fillRect(0, 0, W, H);
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    var top = K.hudH + 4, list = shopTab === 'guns' ? GUN_ORDER : ITEM_ORDER, ownG = ownedGuns(), eq = equippedGun(), b = inv();
+    var top = K.hudH + 4, list = shopList(), ownG = ownedGuns(), eq = equippedGun(), b = inv();
     // header: back, tabs, ad
     c.fillStyle = 'rgba(255,255,255,0.12)'; K.roundRect(c, 10, top, 64, 36, 18); c.fill(); c.fillStyle = '#FFFFFF'; c.font = K.font(14); c.fillText(K.t('back'), 42, top + 18);
     ui.push({ x: 10, y: top, w: 64, h: 36, act: 'back' });
-    var tw = Math.min(260, W - 200), tx = (W - tw) / 2;
-    ['guns', 'items'].forEach(function (t, i) { var x = tx + i * tw / 2; c.fillStyle = shopTab === t ? '#FFB020' : 'rgba(255,255,255,0.12)'; K.roundRect(c, x + 2, top, tw / 2 - 4, 36, 18); c.fill(); c.fillStyle = shopTab === t ? '#1A0E00' : '#FFFFFF'; c.font = K.font(15); c.fillText(K.t(t), x + tw / 4, top + 18); ui.push({ x: x, y: top, w: tw / 2, h: 36, act: 'tab', tab: t }); });
+    var tw = Math.min(360, W - 200), tx = (W - tw) / 2, t3 = tw / 3;
+    ['guns', 'items', 'combos'].forEach(function (t, i) { var x = tx + i * t3; c.fillStyle = shopTab === t ? '#FFB020' : 'rgba(255,255,255,0.12)'; K.roundRect(c, x + 2, top, t3 - 4, 36, 18); c.fill(); c.fillStyle = shopTab === t ? '#1A0E00' : '#FFFFFF'; c.font = K.font(Math.min(15, t3 / 6)); c.fillText(K.t(t === 'combos' ? 'combosTab' : t), x + t3 / 2, top + 18); ui.push({ x: x, y: top, w: t3, h: 36, act: 'tab', tab: t }); });
     var aw = Math.min(110, W - tx - tw - 18), ax = W - aw - 10, ready = Date.now() >= adReadyAt;
     if (aw > 60) { c.fillStyle = ready ? '#22C55E' : 'rgba(255,255,255,0.12)'; K.roundRect(c, ax, top, aw, 36, 18); c.fill(); c.fillStyle = '#FFFFFF'; c.font = K.font(Math.min(13, aw / 8)); c.fillText(K.t('adCoins'), ax + aw / 2, top + 18); ui.push({ x: ax, y: top, w: aw, h: 36, act: 'ad' }); }
     if (W > H * 1.1 && H - top < 330) { drawShopCompact(c, K, top, list, ownG, eq, b); return; }
     // cards (4 per page)
-    var land = W > H * 1.1, cols = land ? 4 : 2, rows = land ? 1 : 2, gap = 10, y0 = top + 46, availH = H - y0 - 74;
+    var land = W > H * 1.1, cols = land ? 4 : 2, rows = land ? 1 : 2, gap = 10, y0 = top + 46, availH = H - y0 - 74, slotsNow = comboSlots();
+    if (shopTab === 'combos') { drawSlotLine(c, K, W / 2, y0 + 10, slotsNow); y0 += 28; availH -= 28; }
     var cw = Math.min(230, (W - 20 - gap * (cols - 1)) / cols), ch = Math.min(260, (availH - gap * (rows - 1)) / rows), x0 = (W - (cw * cols + gap * (cols - 1))) / 2;
     var pages = Math.ceil(list.length / 4); shopPage = Math.min(shopPage, pages - 1);
     for (var i = 0; i < 4; i++) {
@@ -3327,7 +3392,18 @@ var InkFight = (function () {
       if (isSel) { c.strokeStyle = '#FFB020'; c.lineWidth = 3; c.stroke(); }
       ui.push({ x: x, y: y, w: cw, h: ch, act: 'card', i: idx });
       var fs = Math.min(15, cw / 11, ch / 9);
-      if (shopTab === 'guns') {
+      if (shopTab === 'combos') {
+        var cb = COMBOS[id], cOwn = comboOwned(id), nh = comboHits(id), inS = slotsNow[0] === id ? 'A' : slotsNow[1] === id ? 'B' : '';
+        c.fillStyle = '#FFFFFF'; c.font = K.font(fs); c.fillText(L(K, cb.name), x + cw / 2, y + fs + 2);
+        var ph = Math.min(ch * 0.36, cw * 0.5); drawComboPose(c, id, x + cw / 2, y + fs * 2 + 10 + ph, ph, cOwn ? '#FFFFFF' : '#C9C2D8');
+        var ty = y + fs * 2 + 8 + ph + Math.min(18, ch * 0.08);
+        hitPips(c, x + cw / 2, ty, cw - 24, nh, cb.end >= 3 ? '#FF5A4E' : '#FFB020');
+        c.fillStyle = '#FFE58A'; c.font = K.font(Math.min(13, cw / 13), 800); c.fillText(K.t('hits').replace('%n', nh) + ' · ' + K.t('finish') + ' ×' + cb.end, x + cw / 2, ty + Math.min(18, ch * 0.08));
+        var pt = inS ? K.t('slot') + ' ' + inS : cOwn ? K.t('owned') : String(comboPrice(id));
+        c.fillStyle = inS ? '#22C55E' : cOwn ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.5)'; K.roundRect(c, x + cw / 2 - 48, y + ch - 30, 96, 22, 11); c.fill();
+        if (!cOwn) K.drawCoin(c, x + cw / 2 - 32, y + ch - 19, 7);
+        c.fillStyle = '#FFFFFF'; c.font = K.font(12); c.fillText(pt, x + cw / 2 + (cOwn ? 0 : 8), y + ch - 18);
+      } else if (shopTab === 'guns') {
         var g = gunDef(id), owned = ownG.indexOf(id) >= 0, isEq = eq === id;
         c.fillStyle = '#FFFFFF'; c.font = K.font(fs); c.fillText(id === 'sig' ? L(K, GUNS.sig.name) + ' · ' + L(K, hero.def.name) : L(K, GUNS[id].name), x + cw / 2, y + fs);
         var gy = y + fs * 2 + ch * 0.1; c.save(); c.translate(x + cw / 2 - 30 * Math.min(1.6, cw / 110), gy); drawGun(c, g.look, Math.min(1.6, cw / 110, ch / 90)); c.restore();
@@ -3356,7 +3432,8 @@ var InkFight = (function () {
     var by = H - 62, bw = Math.min(260, W - 140), bx = (W - bw) / 2;
     if (pages > 1) [[-1, bx - 54], [1, bx + bw + 10]].forEach(function (pg) { c.fillStyle = 'rgba(255,255,255,0.14)'; K.roundRect(c, pg[1], by, 44, 48, 16); c.fill(); c.fillStyle = '#FFFFFF'; c.font = K.font(22); c.fillText(pg[0] < 0 ? '‹' : '›', pg[1] + 22, by + 23); ui.push({ x: pg[1], y: by, w: 44, h: 48, act: 'page', d: pg[0] }); });
     var label, col = '#FFB020';
-    if (shopTab === 'guns') { var gid = GUN_ORDER[shopSel], ow = ownG.indexOf(gid) >= 0; label = eq === gid ? K.t('equipped') : ow ? K.t('equip') : K.t('buy') + ' · ' + GUNS[gid].price; if (eq === gid) col = '#22C55E'; else if (ow) col = '#3B82F6'; }
+    if (shopTab === 'combos') { var cid = COMBO_ORDER[shopSel]; if (comboOwned(cid)) { slotBtns(c, K, bx, by, bw, 48, cid); return; } label = K.t('buy') + ' · ' + comboPrice(cid); }
+    else if (shopTab === 'guns') { var gid = GUN_ORDER[shopSel], ow = ownG.indexOf(gid) >= 0; label = eq === gid ? K.t('equipped') : ow ? K.t('equip') : K.t('buy') + ' · ' + GUNS[gid].price; if (eq === gid) col = '#22C55E'; else if (ow) col = '#3B82F6'; }
     else { var iid = ITEM_ORDER[shopSel]; label = b[iid] >= ITEMS[iid].max ? K.t('maxed') : K.t('buy') + ' · ' + ITEMS[iid].price; }
     c.fillStyle = 'rgba(0,0,0,0.35)'; K.roundRect(c, bx, by + 4, bw, 48, 24); c.fill(); c.fillStyle = col; K.roundRect(c, bx, by, bw, 48, 24); c.fill();
     c.fillStyle = '#FFFFFF'; c.font = K.font(Math.min(20, bw / 10)); c.fillText(label, W / 2, by + 24);
@@ -3371,10 +3448,10 @@ var InkFight = (function () {
       var idx = start + r, id = list[idx], y = y0 + r * rh, isSel = idx === shopSel;
       c.fillStyle = isSel ? '#FFB020' : 'rgba(255,255,255,0.08)'; K.roundRect(c, 10, y + 2, lw, rh - 4, 10); c.fill();
       c.textAlign = 'left'; c.font = K.font(Math.min(14, rh * 0.45)); c.fillStyle = isSel ? '#1A0E00' : '#FFFFFF';
-      var nm = shopTab === 'guns' ? (id === 'sig' ? L(K, GUNS.sig.name) : L(K, GUNS[id].name)) : L(K, ITEMS[id].name) + ' (' + b[id] + ')';
+      var cS = shopTab === 'combos' ? comboSlots() : null, nm = cS ? L(K, COMBOS[id].name) : shopTab === 'guns' ? (id === 'sig' ? L(K, GUNS.sig.name) : L(K, GUNS[id].name)) : L(K, ITEMS[id].name) + ' (' + b[id] + ')';
       c.fillText(nm, 20, y + rh / 2);
       c.textAlign = 'right'; c.font = K.font(Math.min(12, rh * 0.4));
-      var tag = shopTab === 'guns' ? (eq === id ? '✓' : ownG.indexOf(id) >= 0 ? K.t('owned') : GUNS[id].price) : ITEMS[id].price;
+      var tag = cS ? (cS[0] === id ? 'A ✓' : cS[1] === id ? 'B ✓' : comboOwned(id) ? K.t('owned') : comboPrice(id)) : shopTab === 'guns' ? (eq === id ? '✓' : ownG.indexOf(id) >= 0 ? K.t('owned') : GUNS[id].price) : ITEMS[id].price;
       c.fillText(tag, 10 + lw - 10, y + rh / 2);
       ui.push({ x: 10, y: y, w: lw, h: rh, act: 'card', i: idx });
     }
@@ -3384,7 +3461,16 @@ var InkFight = (function () {
     c.fillStyle = 'rgba(255,255,255,0.07)'; K.roundRect(c, dx, y0 + 2, dw, dh - 2, 16); c.fill();
     var bw = Math.min(200, dw * 0.42), bh = Math.min(44, dh * 0.24), bx = dx + dw - bw - 12, by = y0 + dh - bh - 10, label, col = '#FFB020';
     c.textAlign = 'left';
-    if (shopTab === 'guns') {
+    if (shopTab === 'combos') {
+      var cid2 = COMBO_ORDER[shopSel], cb2 = COMBOS[cid2], nh2 = comboHits(cid2), ph2 = Math.min(dh * 0.42, 100);
+      c.fillStyle = '#FFFFFF'; c.font = K.font(Math.min(20, dh / 9)); c.fillText(L(K, cb2.name), dx + 14, y0 + 22);
+      drawComboPose(c, cid2, dx + dw - 16 - ph2 * 0.6, y0 + 14 + ph2, ph2, '#FFFFFF');
+      c.fillStyle = '#FFE58A'; c.font = K.font(Math.min(14, dh / 11), 800); c.fillText(K.t('hits').replace('%n', nh2) + ' · ' + K.t('finish') + ' ×' + cb2.end, dx + 14, y0 + 48);
+      c.textAlign = 'center'; hitPips(c, dx + 14 + Math.min(dw - 170, nh2 * 9) / 2, y0 + 70, Math.min(dw - 170, nh2 * 9), nh2, cb2.end >= 3 ? '#FF5A4E' : '#FFB020');
+      drawSlotLine(c, K, dx + (dw - 140) / 2, y0 + 96, comboSlots());
+      if (comboOwned(cid2)) { slotBtns(c, K, bx - bw * 0.25, by, bw * 1.25, bh, cid2); return; }
+      label = K.t('buy') + ' · ' + comboPrice(cid2);
+    } else if (shopTab === 'guns') {
       var id2 = GUN_ORDER[shopSel], g = gunDef(id2), ow = ownG.indexOf(id2) >= 0;
       c.fillStyle = '#FFFFFF'; c.font = K.font(Math.min(20, dh / 9)); c.fillText(id2 === 'sig' ? L(K, GUNS.sig.name) + ' · ' + L(K, hero.def.name) : L(K, GUNS[id2].name), dx + 14, y0 + 20);
       c.save(); c.translate(dx + dw - 130, y0 + 34); drawGun(c, g.look, Math.min(1.7, dh / 120)); c.restore();
@@ -3567,9 +3653,10 @@ var InkFight = (function () {
     else if (u.act === 'tab') { if (shopTab !== u.tab) { shopTab = u.tab; shopSel = 0; shopPage = 0; K.sfx('click'); } }
     else if (u.act === 'card') { if (shopSel === u.i) shopAct(K); else { shopSel = u.i; K.sfx('tick'); } }
     else if (u.act === 'buy') shopAct(K);
-    else if (u.act === 'page') { var n = Math.ceil((shopTab === 'guns' ? GUN_ORDER : ITEM_ORDER).length / 4); shopPage = (shopPage + u.d + n) % n; shopSel = shopPage * 4; K.sfx('tick'); }
+    else if (u.act === 'slot') comboAct(K, COMBO_ORDER[shopSel], u.s);
+    else if (u.act === 'page') { var n = Math.ceil(shopList().length / 4); shopPage = (shopPage + u.d + n) % n; shopSel = shopPage * 4; K.sfx('tick'); }
     else if (u.act === 'ad') watchAdForCoins(K);
-    else if (u.act === 'scroll') { var ln = (shopTab === 'guns' ? GUN_ORDER : ITEM_ORDER).length; shopSel = Math.max(0, Math.min(ln - 1, shopSel + u.d)); K.sfx('tick'); }
+    else if (u.act === 'scroll') { var ln = shopList().length; shopSel = Math.max(0, Math.min(ln - 1, shopSel + u.d)); K.sfx('tick'); }
     else if (u.act === 'smode') { if (storyMode !== u.v) { storyMode = u.v; K.store.set('ink:mode', storyMode ? 'story' : 'inf'); K.sfx('click'); } }
     else if (u.act === 'mback') { mode = 'pick'; theme = 'ruins'; K.sfx('click'); }
     else if (u.act === 'nm') { nmOn = !nmOn; mapSel = Math.min(mapSel, 7); K.sfx('flip'); }
@@ -3605,9 +3692,9 @@ var InkFight = (function () {
     id: 'ink-heroes', coinRate: 0.01, noSkins: true, theme: 'dark', mascot: mascot,
     title: { en: 'Ink Heroes', fr: 'Héros d’Encre', ar: 'أبطال الحبر' },
     strings: {
-      en: { noCombo: "No combo in slot B — buy one in the shop", story: "STORY", infShort: "INFINITY", storyTitle: "THE INKFALL", chapter: "Chapter", play: "PLAY", next: "NEXT", map: "MAP", skip: "Skip", tapNext: "Tap to continue", locked: "Locked", oC: "Defeat every zombie", oR: "Free the survivors", oS: "Survive", oD: "Protect the Ink Lantern", oB: "Defeat", m_swarm: "SWARM: more zombies", m_nogun: "NO GUNS: fists only", m_elite: "ELITE NIGHT: gold zombies", m_dark: "BLACKOUT: stay in the light", star1: "Win", star2: "Keep half your health", star3: "Combo", lvClear: "LEVEL CLEAR!", failed: "Level failed", lanternOut: "The lantern went out", joins: "joins your team!", survivors: "Survivors", left: "Zombies left", lantern: "Lantern", nightmare: "NIGHTMARE", firstClear: "First clear ×2", freed: "FREED!", noGun: "No guns here!", allAboard: "ALL ABOARD!", twinRage: "THE OTHER TWIN IS ANGRY!", phase2: "NULL · PHASE 2", phase2s: "He drew copies of himself!", theEnd: "THE END…?", nmUnlocked: "NIGHTMARE MODE unlocked!", hero: "Hero", tagline: 'A 40-level story and an endless zombie night. Punch, shoot, survive!', choose: 'Choose your hero', fight: 'FIGHT!', unlock: 'Unlock', needCoins: 'Not enough coins yet', wave: 'Wave', bossWave: 'BOSS', cleared: 'Wave cleared!', pickPerk: 'Pick a power-up', combo: 'COMBO', reloading: 'Reloading…', newZ: 'New:', block: 'BLOCK', broken: 'SMASHED!', broke: 'Broken!', empty: 'Empty!', rage: 'RAGE MODE!', overrun: 'Overrun!', reached: 'Fell at wave', record: 'New record!', infinity: 'INFINITY MODE · every wave is harder', bestWave: 'Best wave', eliteT: 'ELITE ZOMBIES!', eliteS: 'Gold glow = tougher, but 3× points and more coins', threat: 'Threat', shop: 'SHOP', guns: 'GUNS', items: 'ITEMS', back: 'Back', buy: 'BUY', equip: 'EQUIP', equipped: 'EQUIPPED', owned: 'OWNED', maxed: 'Full!', have: 'Have', dps: 'DPS', sDmg: 'Damage', sRate: 'Fire rate', sMag: 'Ammo', sReload: 'Reload', sRange: 'Range', adCoins: '+60 · AD', adWait: 'Next ad reward soon', reviveQ: 'You fell! Use a heart?', revive: 'REVIVE', giveUp: 'Give up', revived: 'BACK IN THE FIGHT!', heartSaved: 'Hearts revive you when you fall', fullHp: 'Health is full', airstrike: 'AIRSTRIKE!', tryGun: 'TRY:', tryGunSub: 'Like it? Buy it in the shop', gunLabel: 'Gun', bAtk: 'HIT', bJump: 'JUMP', bShoot: 'FIRE', bSpec: 'POWER', sPow: 'POWER', sSpd: 'SPEED', sHp: 'HEALTH', keys: '←/→ move · W jump · J hit · K fire · L power · R reload' },
-      fr: { noCombo: "Aucun combo en B — achète-en un", story: "HISTOIRE", infShort: "INFINI", storyTitle: "LA CHUTE D’ENCRE", chapter: "Chapitre", play: "JOUER", next: "SUIVANT", map: "CARTE", skip: "Passer", tapNext: "Touche pour continuer", locked: "Verrouillé", oC: "Élimine tous les zombies", oR: "Libère les survivants", oS: "Survis", oD: "Protège la Lanterne d’encre", oB: "Bats", m_swarm: "ESSAIM : plus de zombies", m_nogun: "SANS ARMES : poings seulement", m_elite: "NUIT D’ÉLITE : zombies dorés", m_dark: "PANNE : reste dans la lumière", star1: "Gagne", star2: "Garde la moitié de ta vie", star3: "Combo", lvClear: "NIVEAU RÉUSSI !", failed: "Niveau raté", lanternOut: "La lanterne s’est éteinte", joins: "rejoint ton équipe !", survivors: "Survivants", left: "Zombies restants", lantern: "Lanterne", nightmare: "CAUCHEMAR", firstClear: "Première victoire ×2", freed: "LIBÉRÉ !", noGun: "Pas d’armes ici !", allAboard: "EN VOITURE !", twinRage: "L’AUTRE JUMEAU EST FURIEUX !", phase2: "NULL · PHASE 2", phase2s: "Il a dessiné des copies de lui !", theEnd: "FIN… ?", nmUnlocked: "MODE CAUCHEMAR débloqué !", hero: "Héros", tagline: 'Une histoire de 40 niveaux et une nuit zombie sans fin. Frappe, tire, survis !', choose: 'Choisis ton héros', fight: 'COMBAT !', unlock: 'Débloquer', needCoins: 'Pas encore assez de pièces', wave: 'Vague', bossWave: 'BOSS', cleared: 'Vague terminée !', pickPerk: 'Choisis un bonus', combo: 'COMBO', reloading: 'Rechargement…', newZ: 'Nouveau :', block: 'BLOQUÉ', broken: 'BRISÉ !', broke: 'Cassé !', empty: 'Vide !', rage: 'MODE FURIE !', overrun: 'Submergé !', reached: 'Tombé à la vague', record: 'Nouveau record !', infinity: 'MODE INFINI · chaque vague est plus dure', bestWave: 'Meilleure vague', eliteT: 'ZOMBIES D\u2019ÉLITE !', eliteS: 'Lueur dorée = plus coriaces, mais 3× points et plus de pièces', threat: 'Menace', shop: 'BOUTIQUE', guns: 'ARMES', items: 'OBJETS', back: 'Retour', buy: 'ACHETER', equip: 'ÉQUIPER', equipped: 'ÉQUIPÉE', owned: 'ACQUISE', maxed: 'Plein !', have: 'Possédé', dps: 'DPS', sDmg: 'Dégâts', sRate: 'Cadence', sMag: 'Munitions', sReload: 'Recharge', sRange: 'Portée', adCoins: '+60 · PUB', adWait: 'Prochaine récompense bientôt', reviveQ: 'Tu es tombé ! Utiliser un cœur ?', revive: 'REVIVRE', giveUp: 'Abandonner', revived: 'DE RETOUR AU COMBAT !', heartSaved: 'Les cœurs te relèvent quand tu tombes', fullHp: 'Vie au maximum', airstrike: 'FRAPPE AÉRIENNE !', tryGun: 'ESSAIE :', tryGunSub: 'Elle te plaît ? Achète-la en boutique', gunLabel: 'Arme', bAtk: 'FRAPPE', bJump: 'SAUT', bShoot: 'TIR', bSpec: 'POUVOIR', sPow: 'PUISSANCE', sSpd: 'VITESSE', sHp: 'VIE', keys: '←/→ bouger · W sauter · J frapper · K tirer · L pouvoir · R recharger' },
-      ar: { noCombo: "لا توجد سلسلة في الخانة B — اشترِ واحدة", story: "القصة", infShort: "لا نهائي", storyTitle: "سقوط الحبر", chapter: "الفصل", play: "العب", next: "التالي", map: "الخريطة", skip: "تخطَّ", tapNext: "المس للمتابعة", locked: "مقفل", oC: "اهزم كل الزومبي", oR: "حرّر الناجين", oS: "انجُ", oD: "احمِ فانوس الحبر", oB: "اهزم", m_swarm: "سرب: زومبي أكثر", m_nogun: "بلا أسلحة: القبضات فقط", m_elite: "ليلة النخبة: زومبي ذهبي", m_dark: "انقطاع الكهرباء: ابقَ في الضوء", star1: "افُز", star2: "احتفظ بنصف صحتك", star3: "كومبو", lvClear: "اكتملت المرحلة!", failed: "فشلت المرحلة", lanternOut: "انطفأ الفانوس", joins: "ينضم إلى فريقك!", survivors: "الناجون", left: "الزومبي المتبقون", lantern: "الفانوس", nightmare: "كابوس", firstClear: "أول فوز ×2", freed: "حُرّر!", noGun: "لا أسلحة هنا!", allAboard: "الكل إلى القطار!", twinRage: "التوأم الآخر غاضب!", phase2: "نَل · المرحلة 2", phase2s: "رسم نسخاً من نفسه!", theEnd: "النهاية…؟", nmUnlocked: "فُتح وضع الكابوس!", hero: "البطل", tagline: 'قصة من 40 مرحلة وليلة زومبي لا تنتهي. اضرب، أطلق، انجُ!', choose: 'اختر بطلك', fight: 'قتال!', unlock: 'افتح', needCoins: 'العملات لا تكفي بعد', wave: 'الموجة', bossWave: 'زعيم', cleared: 'انتهت الموجة!', pickPerk: 'اختر قوة', combo: 'كومبو', reloading: 'إعادة التلقيم…', newZ: 'جديد:', block: 'صدّ', broken: 'تحطّم!', broke: 'انكسر!', empty: 'فارغ!', rage: 'وضع الغضب!', overrun: 'غُمِرت!', reached: 'سقطت في الموجة', record: 'رقم قياسي جديد!', infinity: 'الوضع اللانهائي · كل موجة أصعب', bestWave: 'أفضل موجة', eliteT: 'زومبي النخبة!', eliteS: 'التوهج الذهبي = أقوى لكن 3× نقاط وعملات أكثر', threat: 'الخطر', shop: 'المتجر', guns: 'الأسلحة', items: 'الأدوات', back: 'رجوع', buy: 'شراء', equip: 'تجهيز', equipped: 'مُجهَّز', owned: 'مملوك', maxed: 'ممتلئ!', have: 'لديك', dps: 'ضرر/ث', sDmg: 'الضرر', sRate: 'سرعة الإطلاق', sMag: 'الذخيرة', sReload: 'التلقيم', sRange: 'المدى', adCoins: '+60 · إعلان', adWait: 'المكافأة التالية قريباً', reviveQ: 'سقطت! هل تستخدم قلباً؟', revive: 'انهض', giveUp: 'استسلم', revived: 'عدت إلى القتال!', heartSaved: 'القلوب تُنهضك عندما تسقط', fullHp: 'الصحة ممتلئة', airstrike: 'غارة جوية!', tryGun: 'جرّب:', tryGunSub: 'أعجبك؟ اشتره من المتجر', gunLabel: 'السلاح', bAtk: 'ضرب', bJump: 'قفز', bShoot: 'نار', bSpec: 'قوة', sPow: 'القوة', sSpd: 'السرعة', sHp: 'الصحة', keys: '←/→ تحرك · W قفز · J ضرب · K نار · L قوة · R تلقيم' }
+      en: { combosTab: "COMBOS", slot: "SLOT", slotB: "Slot B", hits: "%n HITS", finish: "Finisher", comboHud: "%n HITS!", noCombo: "No combo in slot B — buy one in the shop", story: "STORY", infShort: "INFINITY", storyTitle: "THE INKFALL", chapter: "Chapter", play: "PLAY", next: "NEXT", map: "MAP", skip: "Skip", tapNext: "Tap to continue", locked: "Locked", oC: "Defeat every zombie", oR: "Free the survivors", oS: "Survive", oD: "Protect the Ink Lantern", oB: "Defeat", m_swarm: "SWARM: more zombies", m_nogun: "NO GUNS: fists only", m_elite: "ELITE NIGHT: gold zombies", m_dark: "BLACKOUT: stay in the light", star1: "Win", star2: "Keep half your health", star3: "Combo", lvClear: "LEVEL CLEAR!", failed: "Level failed", lanternOut: "The lantern went out", joins: "joins your team!", survivors: "Survivors", left: "Zombies left", lantern: "Lantern", nightmare: "NIGHTMARE", firstClear: "First clear ×2", freed: "FREED!", noGun: "No guns here!", allAboard: "ALL ABOARD!", twinRage: "THE OTHER TWIN IS ANGRY!", phase2: "NULL · PHASE 2", phase2s: "He drew copies of himself!", theEnd: "THE END…?", nmUnlocked: "NIGHTMARE MODE unlocked!", hero: "Hero", tagline: 'A 40-level story and an endless zombie night. Punch, shoot, survive!', choose: 'Choose your hero', fight: 'FIGHT!', unlock: 'Unlock', needCoins: 'Not enough coins yet', wave: 'Wave', bossWave: 'BOSS', cleared: 'Wave cleared!', pickPerk: 'Pick a power-up', combo: 'COMBO', reloading: 'Reloading…', newZ: 'New:', block: 'BLOCK', broken: 'SMASHED!', broke: 'Broken!', empty: 'Empty!', rage: 'RAGE MODE!', overrun: 'Overrun!', reached: 'Fell at wave', record: 'New record!', infinity: 'INFINITY MODE · every wave is harder', bestWave: 'Best wave', eliteT: 'ELITE ZOMBIES!', eliteS: 'Gold glow = tougher, but 3× points and more coins', threat: 'Threat', shop: 'SHOP', guns: 'GUNS', items: 'ITEMS', back: 'Back', buy: 'BUY', equip: 'EQUIP', equipped: 'EQUIPPED', owned: 'OWNED', maxed: 'Full!', have: 'Have', dps: 'DPS', sDmg: 'Damage', sRate: 'Fire rate', sMag: 'Ammo', sReload: 'Reload', sRange: 'Range', adCoins: '+60 · AD', adWait: 'Next ad reward soon', reviveQ: 'You fell! Use a heart?', revive: 'REVIVE', giveUp: 'Give up', revived: 'BACK IN THE FIGHT!', heartSaved: 'Hearts revive you when you fall', fullHp: 'Health is full', airstrike: 'AIRSTRIKE!', tryGun: 'TRY:', tryGunSub: 'Like it? Buy it in the shop', gunLabel: 'Gun', bAtk: 'HIT', bJump: 'JUMP', bShoot: 'FIRE', bSpec: 'POWER', sPow: 'POWER', sSpd: 'SPEED', sHp: 'HEALTH', keys: '←/→ move · W jump · J hit · K fire · L power · R reload' },
+      fr: { combosTab: "COMBOS", slot: "CASE", slotB: "Case B", hits: "%n COUPS", finish: "Coup final", comboHud: "%n COUPS !", noCombo: "Aucun combo en B — achète-en un", story: "HISTOIRE", infShort: "INFINI", storyTitle: "LA CHUTE D’ENCRE", chapter: "Chapitre", play: "JOUER", next: "SUIVANT", map: "CARTE", skip: "Passer", tapNext: "Touche pour continuer", locked: "Verrouillé", oC: "Élimine tous les zombies", oR: "Libère les survivants", oS: "Survis", oD: "Protège la Lanterne d’encre", oB: "Bats", m_swarm: "ESSAIM : plus de zombies", m_nogun: "SANS ARMES : poings seulement", m_elite: "NUIT D’ÉLITE : zombies dorés", m_dark: "PANNE : reste dans la lumière", star1: "Gagne", star2: "Garde la moitié de ta vie", star3: "Combo", lvClear: "NIVEAU RÉUSSI !", failed: "Niveau raté", lanternOut: "La lanterne s’est éteinte", joins: "rejoint ton équipe !", survivors: "Survivants", left: "Zombies restants", lantern: "Lanterne", nightmare: "CAUCHEMAR", firstClear: "Première victoire ×2", freed: "LIBÉRÉ !", noGun: "Pas d’armes ici !", allAboard: "EN VOITURE !", twinRage: "L’AUTRE JUMEAU EST FURIEUX !", phase2: "NULL · PHASE 2", phase2s: "Il a dessiné des copies de lui !", theEnd: "FIN… ?", nmUnlocked: "MODE CAUCHEMAR débloqué !", hero: "Héros", tagline: 'Une histoire de 40 niveaux et une nuit zombie sans fin. Frappe, tire, survis !', choose: 'Choisis ton héros', fight: 'COMBAT !', unlock: 'Débloquer', needCoins: 'Pas encore assez de pièces', wave: 'Vague', bossWave: 'BOSS', cleared: 'Vague terminée !', pickPerk: 'Choisis un bonus', combo: 'COMBO', reloading: 'Rechargement…', newZ: 'Nouveau :', block: 'BLOQUÉ', broken: 'BRISÉ !', broke: 'Cassé !', empty: 'Vide !', rage: 'MODE FURIE !', overrun: 'Submergé !', reached: 'Tombé à la vague', record: 'Nouveau record !', infinity: 'MODE INFINI · chaque vague est plus dure', bestWave: 'Meilleure vague', eliteT: 'ZOMBIES D\u2019ÉLITE !', eliteS: 'Lueur dorée = plus coriaces, mais 3× points et plus de pièces', threat: 'Menace', shop: 'BOUTIQUE', guns: 'ARMES', items: 'OBJETS', back: 'Retour', buy: 'ACHETER', equip: 'ÉQUIPER', equipped: 'ÉQUIPÉE', owned: 'ACQUISE', maxed: 'Plein !', have: 'Possédé', dps: 'DPS', sDmg: 'Dégâts', sRate: 'Cadence', sMag: 'Munitions', sReload: 'Recharge', sRange: 'Portée', adCoins: '+60 · PUB', adWait: 'Prochaine récompense bientôt', reviveQ: 'Tu es tombé ! Utiliser un cœur ?', revive: 'REVIVRE', giveUp: 'Abandonner', revived: 'DE RETOUR AU COMBAT !', heartSaved: 'Les cœurs te relèvent quand tu tombes', fullHp: 'Vie au maximum', airstrike: 'FRAPPE AÉRIENNE !', tryGun: 'ESSAIE :', tryGunSub: 'Elle te plaît ? Achète-la en boutique', gunLabel: 'Arme', bAtk: 'FRAPPE', bJump: 'SAUT', bShoot: 'TIR', bSpec: 'POUVOIR', sPow: 'PUISSANCE', sSpd: 'VITESSE', sHp: 'VIE', keys: '←/→ bouger · W sauter · J frapper · K tirer · L pouvoir · R recharger' },
+      ar: { combosTab: "كومبو", slot: "الخانة", slotB: "الخانة B", hits: "%n ضربة", finish: "الضربة الأخيرة", comboHud: "%n ضربة!", noCombo: "لا توجد سلسلة في الخانة B — اشترِ واحدة", story: "القصة", infShort: "لا نهائي", storyTitle: "سقوط الحبر", chapter: "الفصل", play: "العب", next: "التالي", map: "الخريطة", skip: "تخطَّ", tapNext: "المس للمتابعة", locked: "مقفل", oC: "اهزم كل الزومبي", oR: "حرّر الناجين", oS: "انجُ", oD: "احمِ فانوس الحبر", oB: "اهزم", m_swarm: "سرب: زومبي أكثر", m_nogun: "بلا أسلحة: القبضات فقط", m_elite: "ليلة النخبة: زومبي ذهبي", m_dark: "انقطاع الكهرباء: ابقَ في الضوء", star1: "افُز", star2: "احتفظ بنصف صحتك", star3: "كومبو", lvClear: "اكتملت المرحلة!", failed: "فشلت المرحلة", lanternOut: "انطفأ الفانوس", joins: "ينضم إلى فريقك!", survivors: "الناجون", left: "الزومبي المتبقون", lantern: "الفانوس", nightmare: "كابوس", firstClear: "أول فوز ×2", freed: "حُرّر!", noGun: "لا أسلحة هنا!", allAboard: "الكل إلى القطار!", twinRage: "التوأم الآخر غاضب!", phase2: "نَل · المرحلة 2", phase2s: "رسم نسخاً من نفسه!", theEnd: "النهاية…؟", nmUnlocked: "فُتح وضع الكابوس!", hero: "البطل", tagline: 'قصة من 40 مرحلة وليلة زومبي لا تنتهي. اضرب، أطلق، انجُ!', choose: 'اختر بطلك', fight: 'قتال!', unlock: 'افتح', needCoins: 'العملات لا تكفي بعد', wave: 'الموجة', bossWave: 'زعيم', cleared: 'انتهت الموجة!', pickPerk: 'اختر قوة', combo: 'كومبو', reloading: 'إعادة التلقيم…', newZ: 'جديد:', block: 'صدّ', broken: 'تحطّم!', broke: 'انكسر!', empty: 'فارغ!', rage: 'وضع الغضب!', overrun: 'غُمِرت!', reached: 'سقطت في الموجة', record: 'رقم قياسي جديد!', infinity: 'الوضع اللانهائي · كل موجة أصعب', bestWave: 'أفضل موجة', eliteT: 'زومبي النخبة!', eliteS: 'التوهج الذهبي = أقوى لكن 3× نقاط وعملات أكثر', threat: 'الخطر', shop: 'المتجر', guns: 'الأسلحة', items: 'الأدوات', back: 'رجوع', buy: 'شراء', equip: 'تجهيز', equipped: 'مُجهَّز', owned: 'مملوك', maxed: 'ممتلئ!', have: 'لديك', dps: 'ضرر/ث', sDmg: 'الضرر', sRate: 'سرعة الإطلاق', sMag: 'الذخيرة', sReload: 'التلقيم', sRange: 'المدى', adCoins: '+60 · إعلان', adWait: 'المكافأة التالية قريباً', reviveQ: 'سقطت! هل تستخدم قلباً؟', revive: 'انهض', giveUp: 'استسلم', revived: 'عدت إلى القتال!', heartSaved: 'القلوب تُنهضك عندما تسقط', fullHp: 'الصحة ممتلئة', airstrike: 'غارة جوية!', tryGun: 'جرّب:', tryGunSub: 'أعجبك؟ اشتره من المتجر', gunLabel: 'السلاح', bAtk: 'ضرب', bJump: 'قفز', bShoot: 'نار', bSpec: 'قوة', sPow: 'القوة', sSpd: 'السرعة', sHp: 'الصحة', keys: '←/→ تحرك · W قفز · J ضرب · K نار · L قوة · R تلقيم' }
     },
     init: function (K) { K0 = K; if (K.store.get('cur:ink-heroes', null) === null) K.store.set('cur:ink-heroes', K.wallet() || Math.floor(K.store.get('coins', 0) || 0)); /* keep old coins as Ink Drops */ held = {}; keys = {}; ui = []; waves = []; layout(K); picked = K.store.get('ink:hero', 'kai'); bestWave = K.store.get('ink:bestWave', 0) || 0;
       prog = loadProg(); storyMode = K.store.get('ink:mode', 'story') !== 'inf';
@@ -3672,10 +3759,11 @@ var InkFight = (function () {
       if (mode === 'down') { if (down && !rep) { if (code === 'Enter' || code === 'Space' || code === 'KeyH') useHeart(K); else if (code === 'Backspace') endRun(K); } return; }
       if (mode === 'shop') {
         if (!down || rep) return;
-        var list = shopTab === 'guns' ? GUN_ORDER : ITEM_ORDER;
+        var list = shopList();
         if (map[code] === 'left' || code === 'ArrowUp') { shopSel = (shopSel + list.length - 1) % list.length; shopPage = Math.floor(shopSel / 4); K.sfx('tick'); }
         else if (map[code] === 'right' || code === 'ArrowDown') { shopSel = (shopSel + 1) % list.length; shopPage = Math.floor(shopSel / 4); K.sfx('tick'); }
-        else if (code === 'KeyQ' || code === 'KeyE') { shopTab = shopTab === 'guns' ? 'items' : 'guns'; shopSel = 0; shopPage = 0; K.sfx('click'); }
+        else if (code === 'KeyQ' || code === 'KeyE') { var TB = ['guns', 'items', 'combos']; shopTab = TB[(TB.indexOf(shopTab) + (code === 'KeyE' ? 1 : 2)) % 3]; shopSel = 0; shopPage = 0; K.sfx('click'); }
+        else if (shopTab === 'combos' && (code === 'Digit1' || code === 'Digit2') && comboOwned(COMBO_ORDER[shopSel])) comboAct(K, COMBO_ORDER[shopSel], code === 'Digit1' ? 0 : 1);
         else if (code === 'Enter' || code === 'Space') shopAct(K);
         else if (code === 'Backspace' || code === 'KeyB') { mode = 'pick'; K.sfx('click'); }
         return;

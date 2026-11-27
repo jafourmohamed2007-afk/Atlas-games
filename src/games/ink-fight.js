@@ -193,6 +193,7 @@ var InkFight = (function () {
     airLeadUp: [{ p: 'airLeadUp', d: 0.16, f: 20, sfx: 'whoosh', needs: 'air', plan: 0.1, aim: aim('airLeadUp', 'h1', 'air'), hit: { eff: 'h1', power: 2, kind: 'air' } }, { p: 'tuck', d: 0.05, f: 14, needs: 'air' }],
     airRearUp: [{ p: 'airRearUp', d: 0.16, f: 20, sfx: 'whoosh', needs: 'air', plan: 0.1, aim: aim('airRearUp', 'h2', 'air'), hit: { eff: 'h2', power: 2, kind: 'air', lift: 1 } }, { p: 'tuck', d: 0.04, f: 14, needs: 'air' }],
     axe: [{ p: 'axeUp', d: 0.14, f: 15, needs: 'air', plan: 0.22, aim: aim('axeDown', 'an1', 'above') }, { p: 'axeDown', d: 0.2, f: 23, z: 0.5, sfx: 'whooshBig', needs: 'air', hit: { eff: 'foot1', power: 4, kind: 'slam' } }],
+    breakAway: [{ p: 'release', d: 0.16, f: 11, act: 'release' }, { p: 'stance', d: 0.12, f: 11 }],
     landing: [{ p: 'tuck', d: 0.1, f: 10, untilLand: true }, { p: 'land', d: 0.18, f: 12 }, { p: 'stance', d: 0.2, f: 8 }],
     // weapon basics (hammer, katana, axe pick-up): the weapon line is the striking part
     wSwing1: [{ p: 'wLoad1', d: 0.12, f: 12, aim: aim('wSwing1', 'wpn') }, { p: 'wSwing1', d: 0.16, f: 18, sfx: 'whooshBig', aim: aim('wSwing1', 'wpn'), hit: { eff: 'wpn', power: 2 } }, { p: 'wGuard', d: 0.12, f: 10 }],
@@ -467,9 +468,11 @@ var InkFight = (function () {
     c.globalAlpha = 1;
   }
 
+  // a key pose solved standing at x 0 (shop previews)
+  function poseL(n) { var P = POSE[n], T = { x: 0, face: 1, yo: 0, rot: { v: 0 }, _fk: [!!P.fk1, !!P.fk2] }; return Fighter.prototype.solve.call(T, function (k) { return P[k]; }); }
   return {
     LEN: LEN, KEYS: KEYS, POSE: POSE, D: D, MOVES: MOVES, G: G, Fighter: Fighter, aim: aim, runPose: runPose, capsules: capsules, effPts: effPts, touch: touch,
     update: update, plantFeet: plantFeet, setLegMode: setLegMode, fx: fx, star: star, ring: ring, sparksDir: sparksDir, dust: dust, quake: quake, updateFx: updateFx,
-    drawFx: drawFx, drawBody: drawBody, drawTrails: drawTrails, GHOST: GHOST, poseOff: poseOff, clamp: clamp
+    drawFx: drawFx, drawBody: drawBody, drawTrails: drawTrails, GHOST: GHOST, poseOff: poseOff, clamp: clamp, poseL: poseL
   };
 })();

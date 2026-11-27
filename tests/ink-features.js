@@ -21,10 +21,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const guns = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:guns')));
   if (c0 - c1 !== 1200 || !guns.includes('longshot')) F('buying Longshot failed (' + c0 + '→' + c1 + ')'); else ok.push('bought Longshot for 1200');
   if ((await ev(() => localStorage.getItem('bubzi:ink:gun'))) !== '"longshot"') F('bought gun not equipped');
-  await p.keyboard.press('KeyQ'); // items tab
+  await p.keyboard.press('KeyE'); // items tab
   for (let i = 0; i < 8; i++) { for (let k = 0; k < 3; k++) await p.keyboard.press('Enter'); await p.keyboard.press('ArrowRight'); }
   const bag = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:items')));
   if (!(bag.heart >= 3 && bag.grenade >= 3 && bag.airstrike >= 3)) F('buying items failed ' + JSON.stringify(bag)); else ok.push('bought items ' + JSON.stringify(bag));
+  // ---- combos tab: buy Jab Storm (5 hits = 300), it goes to slot B; key 1 moves it to slot A (swap) ----
+  await p.keyboard.press('KeyE');
+  for (let i = 0; i < 5; i++) await p.keyboard.press('ArrowRight');
+  const k0 = await ev(() => JSON.parse(localStorage.getItem('bubzi:cur:ink-heroes')));
+  await p.keyboard.press('Enter'); await sleep(50);
+  const k1 = await ev(() => JSON.parse(localStorage.getItem('bubzi:cur:ink-heroes')));
+  const own = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:combos'))), sl1 = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:slots')));
+  if (k0 - k1 !== 300 || !own.includes('jabStorm') || sl1[1] !== 'jabStorm') F('buying Jab Storm failed (' + k0 + '→' + k1 + ', slots ' + JSON.stringify(sl1) + ')'); else ok.push('bought Jab Storm for 300, in slot B');
+  await p.keyboard.press('Digit1'); await sleep(50);
+  const sl2 = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:slots')));
+  if (sl2[0] !== 'jabStorm' || sl2[1] !== 'basic') F('slot swap failed ' + JSON.stringify(sl2)); else ok.push('slot swap ' + JSON.stringify(sl2));
+  await p.keyboard.press('Digit2'); await sleep(50);
   await p.keyboard.press('KeyB'); if ((await d()).mode !== 'pick') F('shop back failed');
   await p.keyboard.press('Enter'); await sleep(1800); // start run
   let s = await d(); if (s.mode !== 'fight') F('run did not start');
