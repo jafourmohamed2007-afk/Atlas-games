@@ -78,6 +78,32 @@
     }
   },
   {
+    "id": "bubble-bastion",
+    "category": "puzzle",
+    "color": "#38B6FF",
+    "isNew": true,
+    "title": {
+      "en": "Bubble Bastion",
+      "fr": "Bastion des Bulles",
+      "ar": "حصن الفقاعات"
+    },
+    "desc": {
+      "en": "Bubbles drift down a winding stream toward your gate. Build needle, frost, bomb and zap towers on the grass, upgrade them, and pop every wave. A free tower defense game.",
+      "fr": "Des bulles descendent un ruisseau sinueux vers ta porte. Construis des tours aiguille, givre, bombe et éclair sur l'herbe, améliore-les et éclate chaque vague. Un jeu de tower defense gratuit.",
+      "ar": "تنساب الفقاعات في جدول متعرّج نحو بوابتك. ابنِ أبراج الإبرة والصقيع والقنبلة والبرق على العشب، وطوّرها، وفجّر كل موجة. لعبة دفاع أبراج مجانية."
+    },
+    "keywords": {
+      "en": "tower defense game, bubble pop game, free tower defense, strategy game for kids, defend the gate",
+      "fr": "jeu de tower defense, jeu de bulles, tower defense gratuit, jeu de stratégie",
+      "ar": "لعبة دفاع الأبراج, لعبة تفجير الفقاعات, دفاع أبراج مجاني, لعبة استراتيجية"
+    },
+    "howto": {
+      "en": "Tap a tower at the bottom, then tap a grass spot next to the stream to build it. Needles shoot fast darts, Frost slows bubbles, Bombs pop groups and Zap chains lightning between bubbles. Tap a tower to upgrade or sell it. Press Next wave to start early and earn bonus gold. Each bubble that reaches your gate costs a heart. Keyboard: arrows move, 1-4 pick a tower, Space builds or selects, U upgrades, S sells, N starts the next wave.",
+      "fr": "Touche une tour en bas, puis une case d'herbe près du ruisseau pour la construire. Les aiguilles tirent vite, le Givre ralentit les bulles, les Bombes éclatent des groupes et l'Éclair saute de bulle en bulle. Touche une tour pour l'améliorer ou la vendre. Appuie sur Vague suivante pour commencer plus tôt et gagner de l'or bonus. Chaque bulle qui atteint ta porte coûte un cœur. Clavier : flèches pour bouger, 1-4 pour choisir, Espace pour construire, U améliorer, S vendre, N vague suivante.",
+      "ar": "المس برجاً في الأسفل، ثم المس مكاناً على العشب قرب الجدول لبنائه. الإبر تطلق بسرعة، والصقيع يبطئ الفقاعات، والقنابل تفجّر المجموعات، والبرق يقفز بين الفقاعات. المس برجاً لتطويره أو بيعه. اضغط الموجة التالية لتبدأ مبكراً وتربح ذهباً إضافياً. كل فقاعة تصل إلى بوابتك تكلّفك قلباً. لوحة المفاتيح: الأسهم للتحرك، 1-4 لاختيار برج، المسافة للبناء، U للتطوير، S للبيع، N للموجة التالية."
+    }
+  },
+  {
     "id": "block-bloom",
     "category": "puzzle",
     "color": "#7B4DFF",

@@ -230,6 +230,38 @@ const BOTS = {
     if (d.kills < 15) fail('only ' + d.kills + ' kills — combat may be broken');
   },
 
+  'bubble-bastion': async (page, fail, info) => {
+    const box = await page.locator('#game').boundingBox(); const p = page;
+    await page.evaluate(() => { window.__bubzi.K.fastX = 3; });
+    const act = async (p, box) => {
+    const d = await dbg(p); const click = async (q) => { await p.mouse.click(box.x + q.x, box.y + q.y); await sleep(70); };
+    const order = ['needle', 'bomb', 'needle', 'frost', 'zap', 'needle', 'bomb', 'zap'];
+    const want = order[Math.min(order.length - 1, d.towers.length)];
+    const cost = d.btn.find((q) => q.k === want).cost;
+    if (d.towers.length < 8 && d.gold >= cost && d.cells.length) {
+      if (d.pick !== want) { await click(d.btn.find((q) => q.k === want)); }
+      await click(d.cells[0]); return 'build';
+    }
+    const t = d.towers.filter((q) => q.l < 3 && q.up <= d.gold).sort((a, b) => a.up - b.up)[0];
+    if (t && d.towers.length >= 3) {
+      await click(t); const e = await dbg(p); if (e.panel) { await click(e.panel.up); await click(t); } return 'up';
+    }
+    if (d.next) { await click(d.next); return 'next'; }
+    await sleep(150); return '';
+  };
+    const did = {}; let d, t0 = Date.now();
+    while (Date.now() - t0 < 70000) {
+      if ((await st(page)) !== 'playing') break;
+      const r = await act(p, box); if (r) did[r] = (did[r] || 0) + 1;
+      d = await dbg(page); if (d.wave >= 8 && d.phase === 'build') break;
+    }
+    d = await dbg(page);
+    info.push(JSON.stringify(did) + ', wave ' + d.wave + ', ' + d.pops + ' pops, ' + d.towers.length + ' towers, lives ' + d.lives);
+    if (d.towers.length < 4) fail('could not build towers (' + d.towers.length + ')');
+    if (!d.towers.some((t) => t.l > 1)) fail('could not upgrade a tower');
+    if (d.pops < 40) fail('towers did not pop bubbles (' + d.pops + ')');
+    if (d.wave < 6) fail('did not reach wave 6 (' + d.wave + ')');
+  },
   'tiny-siege': async (page, fail, info) => {
     const box = await page.locator('#game').boundingBox(); const p = page;
     await page.evaluate(() => { window.__bubzi.K.fastX = 3; });

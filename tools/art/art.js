@@ -288,6 +288,44 @@
       sparkle(c, W * 0.86, H * 0.5, 14 * s, '#FFD23F'); sparkle(c, W * 0.3, H * 0.3, 10 * s);
       vignette(c, W, H, 0.25);
     },
+    'bubble-bastion': function (c, W, H) {
+      c.fillStyle = lin(c, 0, 0, 0, H, [[0, '#9BE37A'], [1, '#5BBF3A']]); c.fillRect(0, 0, W, H);
+      var s = Math.min(W, H) / 512, cx = W / 2, cy = H / 2, r = rng(7);
+      c.fillStyle = 'rgba(255,255,255,0.12)'; var q = 64 * s;
+      for (var gx = 0; gx * q < W; gx++) for (var gy = 0; gy * q < H; gy++) if ((gx + gy) % 2) c.fillRect(gx * q, gy * q, q, q);
+      for (var i = 0; i < 14; i++) flower(c, r() * W, r() * H, 7 * s);
+      // winding stream
+      var pts = [[-0.1, 0.18], [0.62, 0.18], [0.62, 0.5], [0.3, 0.5], [0.3, 0.82], [1.1, 0.82]].map(function (p) { return [cx + (p[0] - 0.5) * 512 * s * (W > H ? W / H : 1), cy + (p[1] - 0.5) * 512 * s]; });
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      [['#C8B07A', 92], ['#5CC8F2', 78], ['#8EDDFB', 50]].forEach(function (L) { c.strokeStyle = L[0]; c.lineWidth = L[1] * s; c.beginPath(); pts.forEach(function (p, i) { if (!i) c.moveTo(p[0], p[1]); else c.lineTo(p[0], p[1]); }); c.stroke(); });
+      c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 6 * s; c.setLineDash([16 * s, 34 * s]); c.beginPath(); pts.forEach(function (p, i) { if (!i) c.moveTo(p[0], p[1]); else c.lineTo(p[0], p[1]); }); c.stroke(); c.setLineDash([]);
+      function bub(x, y, rr, col) {
+        c.save(); shadowOn(c, rr * 0.4, rr * 0.15, 'rgba(20,60,40,0.35)');
+        c.fillStyle = rad(c, x - rr * 0.35, y - rr * 0.4, rr * 0.1, rr, [[0, '#FFFFFF'], [0.4, col], [1, col]]); c.beginPath(); c.arc(x, y, rr, 0, TAU); c.fill(); shadowOff(c);
+        c.strokeStyle = 'rgba(255,255,255,0.95)'; c.lineWidth = rr * 0.09; c.beginPath(); c.arc(x, y, rr * 0.95, 0, TAU); c.stroke();
+        c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.ellipse(x - rr * 0.4, y - rr * 0.45, rr * 0.22, rr * 0.12, -0.6, 0, TAU); c.fill();
+        c.fillStyle = '#241B4D'; c.beginPath(); c.arc(x - rr * 0.26, y, rr * 0.11, 0, TAU); c.arc(x + rr * 0.26, y, rr * 0.11, 0, TAU); c.fill();
+        c.strokeStyle = '#241B4D'; c.lineWidth = rr * 0.08; c.lineCap = 'round'; c.beginPath(); c.arc(x, y + rr * 0.2, rr * 0.15, 0.2, Math.PI - 0.2); c.stroke();
+      }
+      function tower(x, y, k) {
+        c.save(); c.translate(x, y); c.scale(s * 2.6, s * 2.6); shadowOn(c, 10, 4);
+        c.fillStyle = k ? '#B4461A' : '#1A6FB0'; A.roundRect(c, -15, -2, 30, 16, 6); c.fill(); shadowOff(c);
+        c.fillStyle = k ? '#FF7F45' : '#38B6FF'; A.roundRect(c, -15, -5, 30, 15, 6); c.fill();
+        if (k) { c.save(); c.translate(0, -6); c.rotate(-0.7); c.fillStyle = '#4A3C78'; A.roundRect(c, -6, -16, 12, 18, 4); c.fill(); c.restore(); c.fillStyle = '#FF7F45'; c.beginPath(); c.arc(0, -3, 9, Math.PI, 0); c.fill(); }
+        else { c.save(); c.rotate(-2.4); c.fillStyle = '#E8EEF6'; c.fillRect(0, -2.2, 20, 4.4); c.fillStyle = '#9AA7B8'; c.beginPath(); c.moveTo(20, -2.2); c.lineTo(27, 0); c.lineTo(20, 2.2); c.fill(); c.restore();
+          c.fillStyle = '#38B6FF'; c.beginPath(); c.arc(0, -6, 10, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,0.55)'; c.beginPath(); c.arc(-3, -9, 3.5, 0, TAU); c.fill(); }
+        c.fillStyle = '#FFD23F'; for (var p = 0; p < 3; p++) { c.save(); c.translate(-8 + p * 8, 8); A.star(c, 3.6); c.restore(); }
+        c.restore();
+      }
+      bub(pts[1][0] - 150 * s, pts[1][1], 34 * s, '#FF8FB8'); bub(pts[1][0] - 40 * s, pts[1][1], 30 * s, '#8FD3FF');
+      bub(pts[2][0], pts[2][1] - 70 * s, 38 * s, '#B9A2FF'); bub(pts[3][0] + 90 * s, pts[3][1], 28 * s, '#8FF0C4');
+      tower(cx - 120 * s, cy - 70 * s, 0); tower(cx + 110 * s, cy + 90 * s, 1);
+      // a popping bubble
+      var px = pts[3][0], py = pts[3][1] + 80 * s; c.strokeStyle = 'rgba(255,255,255,0.95)'; c.lineWidth = 5 * s; c.beginPath(); c.arc(px, py, 40 * s, 0, TAU); c.stroke();
+      for (i = 0; i < 8; i++) { var a = i / 8 * TAU; sparkle(c, px + Math.cos(a) * 58 * s, py + Math.sin(a) * 58 * s, 9 * s, i % 2 ? '#FFFFFF' : '#FFD23F'); }
+      c.strokeStyle = '#E8EEF6'; c.lineWidth = 5 * s; c.beginPath(); c.moveTo(cx - 50 * s, cy - 20 * s); c.lineTo(px + 10 * s, py - 30 * s); c.stroke();
+      vignette(c, W, H, 0.2);
+    },
     'tiny-siege': function (c, W, H) {
       c.fillStyle = lin(c, 0, 0, 0, H, [[0, '#6FC9FF'], [0.6, '#D9F2FF'], [1, '#FFF1C9']]); c.fillRect(0, 0, W, H);
       rays(c, W * 0.5, H * 0.3, 14, W, 'rgba(255,255,255,0.1)', 0.2);

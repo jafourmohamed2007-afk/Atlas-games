@@ -31,6 +31,8 @@ var BubziCur = (function () {
       x: [{ f: '#2FBF71', d: 'M12 7.5c0-2 1-4 3.5-4.5c0 2.3-1.3 4-3.5 4.5z' }] },
     'spear-hills': { n: { en: 'Spearheads', fr: 'Pointes', ar: 'رؤوس الرماح' }, c: '#C9D3E0', d: '#55657A', rate: 1,
       p: 'M12 2.5L17.5 12L12 21.5L6.5 12z', x: [{ s: '#FFFFFF', d: 'M12 5.5v13' }] },
+    'bubble-bastion': { n: { en: 'Pearls', fr: 'Perles', ar: 'لآلئ' }, c: '#9FD8FF', d: '#2A7FB8', rate: 1,
+      p: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z', x: [{ f: '#FFFFFF', d: 'M8 7.5a2.2 2.2 0 1 0 0.01 0z' }] },
     'tiny-siege': { n: { en: 'War Banners', fr: 'Bannières', ar: 'رايات' }, c: '#FF7F45', d: '#A8380F', rate: 1,
       p: 'M5 2.5h2v19H5zM7 4h12l-3 4.5 3 4.5H7z', x: [{ f: '#FFD9C2', d: 'M9 6h5v2H9z' }] },
     'merge-blasters': { n: { en: 'Goo Cells', fr: 'Cellules de gelée', ar: 'خلايا الهلام' }, c: '#5FD4FF', d: '#1A6FB0', rate: 1,
