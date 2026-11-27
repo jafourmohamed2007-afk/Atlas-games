@@ -67,12 +67,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     if (X.ppl.some((q) => q.st === 'follow')) {
       await tp(120); await use(); await sleep(700); X = await ex();
       if (!X.ppl.filter((q) => q.st === 'follow').every((q) => q.sc === -1)) F('followers did not leave the house with the hero');
-      const pad = X.pads.reduce((a, x) => Math.abs(x - X.hero) < Math.abs(a - X.hero) ? x : a);
-      await tp(pad); await sleep(400);
-      let heli = false; for (let t = 0; t < 50; t++) { X = await ex(); if (X.heli) heli = true; if (heli && !X.heli) break; await sleep(200); }
-      if (!heli) F('no helicopter came to the pad');
     }
   }
+  // the whole group walks to the nearest pad at the end (rescuing the last one wins the level)
+  X = await ex(); if (X.scene !== -1) { await tp(120); await use(); await sleep(650); }
+  X = await ex(); { const pad = X.pads.reduce((a, x) => Math.abs(x - X.hero) < Math.abs(a - X.hero) ? x : a);
+    await tp(pad); await sleep(400);
+    let heli = false; for (let t = 0; t < 60; t++) { X = await ex(); if (X.heli) heli = true; if (heli && !X.heli) break; await sleep(200); }
+    if (!heli) F('no helicopter came to the pad'); }
   X = await ex();
   if (X.saved !== X.total) F('not every survivor was rescued ' + X.saved + '/' + X.total); else ok.push('helicopter rescued ' + X.saved + '/' + X.total + ' survivors');
   if (X.found !== X.loot) F('not everything searched ' + X.found + '/' + X.loot);
@@ -84,28 +86,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await p.keyboard.press('Enter'); s = await d(); X = await ex();
   if (s.mode !== 'fight' || s.story.idx !== 1 || !X || X.houses.length < 7) F('NEXT → 1-2 should be a longer street ' + JSON.stringify([s.mode, s.story, X && X.houses.length])); else ok.push('NEXT → 1-2 street with ' + X.houses.length + ' houses');
   // ---- arena objectives (chapter 2 and later) ----
-  await ev(() => window.__ink.story.start(9)); await sleep(2200); s = await d();
-  if (s.story.o !== 'r' || s.cages.length !== 3) F('2-2 rescue should have 3 cages ' + JSON.stringify([s.story, s.cages])); else ok.push('2-2 rescue with 3 cages');
-  if (await ex()) F('chapter 2 should not use exploration yet');
+  await ev(() => window.__ink.story.start(18)); await sleep(2200); s = await d();
+  if (s.story.o !== 'r' || s.cages.length !== 3) F('3-3 rescue should have 3 cages ' + JSON.stringify([s.story, s.cages])); else ok.push('3-3 rescue with 3 cages');
+  if (await ex()) F('chapter 3 should not use exploration yet');
   await ev(() => window.__ink.story.cages()); s = await waitMode('win', 4000);
   if (s.mode !== 'win') F('freeing all survivors did not win'); else ok.push('freeing survivors wins');
-  await ev(() => window.__ink.story.start(10)); s = await d();
-  if (s.story.o !== 's' || Math.round(s.story.timer) !== 45) F('2-3 survive timer wrong ' + JSON.stringify(s.story)); else ok.push('2-3 survive 45 s');
+  await ev(() => window.__ink.story.start(17)); s = await d();
+  if (s.story.o !== 's' || Math.round(s.story.timer) !== 45) F('3-2 survive timer wrong ' + JSON.stringify(s.story)); else ok.push('3-2 survive 45 s');
   await sleep(1500); s = await d(); if (!(s.story.timer < 44)) F('survive timer is not counting down');
   await ev(() => window.__ink.story.timer(0.2)); s = await waitMode('win', 4000); if (s.mode !== 'win') F('survive timer end did not win'); else ok.push('surviving the timer wins');
-  // ---- 2-4 defend: lose the lantern → game over → retry from the map ----
-  await ev(() => { window.__inkNoHurt = false; window.__ink.story.start(11); }); await sleep(2600); s = await d();
-  if (s.story.o !== 'd' || !s.lantern) F('defend level has no lantern'); else ok.push('2-4 defend: Ink Lantern ' + s.lantern + ' HP');
+  // ---- 3-5 defend: lose the lantern → game over → retry from the map ----
+  await ev(() => { window.__inkNoHurt = false; window.__ink.story.start(20); }); await sleep(2600); s = await d();
+  if (s.story.o !== 'd' || !s.lantern) F('defend level has no lantern'); else ok.push('3-5 defend: Ink Lantern ' + s.lantern + ' HP');
   await shot('08-defend');
   await ev(() => window.__ink.story.lanternHit(99999)); await sleep(1600);
   if ((await ev(() => window.__bubzi.state())) !== 'over') F('lantern destroyed but no game over'); else ok.push('lantern out → level failed');
   await shot('09-failed');
   await p.click('#bAgain'); await sleep(400); s = await d();
-  if (s.mode !== 'map' || s.mapCh !== 1 || s.mapSel !== 3) F('retry did not return to the map at 2-4 ' + JSON.stringify([s.mode, s.mapCh, s.mapSel])); else ok.push('Play again → map at 2-4');
+  if (s.mode !== 'map' || s.mapCh !== 2 || s.mapSel !== 4) F('retry did not return to the map at 3-5 ' + JSON.stringify([s.mode, s.mapCh, s.mapSel])); else ok.push('Play again → map at 3-5');
   // ---- modifiers ----
-  await ev(() => window.__ink.story.start(13)); await sleep(2400); s = await d();
-  if (s.story.m !== 'nogun') F('2-6 should be NO GUNS'); else { const a0 = s.hero.ammo; await ev(() => window.__ink.fire()); s = await d(); if (s.hero.ammo !== a0) F('gun fired in a no-gun level'); else ok.push('NO GUNS modifier blocks shooting'); }
-  await ev(() => window.__ink.story.start(9)); await sleep(2400); s = await d(); if (s.story.m !== 'dark' || s.theme !== 'metro') F('2-2 should be a dark metro level'); else ok.push('2-2 BLACKOUT in the metro');
+  await ev(() => window.__ink.story.start(28)); await sleep(2400); s = await d();
+  if (s.story.m !== 'nogun') F('4-5 should be NO GUNS'); else { const a0 = s.hero.ammo; await ev(() => window.__ink.fire()); s = await d(); if (s.hero.ammo !== a0) F('gun fired in a no-gun level'); else ok.push('NO GUNS modifier blocks shooting'); }
+  await ev(() => window.__ink.story.start(9)); await sleep(2400); s = await d(); if (s.story.m !== 'dark' || s.theme !== 'metro' || !(await ex())) F('2-2 should be a dark metro street'); else ok.push('2-2 BLACKOUT metro street with ' + (await ex()).houses.length + ' buildings');
   await shot('10-dark-metro');
   // ---- every boss ----
   await ev(() => { window.__inkNoHurt = true; });
