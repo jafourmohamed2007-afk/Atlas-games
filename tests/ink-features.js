@@ -9,7 +9,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1000, height: 600 } });
   const errs = [], fails = [], ok = []; p.on('pageerror', (e) => errs.push(e.message));
   const F = (m) => fails.push(m), d = () => p.evaluate(() => window.__bubzi.K.dbg()), ev = (f, a) => p.evaluate(f, a);
-  await p.goto(URL); await ev(() => localStorage.setItem('bubzi:cur:ink-heroes', '20000'));
+  await p.goto(URL); await ev(() => { localStorage.setItem('bubzi:cur:ink-heroes', '20000'); localStorage.setItem('bubzi:ink:hook', '1'); });
   await p.click('#bPlay'); await sleep(200);
   if ((await d()).storyMode) await p.keyboard.press('KeyT'); // Infinity
   // ---- shop: open, buy a gun, equip, buy items ----
