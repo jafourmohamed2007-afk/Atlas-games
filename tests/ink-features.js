@@ -12,6 +12,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await p.goto(URL); await ev(() => { localStorage.setItem('bubzi:cur:ink-heroes', '20000'); localStorage.setItem('bubzi:ink:hook', '1'); });
   await p.click('#bPlay'); await sleep(200);
   if ((await d()).storyMode) await p.keyboard.press('KeyT'); // Infinity
+  // ---- no gun at the start: guns are bought ----
+  { const g0 = await d(); if (g0.gun !== null) F('a fresh save should have no gun (got ' + g0.gun + ')'); else ok.push('no gun at the start'); }
   // ---- shop: open, buy a gun, equip, buy items ----
   await p.keyboard.press('KeyS'); if ((await d()).mode !== 'shop') F('shop did not open');
   for (let i = 0; i < 5; i++) await p.keyboard.press('ArrowRight');           // select Longshot Sniper (index 5)
@@ -21,6 +23,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const guns = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:guns')));
   if (c0 - c1 !== 1200 || !guns.includes('longshot')) F('buying Longshot failed (' + c0 + '→' + c1 + ')'); else ok.push('bought Longshot for 1200');
   if ((await ev(() => localStorage.getItem('bubzi:ink:gun'))) !== '"longshot"') F('bought gun not equipped');
+  { const am = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:ammo') || '{}')); if (am.longshot !== 15) F('a bought Longshot should come with 15 rounds (3 mags), got ' + am.longshot); else ok.push('bought gun comes with 3 mags');
+    const c2 = await ev(() => JSON.parse(localStorage.getItem('bubzi:cur:ink-heroes'))); await p.keyboard.press('KeyA'); await sleep(50);
+    const am2 = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:ammo') || '{}')), c3 = await ev(() => JSON.parse(localStorage.getItem('bubzi:cur:ink-heroes')));
+    if (am2.longshot !== 25 || c2 - c3 !== 85) F('ammo pack should add 2 mags for 85 (got ' + am2.longshot + ', paid ' + (c2 - c3) + ')'); else ok.push('ammo pack: +10 rounds for 85'); }
   await p.keyboard.press('KeyE'); // items tab
   for (let i = 0; i < 8; i++) { for (let k = 0; k < 3; k++) await p.keyboard.press('Enter'); await p.keyboard.press('ArrowRight'); }
   const bag = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:items')));
@@ -76,8 +82,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const toFight = async () => { for (let i = 0; i < 20 && (await d()).mode !== 'fight'; i++) { await p.keyboard.press('Enter'); await sleep(150); } };
   await toFight();
   // medkit: needs shield gone; wait it out
-  await sleep(6500); await ev(() => window.__ink.hurt(40)); await sleep(800); const hpLow = (await d()).hero.hp;
-  await ev(() => window.__ink.use('medkit')); s = await d(); if (!(s.hero.hp > hpLow)) F('medkit did not heal'); else ok.push('medkit ✓');
+  for (let i = 0; i < 100; i++) { const q = await d(); if (q.mode === 'fight' && !(q.shieldT > 0) && !(q.hero.inv > 0)) break; if (q.mode !== 'fight') await p.keyboard.press('Enter'); await sleep(120); }
+  await ev(() => window.__ink.hurt(40)); await sleep(800); const hpLow = (await d()).hero.hp;
+  await ev(() => window.__ink.use('medkit')); s = await d(); if (!(s.hero.hp > hpLow)) F('medkit did not heal ' + JSON.stringify({ hpLow, hp: s.hero.hp, mode: s.mode, sh: s.shieldT, inv: s.hero.inv, wave: s.wave, story: !!s.story, ex: s.story && s.story.o })); else ok.push('medkit ✓');
   // ---- heart revive ----
   await toFight();
   const hearts0 = (await d()).bag.heart;

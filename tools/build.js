@@ -21,9 +21,11 @@ let built = 0;
 for (const g of games) {
   // 3D games are ES modules under src/<dir>/main.js, bundled (three.js + models) by esbuild into one script
   const BUNDLED = { 'pocket-grove': 'src/grove/main.js' };
-  const src = path.join(ROOT, BUNDLED[g.id] || path.join('src/games', g.id + '.js'));
+  // editions: one source file built as two games (the edition flag is set before the game code runs)
+  const EDITION = { 'ink-heroes-remastered': ['ink-heroes', 'remastered'] }[g.id];
+  const src = path.join(ROOT, BUNDLED[g.id] || path.join('src/games', (EDITION ? EDITION[0] : g.id) + '.js'));
   if (!fs.existsSync(src)) { console.log('skip (no source yet):', g.id); continue; }
-  const code = BUNDLED[g.id] ? require('esbuild').buildSync({ entryPoints: [src], bundle: true, format: 'iife', minify: true, write: false, target: 'es2019', loader: { '.glb': 'binary' }, legalComments: 'none' }).outputFiles[0].text : (g.id.endsWith('-remastered') ? ['-music.js', '-fight.js'] : ['-fight.js']).map((suf) => path.join(ROOT, 'src/games', g.id.split('-')[0] + suf)).filter((f) => fs.existsSync(f)).map((f) => fs.readFileSync(f, 'utf8') + '\n').join('') + fs.readFileSync(src, 'utf8');
+  const code = BUNDLED[g.id] ? require('esbuild').buildSync({ entryPoints: [src], bundle: true, format: 'iife', minify: true, write: false, target: 'es2019', loader: { '.glb': 'binary' }, legalComments: 'none' }).outputFiles[0].text : ['-music.js', '-fight.js'].map((suf) => path.join(ROOT, 'src/games', g.id.split('-')[0] + suf)).filter((f) => fs.existsSync(f)).map((f) => fs.readFileSync(f, 'utf8') + '\n').join('') + (EDITION ? 'window.INK_EDITION = ' + JSON.stringify(EDITION[1]) + ';\n' : '') + fs.readFileSync(src, 'utf8');
   const url = `${SITE}/play/${g.id}.html`;
   const title = `${g.title.en} – Play Free Online | Bubzi`;
   const ld = {

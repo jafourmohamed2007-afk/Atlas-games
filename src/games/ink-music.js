@@ -20,7 +20,11 @@
   var LEAD = [[0, 2], [3, 1], [4, 1], [6, 2], [10, 1], [11, 1], [12, 3]], LEAD_NOTES = [62, 65, 64, 62, 60, 62, 57];
   /* Recorded audio (ElevenLabs, games/audio/ink-heroes/*.mp3): loaded on first use, played through the kit's
      master bus. Anything missing (offline, file://, an old browser) falls back to the synth above. */
-  var BASE = 'audio/ink-heroes/', SFX_FILES = ['hit', 'punch', 'heavy', 'whoosh', 'groan', 'boom', 'land', 'jump', 'boss', 'reload', 'shot', 'block', 'pop', 'combo', 'reward', 'star', 'coin', 'over', 'click', 'flip', 'win'];
+  var BASE = 'audio/ink-heroes/';
+  // one game sound name → several recordings, picked at random (zombie / civilian voices)
+  var VARIANTS = { groan: ['groan', 'groan2', 'groan3'], zatk: ['z_attack1', 'z_attack2', 'z_attack3'], zbite: ['z_bite1', 'z_bite2', 'z_bite3'], zdie: ['z_die1', 'z_die2', 'z_die3'],
+    chelp: ['c_help1', 'c_help2', 'c_help3'], cscream: ['c_scream1', 'c_scream2'], cthanks: ['c_thanks1', 'c_thanks2'] };
+  var SFX_FILES = ['groan2', 'groan3', 'z_attack1', 'z_attack2', 'z_attack3', 'z_bite1', 'z_bite2', 'z_bite3', 'z_die1', 'z_die2', 'z_die3', 'c_help1', 'c_help2', 'c_help3', 'c_scream1', 'c_scream2', 'c_thanks1', 'c_thanks2','hit', 'punch', 'heavy', 'whoosh', 'groan', 'boom', 'land', 'jump', 'boss', 'reload', 'shot', 'block', 'pop', 'combo', 'reward', 'star', 'coin', 'over', 'click', 'flip', 'win'];
   var bufs = {}, loading = {};
   function load(K, name) {
     if (bufs[name] || loading[name] || !window.fetch || location.protocol === 'file:') return bufs[name] || null;
@@ -33,27 +37,29 @@
   }
   function make() {
     var rec = null, recMood = '', lastCall = 0, watch = 0;
-    function recPlay(K, m) { // crossfade to the recorded loop for this mood; returns false if it is not ready
+    function recPlay(K, m, track) { // crossfade to the recorded loop for this mood/track; returns false if it is not ready
       var o = K.audioOut && K.audioOut(); if (!o) return false;
-      var key = 'm_' + (m === 'cut' ? 'menu' : m), b = load(K, key);
-      if (recMood === m && rec) { rec.g.gain.setTargetAtTime(o.muted ? 0 : (m === 'explore' ? 0.5 : 0.62), o.ctx.currentTime, 0.2); return true; }
+      var key = 'm_' + (track || (m === 'cut' ? 'menu' : m)), b = load(K, key);
+      if (!b && track && loading[key] === 'failed') { key = 'm_' + (m === 'cut' ? 'menu' : m); b = load(K, key); } // a missing track falls back to the base one
+      if (recMood === key && rec) { rec.g.gain.setTargetAtTime(o.muted ? 0 : (m === 'explore' ? 0.5 : 0.62), o.ctx.currentTime, 0.2); return true; }
       if (!b) return false;
       recStop(o, 0.6);
       var src = o.ctx.createBufferSource(), g = o.ctx.createGain(); src.buffer = b; src.loop = true; src.loopStart = 0.03; src.loopEnd = b.duration - 0.03;
       g.gain.value = 0.0001; g.gain.setTargetAtTime(o.muted ? 0 : 0.62, o.ctx.currentTime, 0.35); src.connect(g); g.connect(o.out); src.start();
-      rec = { src: src, g: g }; recMood = m; return true;
+      rec = { src: src, g: g }; recMood = key; return true;
     }
     function recStop(o, fade) { if (!rec) return; var r = rec; rec = null; recMood = ''; try { r.g.gain.setTargetAtTime(0.0001, o.ctx.currentTime, fade / 3); r.src.stop(o.ctx.currentTime + fade + 0.1); } catch (e) { } }
     var api = make0();
     var synthMood = api.mood;
-    api.mood = function (K, m) {
+    api.mood = function (K, m, track) {
       lastCall = Date.now();
       if (!watch) watch = setInterval(function () { if (Date.now() - lastCall > 300 && rec) { var o = K.audioOut(); if (o) recStop(o, 0.4); } }, 250); // paused / hidden tab: fade out
-      if (recPlay(K, MOODS[m] ? m : 'menu')) { synthMood(K, '__off'); return; }
+      if (recPlay(K, MOODS[m] ? m : 'menu', track)) { synthMood(K, '__off'); return; }
       synthMood(K, m);
     };
     api.sfx = function (K, n) { // a recorded sample when it is loaded; false = let the kit synth play it
-      var o = K.audioOut && K.audioOut(); if (!o || o.muted || SFX_FILES.indexOf(n) < 0) return false;
+      var o = K.audioOut && K.audioOut(); if (VARIANTS[n]) { var vs = VARIANTS[n], pickN = vs[Math.floor(Math.random() * vs.length)]; if (!o || !load(K, pickN)) pickN = vs[0]; n = pickN; }
+      if (!o || o.muted || SFX_FILES.indexOf(n) < 0) return false;
       var b = load(K, n); if (!b) return false;
       var now = o.ctx.currentTime; if (api._last[n] && now - api._last[n] < 0.045) return true; api._last[n] = now;
       var src = o.ctx.createBufferSource(), g = o.ctx.createGain(); src.buffer = b; src.playbackRate.value = 0.94 + Math.random() * 0.12; g.gain.value = n === 'click' ? 0.45 : 0.8;
