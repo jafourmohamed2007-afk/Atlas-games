@@ -18,6 +18,8 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `wiggle-snake.html` | Snake | Swipe / tap · arrows |
 | `ink-heroes.html` | 2.5D stickman brawler: 40-level story + Infinity | On-screen buttons · arrows, W, J, K, L, R, 1-7 |
 | `spear-hills.html` | Turn-based spear duel | Pull back and let go · Up/Down angle, Left/Right power, Space |
+| `merge-blasters.html` | Merge blasters, pop goo blobs before your wall | Drag same numbers together · B buys, arrows + Space |
+| `tiny-siege.html` | Lane war: miners, stick army, enemy tower | Tap the unit buttons · 1-4 send units, H Attack/Defend |
 | `pocket-grove.html` | 3D idle garden (three.js) | Tap plots · arrows + Enter, S shop, A album, H pets, B boost |
 
 Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,

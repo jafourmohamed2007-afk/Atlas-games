@@ -230,6 +230,35 @@ const BOTS = {
     if (d.kills < 15) fail('only ' + d.kills + ' kills — combat may be broken');
   },
 
+  'tiny-siege': async (page, fail, info) => {
+    const box = await page.locator('#game').boundingBox(); const p = page;
+    await page.evaluate(() => { window.__bubzi.K.fastX = 3; });
+    const act = async (p, box) => {
+    const d = await dbg(p); const b = (k) => d.btn.find((q) => q.k === k);
+    let pick = null;
+    if (d.mine.miner < 3 && d.gold >= 50 && d.cds.miner <= 0) pick = 'miner';
+    else if (d.gold >= 220 && d.cds.giant <= 0 && Math.random() < 0.5) pick = 'giant';
+    else if (d.gold >= 85 && d.cds.archer <= 0 && Math.random() < 0.45) pick = 'archer';
+    else if (d.gold >= 60 && d.cds.sword <= 0 && (d.gold < 200 || Math.random() < 0.3)) pick = 'sword';
+    const want = d.mine.army >= 5 ? 'attack' : d.mine.army <= 1 ? 'hold' : d.mode;
+    if (want !== d.mode) { await p.mouse.click(box.x + d.modeBtn.x, box.y + d.modeBtn.y); await sleep(40); }
+    if (pick) { const q = b(pick); await p.mouse.click(box.x + q.x, box.y + q.y); await sleep(60); return pick; }
+    await sleep(150); return '';
+  };
+    const sent = {}; let d, t0 = Date.now(), lvl = 1, wins = 0, hpDrop = false;
+    while (Date.now() - t0 < 70000) {
+      if ((await st(page)) !== 'playing') break;
+      const r = await act(p, box); if (r) sent[r] = (sent[r] || 0) + 1;
+      d = await dbg(page); if (d.level > lvl) { wins += d.level - lvl; lvl = d.level; } if (d.foeHp < d.foeMax) hpDrop = true;
+      if (wins >= 2) break;
+    }
+    d = await dbg(page);
+    info.push(JSON.stringify(sent) + ', ' + d.kills + ' kills, ' + wins + ' towers down, level ' + d.level + ', your tower ' + Math.round(d.myHp));
+    if ((sent.miner || 0) < 2) fail('could not send miners');
+    if ((sent.sword || 0) + (sent.archer || 0) + (sent.giant || 0) < 5) fail('could not send fighters');
+    if (d.kills < 5) fail('fighters did not beat enemy units (' + d.kills + ')');
+    if (wins < 1) fail('never knocked down the enemy tower');
+  },
   'merge-blasters': async (page, fail, info) => {
     const box = await page.locator('#game').boundingBox(); const p = page;
     const act = async (p, box) => {

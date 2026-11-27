@@ -52,6 +52,32 @@
     }
   },
   {
+    "id": "tiny-siege",
+    "category": "action",
+    "color": "#FF7F45",
+    "isNew": true,
+    "title": {
+      "en": "Tiny Siege",
+      "fr": "Petit Siège",
+      "ar": "الحصار الصغير"
+    },
+    "desc": {
+      "en": "Send miners for gold, build a stick army of swords, archers and giants, and knock down the enemy tower before it knocks down yours. A free lane war strategy game.",
+      "fr": "Envoie des mineurs chercher de l'or, forme une armée de bâtons avec épées, archers et géants, et abats la tour ennemie avant qu'elle n'abatte la tienne. Un jeu de stratégie gratuit.",
+      "ar": "أرسل المنقّبين لجمع الذهب، وكوّن جيشاً من العصي بالسيوف والرماة والعمالقة، واهدم برج العدو قبل أن يهدم برجك. لعبة استراتيجية مجانية."
+    },
+    "keywords": {
+      "en": "stick war game, tower war, lane strategy game, stickman army, free strategy game",
+      "fr": "jeu de guerre de bâtons, guerre de tours, jeu de stratégie gratuit, armée de stickman",
+      "ar": "لعبة حرب العصي, حرب الأبراج, لعبة استراتيجية مجانية, جيش الرجل العصا"
+    },
+    "howto": {
+      "en": "Tap the buttons at the bottom to send units. Miners walk to the gold rocks and bring back gold. Swords fight up close, archers shoot from far away and giants are slow but very strong. Your units walk to the enemy tower by themselves. Tap Attack/Defend to make your army push forward or wait near your tower. Knock the enemy tower down to win the level; if your tower falls, the game is over. Keyboard: 1-4 send units, H switches Attack/Defend.",
+      "fr": "Touche les boutons en bas pour envoyer des unités. Les mineurs vont aux rochers d'or et rapportent de l'or. Les épées se battent de près, les archers tirent de loin et les géants sont lents mais très forts. Tes unités marchent seules vers la tour ennemie. Touche Attaque/Défense pour que ton armée avance ou attende près de ta tour. Abats la tour ennemie pour gagner le niveau ; si ta tour tombe, la partie est finie. Clavier : 1-4 pour envoyer, H pour Attaque/Défense.",
+      "ar": "المس الأزرار في الأسفل لإرسال الوحدات. يذهب المنقّبون إلى صخور الذهب ويعودون بالذهب. السيّافون يقاتلون عن قرب، والرماة يطلقون من بعيد، والعمالقة بطيئون لكنهم أقوياء جداً. تمشي وحداتك وحدها نحو برج العدو. المس هجوم/دفاع ليتقدّم جيشك أو ينتظر قرب برجك. اهدم برج العدو لتفوز بالمستوى، وإذا سقط برجك تنتهي اللعبة. لوحة المفاتيح: 1-4 لإرسال الوحدات، H للتبديل بين الهجوم والدفاع."
+    }
+  },
+  {
     "id": "block-bloom",
     "category": "puzzle",
     "color": "#7B4DFF",

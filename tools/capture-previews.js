@@ -8,7 +8,7 @@ const ROOT = path.join(__dirname, '..');
 const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/games.json'), 'utf8')).map((g) => g.id);
 const only = process.argv.slice(2);
 const FRAMES = 12, FW = 240, FH = 240, GAP = 190, VW = 360, VH = 640;
-const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170, 'ink-heroes': 250, 'pocket-grove': 200, 'spear-hills': 200, 'merge-blasters': 150 };
+const Y0 = { 'block-bloom': 86, 'rooftop-rush': 230, 'hop-hook': 70, 'number-pop': 280, 'hill-hopper': 170, 'jelly-drop': 262, 'memo-match': 190, 'wiggle-snake': 170, 'ink-heroes': 250, 'pocket-grove': 200, 'spear-hills': 200, 'merge-blasters': 150, 'tiny-siege': 120 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const dbg = (p) => p.evaluate(() => JSON.parse(JSON.stringify(window.__bubzi.K.dbg())));
 const playing = (p) => p.evaluate(() => window.__bubzi.state() === 'playing');
@@ -73,6 +73,18 @@ const ACT = {
       g.skip(240); g.camYaw(0.4 + Math.sin(Date.now() / 2500) * 0.35); });
     await p.keyboard.press('Backspace'); await sleep(170);
   },
+  'tiny-siege': async (p, box) => {
+    const d = await dbg(p); const b = (k) => d.btn.find((q) => q.k === k);
+    let pick = null;
+    if (d.mine.miner < 3 && d.gold >= 50 && d.cds.miner <= 0) pick = 'miner';
+    else if (d.gold >= 220 && d.cds.giant <= 0 && Math.random() < 0.5) pick = 'giant';
+    else if (d.gold >= 85 && d.cds.archer <= 0 && Math.random() < 0.45) pick = 'archer';
+    else if (d.gold >= 60 && d.cds.sword <= 0 && (d.gold < 200 || Math.random() < 0.3)) pick = 'sword';
+    const want = d.mine.army >= 5 ? 'attack' : d.mine.army <= 1 ? 'hold' : d.mode;
+    if (want !== d.mode) { await p.mouse.click(box.x + d.modeBtn.x, box.y + d.modeBtn.y); await sleep(40); }
+    if (pick) { const q = b(pick); await p.mouse.click(box.x + q.x, box.y + q.y); await sleep(60); return pick; }
+    await sleep(150); return '';
+  },
   'merge-blasters': async (p, box) => {
     const d = await dbg(p);
     const lv = {}; let pair = null; d.grid.forEach((l, i) => { if (!l || pair) return; if (lv[l] !== undefined) pair = [i, lv[l]]; else lv[l] = i; });
@@ -109,7 +121,7 @@ const ACT = {
     const box = await p.locator('#game').boundingBox();
     const s = {}; let stop = false;
     const loop = (async () => { while (!stop) { try { if (await playing(p)) await ACT[id](p, box, s); else { await p.evaluate(() => window.__bubzi.start()); } } catch (e) { await sleep(50); } } })();
-    await sleep(id === 'memo-match' ? 2600 : id === 'jelly-drop' ? 11000 : id === 'ink-heroes' ? 9000 : id === 'pocket-grove' ? 4000 : id === 'merge-blasters' ? 16000 : 3200);
+    await sleep(id === 'memo-match' ? 2600 : id === 'jelly-drop' ? 11000 : id === 'ink-heroes' ? 9000 : id === 'pocket-grove' ? 4000 : id === 'merge-blasters' ? 16000 : id === 'tiny-siege' ? 14000 : 3200);
     const frames = [];
     for (let i = 0; i < FRAMES; i++) { frames.push((await p.screenshot({ type: 'jpeg', quality: 88, clip: { x: 0, y: Y0[id], width: VW, height: VW } })).toString('base64')); await sleep(GAP); }
     stop = true; await loop;
