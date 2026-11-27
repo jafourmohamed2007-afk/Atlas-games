@@ -299,6 +299,11 @@
       case 'zatk': { var k = o.k || 0; var up = k < 0.6 ? 2.8 : lerp(2.8, 0.9, (k - 0.6) / 0.4); return { tor: 0.2 + (k > 0.6 ? 0.4 : -0.1), hd: 0.2, ua: up - 0.3, ub: up - 0.2, fa: up, fb: up + 0.1, bt: -0.4, bs: -0.2, ft: 0.4, fs: 0.2 }; }
       case 'zspit': { var q = o.k || 0; return { tor: 0.75 - q * 0.6, hd: 0.6 - q, ua: 0.3, ub: 0.4, fa: 0.4, fb: 0.6, bt: -0.4, bs: -0.2, ft: 0.4, fs: 0.2 }; }
       case 'zcrawl': { var c2 = Math.sin(t); return { tor: 1.4, hd: -0.5, ua: 0.4 + c2 * 0.4, ub: 0.15 + c2 * 0.3, fa: 0.4 - c2 * 0.4, fb: 0.15 - c2 * 0.3, bt: -1.1, bs: -1.55, ft: -0.95, fs: -1.6 }; }
+      case 'zfhead': return { tor: -0.5, hd: -0.75, ua: 0.9, ub: 1.7, fa: 1.15, fb: 1.9, bt: -0.4, bs: -0.1, ft: 0.25, fs: 0.1 };
+      case 'zfgut': return { tor: 0.95, hd: 0.45, ua: 0.45, ub: 0.8, fa: 0.6, fb: 0.95, bt: -0.2, bs: 0.15, ft: 0.35, fs: 0.25 };
+      case 'zfleg': return { tor: 0.35, hd: 0.25, ua: 1.1, ub: 1.5, fa: 1.25, fb: 1.7, bt: -0.15, bs: 0.7, ft: 0.5, fs: 0.25 };
+      case 'ztumble': return { tor: -0.25, hd: -0.45, ua: -1.0, ub: -0.6, fa: 2.3, fb: 2.8, bt: -0.6, bs: -1.15, ft: 0.55, fs: 0.05 };
+      case 'zlimp': return { tor: 0, hd: 0.4, ua: 0.12, ub: 0.22, fa: -0.1, fb: -0.04, bt: 0.1, bs: 0.28, ft: -0.08, fs: 0.06 };
       case 'zhurt': return { tor: -0.3, hd: -0.5, ua: 2.2, ub: 2.6, fa: 2.0, fb: 2.4, bt: -0.3, bs: 0, ft: 0.4, fs: 0.2 };
       case 'zshield': { var r = Math.sin(t); return { tor: 0.15, hd: 0.2, ua: 1.4, ub: 1.4, fa: 1.45, fb: 1.45, bt: -0.35 * r, bs: -0.35 * r - 0.3, ft: 0.35 * r, fs: 0.35 * r - 0.1 }; }
     }
@@ -370,8 +375,9 @@
       atkT: 0, atkDur: 0, step: -1, buf: false, comboWin: 0, hitDone: false, dive: false, diveHits: [], shootCd: 0, ammo: h.gun.mag, reloadT: 0,
       ink: 0, specialT: 0, specialKind: null, specTick: 0, hurtT: 0, inv: 0, rage: 0, melee: null, gun2: null, scarf: [], dashes: 0 };
   }
+  function newHeroF(K) { var o = newHero(K); o.F = newFighter(o); o.cmb = null; o.cmbBuf = null; return o; }
   function setupRun(K) {
-    hero = newHero(K); zombies = []; bullets = []; spits = []; pickups = []; parts = []; decals = []; allies = []; banners = [];
+    hero = newHeroF(K); corpses = []; IF.fx.length = 0; zombies = []; bullets = []; spits = []; pickups = []; parts = []; decals = []; allies = []; banners = [];
     curGun = equippedGun(); bag = inv(); turrets = []; bombs = []; nades = []; planeT = 0;
     waves = []; wave = 0; queue = []; spawnT = 0; hs = 0; slow = 0; combo = 0; comboT = 0; kills = 0; bossRef = null; tutT = 0; firstTypes = {}; introT = 0; clearT = 0;
     mods = { maxHp: 0, melee: 1, rate: 1, mag: 1, vamp: 0, focus: 1, buddy: 0, luck: 1, crit: 0.05 };
@@ -563,20 +569,8 @@
   }
   function baseMag() { return Math.round(gunDef(curGun).mag * mods.mag); }
   function itemScale() { return 0.6 + 0.4 * threat(Math.max(1, curEff())).hp; }
-  function attack(K) {
-    if (mode !== 'fight' || hero.hp <= 0 || hero.specialT > 0) return;
-    if (hero.atkT > 0) { hero.buf = true; return; }
-    if (!hero.ground) { if (!hero.dive) { hero.dive = true; hero.diveHits = []; hero.vy = 760; hero.vx = hero.face * 420; hero.atkT = 0; K.sfx('whoosh'); } return; }
-    var m = meleeSpec();
-    // auto-face: if nothing is in front but a zombie is close behind, turn around
-    var front = false, behind = null;
-    zombies.forEach(function (z) { if (z.dead) return; var dx = (z.x - hero.x) * hero.face; if (dx > -10 && dx < m.range[2] + 30) front = true; else if (dx < 0 && dx > -160 && (!behind || Math.abs(z.x - hero.x) < Math.abs(behind.x - hero.x))) behind = z; });
-    if (!front && behind) hero.face = -hero.face;
-    hero.step = hero.comboWin > 0 ? (hero.step + 1) % 3 : 0;
-    hero.atkT = hero.atkDur = m.time[hero.step]; hero.hitDone = false; hero.buf = false;
-    hero.vx = hero.face * (hero.step === 2 ? 220 : 120);
-    K.sfx('whoosh');
-  }
+  function attack(K) { startCombo(K, 0); }
+  function attack2(K) { startCombo(K, 1); }
   function hitZombie(K, z, dmg, dir, kb, ky, src) {
     if (z.dead || z.rise > 0.2 || z.hidden) return false;
     var crit = Math.random() < mods.crit && src !== 'boom';
@@ -605,9 +599,9 @@
     z.dead = true; kills++;
     var mult = 1 + Math.min(2, Math.floor(combo / 10) * 0.25);
     K.addScore(Math.round(z.d.score * mult * (z.elite ? 3 : 1) * (1 + (wave - 1) * 0.05)));
-    var J = rig(z.pose, z.x, z.y, z.face, z.d.size, z.y >= -1, z.t === 'biter');
-    ragdoll(J, z.d.col, dir || -z.face, z.d.size, 10 * z.d.size);
-    goo(z.x, -50, z.d.col, 16, 520); decals.push({ x: z.x, w: rnd(30, 60) * z.d.size, col: z.d.col, t: 8 });
+    if (meleeKO) { toCorpse(K, z, meleeKO); goo(z.x, -50, z.d.col, 8, 360); }
+    else { var J = zJ(z); ragdoll(J, z.d.col, dir || -z.face, z.d.size, 10 * z.d.size); goo(z.x, -50, z.d.col, 16, 520); }
+    decals.push({ x: z.x, w: rnd(30, 60) * z.d.size, col: z.d.col, t: 8 });
     if (z.d.explode) explode(K, z.x, -50 * z.d.size, 140, 60, z);
     if (mods.vamp) hero.hp = Math.min(hero.maxHp, hero.hp + mods.vamp);
     // drops
@@ -644,13 +638,15 @@
     if (K.test && window.__inkGod) return;
     if (hero.shield > 0) { sparks(hero.x, -80, 6, '#3EE0FF'); K.sfx('block'); return; }
     if (hero.specialT > 0 && (hero.specialKind === 'overdrive' || hero.specialKind === 'bladedash')) return;
+    if ((hero.cmb || hero.F.busy()) && dmg < hero.maxHp * 0.2) { hero.hp -= Math.round(dmg); if (story) story.dmg += Math.round(dmg); hero.inv = 0.45; K.sfx('hit'); K.flash('#FF3B4E', 0.12); goo(hero.x, -70, '#111111', 4, 220); if (hero.hp > 0) return; hero.hp = 1; }
+    if (hero.cmb || hero.F.busy()) { endCombo(); hero.F.stop(); }
     hero.hp -= Math.round(dmg); if (story) story.dmg += Math.round(dmg); hero.inv = 0.7; hero.hurtT = 0.28; hero.vx = dir * 340; hero.vy = -260; hero.ground = false;
     hero.atkT = 0; hero.dive = false; combo = 0;
     K.sfx('hit'); K.shake(7); K.flash('#FF3B4E', 0.22); K.haptic(40);
     goo(hero.x, -70, '#111111', 6, 260);
     if (hero.hp <= 0) {
       hero.hp = 0;
-      var J = rig(hero.pose, hero.x, hero.y, hero.face, hero.def.size, hero.ground, false);
+      var J = heroJ();
       ragdoll(J, '#111111', dir, 1, hero.def.lw); hero.dead = true;
       if (bag.heart > 0) { mode = 'down'; downT = 6; held = {}; keys = {}; K.sfx('over'); return; }
       endRun(K);
@@ -665,7 +661,7 @@
   function reviveHero(K) {
     if (!hero || (!wave && !story)) { startRun(K); return; }
     if (story) { story.revived = true; if (lantern && lantern.hp <= 0) lantern.hp = Math.round(lantern.maxHp * 0.5); }
-    hero.dead = false; hero.hp = hero.maxHp; hero.inv = 2.6; hero.y = 0; hero.vy = 0; hero.ground = true; hero.atkT = 0; hero.specialT = 0; hero.specialKind = null; spits = []; waves = [];
+    hero.dead = false; hero.cmb = null; hero.F = newFighter(hero); hero.hp = hero.maxHp; hero.inv = 2.6; hero.y = 0; hero.vy = 0; hero.ground = true; hero.atkT = 0; hero.specialT = 0; hero.specialKind = null; spits = []; waves = [];
     K.sfx('boom'); K.sfx('reward'); ring(hero.x, -60, 380, '#FFFFFF'); ring(hero.x, -60, 220, '#FF3B6B');
     zombies.forEach(function (z) { var d = Math.abs(z.x - hero.x); if (d < 420) hitZombie(K, z, 60 * itemScale(), z.x < hero.x ? -1 : 1, 700, 500, 'boom'); });
     mode = 'fight';
@@ -700,13 +696,13 @@
     turrets = turrets.filter(function (t) { return t.t > 0; });
   }
   function fire(K) {
-    if (hero.shootCd > 0 || hero.reloadT > 0 || hero.specialT > 0 || mode !== 'fight' || hero.hp <= 0) return;
+    if (hero.shootCd > 0 || hero.reloadT > 0 || hero.specialT > 0 || mode !== 'fight' || hero.hp <= 0 || hero.cmb || hero.F.busy()) return;
     if (story && story.d.m === 'nogun') { if (!hero.noGunT) { ftext(hero.x, -160, K0.t('noGun'), '#FF8A6A', 20); K.sfx('wrong'); hero.noGunT = 1; } return; }
     var g = gunSpec();
     if (hero.gun2) { if (hero.gun2.ammo <= 0) { hero.gun2 = null; return; } hero.gun2.ammo--; }
     else { if (hero.ammo <= 0) { reload(K); return; } hero.ammo--; }
     hero.shootCd = g.rate; hero.shootPose = 0.18;
-    var hx = hero.x + hero.face * 52 * hero.def.size, hy = -80 * hero.def.size + (hero.y);
+    var HJ = heroJ(), hx = HJ.fh[0] + hero.face * 14 * hero.def.size, hy = HJ.fh[1];
     for (var i = 0; i < g.pel; i++) {
       var a = rnd(-g.spread, g.spread);
       bullets.push({ x: hx, y: hy, vx: hero.face * g.spd * Math.cos(a), vy: g.spd * Math.sin(a), dmg: g.dmg, pierce: g.pierce, laser: g.laser, rocket: g.rocket, frost: g.frost, tesla: g.tesla, col: g.col, life: g.life, hit: [] });
@@ -721,6 +717,7 @@
   function reload(K) { if (hero.gun2 || hero.reloadT > 0 || hero.ammo >= baseMag()) return; hero.reloadT = gunSpec().reload; K.sfx('reload'); }
   function special(K) {
     if (hero.ink < 100 || hero.specialT > 0 || mode !== 'fight' || hero.hp <= 0) return;
+    if (hero.cmb || hero.F.busy()) { endCombo(); hero.F.stop(); }
     hero.ink = 0; var k = hero.def.special; hero.specialKind = k; hero.atkT = 0; hero.dive = false;
     K.sfx('flip'); K.flash('#FFFFFF', 0.25); ring(hero.x, -60, 120, hero.def.acc);
     if (k === 'cyclone') { hero.specialT = 1.5; hero.specTick = 0; }
@@ -733,6 +730,257 @@
     if (hero.ground) { hero.vy = -hero.def.jump; hero.ground = false; K.sfx('jump'); hero.atkT = 0; }
   }
 
+  /* ---------------- fight engine (InkFight, the stickman-fighter skill): hero rig, combos, reactions, limp bodies ---------------- */
+  var IF = InkFight, POW = [0, 1, 1.35, 1.8, 2.6], HSP = [0, 0.05, 0.07, 0.1, 0.16], TRA = [0, 0.2, 0.3, 0.42, 0.85];
+  // combos: lists of engine moves. Hits = number of striking moves. 'basic' depends on what the hero holds.
+  var COMBOS = {
+    basic: { free: true, end: 1.5, name: { en: 'Starter', fr: 'Débutant', ar: 'المبتدئ' } },
+    punch: { moves: ['jab', 'jab', 'cross', 'hook', 'cross', 'overhand'], end: 1.6, name: { en: 'Boxer Rush', fr: 'Rafale de boxe', ar: 'هجمة الملاكم' } },
+    kick: { moves: ['lowKick', 'teep', 'bodyKick', 'highKick'], end: 1.6, name: { en: 'Kick Ladder', fr: 'Échelle de coups de pied', ar: 'سلّم الركلات' } },
+    head: { moves: ['clinchIn', 'knee', 'knee', 'headbutt', 'headbutt', 'headbuttKO'], end: 1.6, name: { en: 'Clinch Breaker', fr: 'Brise-corps', ar: 'كاسر الإمساك' } },
+    upper: { moves: ['leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'axe', 'landing'], end: 1.6, name: { en: 'Sky Breaker', fr: 'Brise-ciel', ar: 'كاسر السماء' } }
+  };
+  var WPN_LEN = { hammer: [66, 7], katana: [90, 3.2], axe: [66, 6] }; // drawn length (game units), contact radius (eu)
+  var corpses = [], fightCtx = null, meleeKO = null, capFrame = 0;
+  function heroS() { return 1.45 * hero.def.size; }
+  function heldKind() { return hero.melee ? hero.melee.id : hero.def.melee.kind; }
+  function comboMoves(id) {
+    if (id !== 'basic') return COMBOS[id].moves.slice();
+    var k = heldKind(); return k === 'fists' ? ['jab', 'cross', 'bodyKick'] : k === 'katana' ? ['wSwing1', 'wSwing2', 'wThrust'] : ['wSwing1', 'wSwing2', 'wSmash'];
+  }
+  function isStrike(name) { return IF.MOVES[name].some(function (s) { return !!s.hit; }); }
+  function comboHits(id) { return id === 'basic' ? 3 : COMBOS[id].moves.filter(isStrike).length; }
+  function ownedCombos() { var o = K0.store.get('ink:combos', []); return Array.isArray(o) ? o.filter(function (id) { return COMBOS[id]; }) : []; }
+  function comboSlots() { var s = K0.store.get('ink:slots', ['basic', null]); if (!Array.isArray(s)) s = ['basic', null]; var own = ownedCombos(); return [0, 1].map(function (i) { var id = s[i]; return id && COMBOS[id] && (COMBOS[id].free || own.indexOf(id) >= 0) ? id : (i ? null : 'basic'); }); }
+  function setSlot(i, id) { var s = comboSlots(); s[i] = id; K0.store.set('ink:slots', s); }
+  function newFighter(h) { var S = 1.45 * h.def.size, F = new IF.Fighter(h.x / S, h.face); F.refresh(); return F; }
+  function flipFace(F, nf) { if (F.face === nf) return; F.face = nf; for (var i = 0; i < 2; i++) { F.feet[i].x = 2 * F.x - F.feet[i].x; F.feet[i].sw = null; F.feet[i].lift = 0; } for (var e in F.trails) F.trails[e].length = 0; F.ghosts.length = 0; }
+  // the hero's joints in the old J format (game units) for accessories, scarf, ragdoll and the weapon
+  function heroJ() {
+    var F = hero.F, S = heroS(), w = function (n) { var p = F.w(n); return [p[0] * S, p[1] * S]; };
+    var J = { hip: w('pel'), neck: w('neck'), head: w('head'), bk: w('kn2'), bf: w('an2'), fk: w('kn1'), ff: w('an1'), be: w('e2'), bh: w('h2'), fe: w('e1'), fh: w('h1') };
+    J.R = 15 * hero.def.size; J.handAng = F.weapon ? F.weaponLine().ang : 2.2; return J;
+  }
+  /* --- zombies as engine victims --- */
+  function zLive(z) { return !z.dead && z.rise <= 0 && !z.hidden; }
+  function zJ(z) {
+    var s = z.d.size, crawl = z.t === 'biter';
+    if (!z.rot && !z.jug && !(z.downT > 0) && !z.corpse) return rig(z.pose, z.x, z.y, z.face, s, z.y > -2, crawl);
+    var J = rig(z.pose, z.x, z.y, z.face, s, true, false), cx = (J.hip[0] + J.neck[0]) / 2, cy = (J.hip[1] + J.neck[1]) / 2, ca = Math.cos(z.rot || 0), sa = Math.sin(z.rot || 0), low = -1e9, k;
+    for (k in J) { if (k === 'R' || k === 'handAng') continue; var p = J[k], x = p[0] - cx, y = p[1] - cy; J[k] = [cx + x * ca - y * sa, cy + x * sa + y * ca]; low = Math.max(low, J[k][1] + (k === 'head' ? J.R : 4 * s)); }
+    if (z.y >= -1 || low > 0) for (k in J) { if (k !== 'R' && k !== 'handAng') J[k][1] -= low; }
+    return J;
+  }
+  function zV(z) {
+    if (z.V) return z.V;
+    var V = z.V = { z: z, size: z.d.size, big: z.d.size > 1.3 || z.t === 'biter', canClinch: !z.d.boss && !z.d.heavy && z.t !== 'biter', _f: -1, _c: null, _J: null };
+    function S() { return heroS(); }
+    function upd() { if (V._f === capFrame && V._J) return; V._f = capFrame; var J = V._J = zJ(z), k = 1 / S(), s = z.d.size, p = function (q) { return [q[0] * k, q[1] * k]; }, mid = [(J.hip[0] + J.neck[0]) / 2, (J.hip[1] + J.neck[1]) / 2];
+      V._w = { head: p(J.head), neck: p(J.neck), pel: p(J.hip), mid: p(mid) }; V.headR = J.R * k;
+      V._c = [{ a: p(J.head), b: p(J.head), r: J.R * k, part: 'head' }, { a: p(J.hip), b: p(mid), r: 6 * s, part: 'gut' }, { a: p(mid), b: p(J.neck), r: 6.2 * s, part: 'chest' },
+        { a: p(J.neck), b: p(J.be), r: 3 * s, part: 'arm' }, { a: p(J.be), b: p(J.bh), r: 3 * s, part: 'arm' }, { a: p(J.neck), b: p(J.fe), r: 3 * s, part: 'arm' }, { a: p(J.fe), b: p(J.fh), r: 3 * s, part: 'arm' },
+        { a: p(J.hip), b: p(J.bk), r: 3.8 * s, part: 'leg' }, { a: p(J.bk), b: p(J.bf), r: 3.4 * s, part: 'leg' }, { a: p(J.hip), b: p(J.fk), r: 3.8 * s, part: 'leg' }, { a: p(J.fk), b: p(J.ff), r: 3.4 * s, part: 'leg' }]; }
+    V.caps = function () { upd(); return V._c; };
+    V.w = function (n) { upd(); return V._w[n] || V._w.mid; };
+    V.core = function () { upd(); return V._w.mid; };
+    Object.defineProperty(V, 'x', { get: function () { return z.x / S(); } });
+    Object.defineProperty(V, 'vx', { get: function () { return z.vx / S(); } });
+    Object.defineProperty(V, 'vAir', { get: function () { return -z.vy / S(); } });
+    Object.defineProperty(V, 'gS', { get: function () { return z.gS || 1; } });
+    Object.defineProperty(V, 'grounded', { get: function () { return z.y > -2 && !z.jug; } });
+    Object.defineProperty(V, 'state', { get: function () { return z.jug ? 'juggled' : z.downT > 0 || z.ko || z.dead ? 'down' : 'stand'; } });
+    V.alive = function () { return !z.dead; };
+    V.standing = function () { return !z.jug && !(z.downT > 0) && !z.ko && z.y > -2; };
+    V.clinched = function (b) { z.clinch = b; if (b) { z.atkT = 0; z.vx = 0; } };
+    V.pullTo = function (x, k) { z.x += (x * S() - z.x) * k; };
+    return V;
+  }
+  function pickTarget(prev, F) {
+    var S = heroS(), hx = hero.x, best = null, bd = 1e9;
+    if (prev && !prev.dead && (prev.jug || (!(prev.downT > 0) && !prev.ko)) && Math.abs(prev.x - hx) < 300) return prev;
+    zombies.forEach(function (z) {
+      if (!zLive(z) || z.downT > 0 || z.ko || z.getUp > 0) return;
+      var dx = (z.x - hx) * F.face, d = Math.abs(z.x - hx);
+      if (dx < -10 && d > 170) return; if (d > 230) return;
+      var score = d + (dx < -10 ? 60 : 0); if (score < bd) { bd = score; best = z; }
+    });
+    return best;
+  }
+  function cageNear() { return cages.some(function (cg) { return !cg.freed && (cg.x - hero.x) * hero.F.face > -20 && Math.abs(cg.x - hero.x) < 150; }); }
+  function startCombo(K, slot) {
+    if (mode !== 'fight' || hero.hp <= 0 || hero.specialT > 0 || hero.dead) return;
+    var id = comboSlots()[slot]; if (!id) { ftext(hero.x, -160, K.t('noCombo'), '#FFFFFF', 18); return; }
+    var F = hero.F;
+    if (hero.cmb || F.busy()) { hero.cmbBuf = slot; return; }
+    if (!hero.ground) { if (!hero.dive) { hero.dive = true; hero.diveHits = []; hero.vy = 760; hero.vx = hero.face * 420; K.sfx('whoosh'); } return; }
+    var moves = comboMoves(id), fin = -1; moves.forEach(function (m, i) { if (isStrike(m)) fin = i; });
+    hero.cmb = { id: id, moves: moves, i: 0, cur: -1, fin: fin, end: COMBOS[id].end, tgt: null, hits: 0 };
+    hero.cmbBuf = null; F.stop(); F.xSpring = false;
+    var wk = heldKind(); F.weapon = id === 'basic' && wk !== 'fists' && WPN_LEN[wk] ? { len: WPN_LEN[wk][0] / heroS(), r: WPN_LEN[wk][1] } : null;
+    IF.update(F, 0, ctxFor(K)); // starts the first move now
+  }
+  function endCombo() { var F = hero.F; hero.cmb = null; if (F.clinch) { F.clinch.clinched(false); F.clinch = null; } F.grab = null; }
+  function comboNext(K, ctx) {
+    var cm = hero.cmb, F = hero.F; if (!cm) return;
+    if (cm.i >= cm.moves.length) { endCombo(); if (!F.grounded) F.play(IF.MOVES.landing); ctx.vic = null; return; }
+    var name = cm.moves[cm.i], mv = IF.MOVES[name], air = mv[0].needs === 'air';
+    if (name === 'landing') { cm.i++; if (!F.grounded) F.play(mv); else comboNext(K, ctx); return; }
+    if (!F.grounded && !air) { F.play(IF.MOVES.landing); return; } // ground move after an air move: land first
+    var t = pickTarget(cm.tgt, F);
+    if (!t && cm.i > 0) { endCombo(); if (!F.grounded) F.play(IF.MOVES.landing); ctx.vic = null; return; }
+    cm.tgt = t; ctx.vic = t ? zV(t) : null;
+    if (t && F.grounded) { var nf = t.x > hero.x ? 1 : -1; flipFace(F, nf); }
+    cm.cur = cm.i; cm.i++; cm.cageHit = false;
+    F.play(mv);
+  }
+  function ctxFor(K) {
+    var cm = hero.cmb, t = cm && cm.tgt && !cm.tgt.dead ? cm.tgt : null;
+    if (!fightCtx) fightCtx = {
+      drive: true, land: function (F, list, hit, vel) { fightLand(K0, F, list, hit, vel); }, snd: function (n) { K0.sfx(n === 'whooshBig' ? 'whoosh' : n); },
+      quake: function (x, s) { IF.quake(x, s, K0.reduceMotion); K0.shake(6 + 6 * s); K0.sfx('boom'); }, next: function () { comboNext(K0, fightCtx); },
+      onLand: function (F, hard) { K0.sfx('land'); IF.dust(F.x, hard ? 1.2 : 0.6, K0.reduceMotion); }
+    };
+    fightCtx.vic = t ? zV(t) : null; fightCtx.reduce = K.reduceMotion;
+    fightCtx.others = zombies.filter(function (z) { return z !== t && zLive(z) && Math.abs(z.x - hero.x) < 260; }).map(zV);
+    return fightCtx;
+  }
+  // a strike touched one or more zombies
+  function fightLand(K, F, list, hit, vel) {
+    var cm = hero.cmb, pw = hit.power, f = F.face, sp = Math.hypot(vel[0], vel[1]) || 1, dx = vel[0] / sp, dy = vel[1] / sp, kind = hit.kind || 'strike';
+    var fin = cm && cm.cur === cm.fin, m = meleeSpec(), base = m.dmg[0] * mods.melee * (F.weapon ? 1 : (hero.melee ? 1 / WEAPONS[hero.melee.id].mult : 1));
+    F.log.push('hit ' + (cm ? cm.moves[cm.cur] : '?') + ':' + hit.eff + '>' + list.map(function (e) { return e.tc.part; }).join(','));
+    var src = pw >= 4 || fin ? 'finisher' : F.weapon && hero.melee && hero.melee.id === 'axe' ? 'axe' : 'melee', any = false;
+    list.forEach(function (e, i) {
+      var z = e.v.z, tc = e.tc, hp0 = z.hp, dmg = base * POW[pw] * (fin ? cm.end : 1) * (i && e.v !== fightCtx.vic ? 0.7 : 1);
+      if (cm) cm.hits++;
+      meleeKO = { kind: kind, f: f }; hitZombie(K, z, dmg, f, 0, 0, src); meleeKO = null;
+      if (z.hp === hp0 && !z.dead) return; // blocked by a shield
+      any = true; zReact(K, z, kind, hit, tc, f, dx, dy, F);
+      var at = tc.pt; IF.star(at[0], at[1], 9 + pw * 4.5, pw >= 4); IF.ring(at[0], at[1], 8 + pw * 4, pw); IF.sparksDir(at[0], at[1], dx, dy, 5 + pw * 3, pw, K.reduceMotion);
+    });
+    if (!any) return;
+    hs = Math.max(hs, HSP[pw]); K.shake(TRA[pw] * 16); K.haptic(pw >= 4 ? 35 : 12);
+    if (pw >= 4 || fin) { zoomK = Math.max(zoomK, 1.06); if (!K.reduceMotion) slow = Math.max(slow, 0.2); K.sfx('heavy'); K.sfx('boom'); }
+    else K.sfx(pw >= 3 || F.weapon ? 'heavy' : 'punch');
+    if (F.weapon && hero.melee) { hero.melee.uses--; if (hero.melee.uses <= 0) { hero.melee = null; F.weapon = null; ftext(hero.x, -150, K.t('broke'), '#FFFFFF', 18); } }
+  }
+  // the zombie's body answers the blow: flinch by the part touched, or fly (launch / air / slam), or fall like a plank (ko)
+  function zReact(K, z, kind, hit, tc, f, dx, dy, F) {
+    var S = heroS(), heavy = z.d.boss || z.d.heavy, pw = hit.power, res = z.d.boss ? 0.2 : heavy ? 0.45 : 1;
+    z.atkT = 0; z.atkHit = true; z.fuse = z.fuse > 0 ? z.fuse : 0;
+    if ((kind === 'launch' || kind === 'air' || kind === 'slam') && !heavy) {
+      if (z.clinch) { z.clinch = false; }
+      z.jug = true; z.downT = 0; z.getUp = 0; z.ko = false;
+      if (kind === 'launch') { z.y = Math.min(z.y, -3); z.vy = -760 * S; z.vx = f * 45 * S; z.gS = 1; z.bounces = 1; z.vr = f * 2.5; z.pose.hd -= 0.9; }
+      else if (kind === 'air') {
+        var va = Math.max(Math.min(-z.vy / S, 200), 430 + (hit.lift ? 90 : 0)) - dy * 60, vx = f * 80 + dx * 50;
+        z.vy = -va * S; z.vx = vx * S; z.gS = 1; F.vAir = Math.max(F.vAir * 0.4, va * 0.82); F.vx = vx * 0.85; F.gS = 1;
+        var pel = zV(z).w('pel'), ax = tc.pt[0] - pel[0], ay = tc.pt[1] - pel[1]; z.vr = (z.vr || 0) * 0.5 + (ax * dy - ay * dx) / 30 * (4 + pw * 2) + rnd(-1.5, 1.5); z.pose.hd -= 0.6;
+      } else { z.vy = 1250 * S; z.vx = f * 120 * S; z.gS = 1.6; z.bounces = 1; z.slam = true; z.vr = f * 3; F.vAir = 260; F.vx *= 0.3; F.gS = 1; }
+      z.fl = null; z.stun = 0; return;
+    }
+    var high = tc.part === 'head' || tc.part === 'chest' || tc.part === 'arm', legHit = tc.part === 'leg', fl;
+    if (kind === 'headbutt' || (high && !legHit)) { fl = 'zfhead'; z.pose.hd -= 0.5 + 0.15 * pw; z.pose.tor -= 0.25 + 0.06 * pw; z.vx = f * (55 + pw * 40) * S * res; if (kind === 'upper') { z.pose.hd -= 0.4; z.vy = -220 * S * res; } }
+    else if (legHit) { fl = 'zfleg'; z.pose.bs += 0.5; z.pose.tor += 0.2; z.vx = f * 45 * S * res; }
+    else { fl = 'zfgut'; z.pose.tor += 0.45 + 0.08 * pw; z.pose.hd += 0.3; z.vx = f * (hit.push ? 230 : 90 + pw * 30) * S * res; IF.dust(z.x / S, 0.5, K.reduceMotion); }
+    if (kind === 'knee') { z.pose.tor += 0.3; z.vy = -120 * S * res; }
+    if (hit.smash && !heavy) { z.vy = Math.max(z.vy, 0); z.pose.bs += 0.6; }
+    if (z.clinch) z.vx = 0;
+    z.fl = fl; z.stun = Math.max(z.stun, (z.d.boss ? 0.08 : 0.2) + pw * 0.05);
+  }
+  // physics for bodies that are flying, lying, falling over or getting up (alive or dead). Returns true while the body owns the zombie.
+  function bodyStep(K, z, dt) {
+    var S = heroS(), lieK = 1 - Math.exp(-dt * 10);
+    if (z.jug || z.ko || z.downT > 0 || z.getUp > 0 || z.corpse) z.stun = Math.max(0, z.stun - dt);
+    if (z.jug) {
+      z.vy += 1900 * S * (z.gS || 1) * dt; z.x += z.vx * dt; z.y += z.vy * dt; z.rot = (z.rot || 0) + (z.vr || 0) * dt; z.vr *= Math.pow(0.55, dt);
+      z.pose = blend(z.pose, pose(z.dead ? 'zlimp' : 'ztumble'), 1 - Math.exp(-dt * 8));
+      if (z.y >= 0 && z.vy > 0) {
+        z.y = 0; var hard = z.vy > 900 * S;
+        if (z.slam) { IF.quake(z.x / S, 0.9, K.reduceMotion); K.shake(14); K.sfx('boom'); z.slam = false; }
+        if ((z.bounces || 0) > 0 && z.vy > 450 * S) { z.bounces--; z.vy *= -0.3; z.vx *= 0.5; z.vr = (z.vr || 0) * 0.5; IF.dust(z.x / S, hard ? 1.2 : 0.7, K.reduceMotion); K.sfx('land'); }
+        else {
+          z.jug = false; z.vy = 0; z.gS = 1; z.rot = wrapA(z.rot || 0); z.rotT = (Math.abs(z.rot) > 0.15 ? (z.rot > 0 ? 1 : -1) : (z.vx >= 0 ? 1 : -1)) * Math.PI / 2;
+          if (Math.abs(z.rot) > 2.2) z.rotT = (z.rot > 0 ? 1 : -1) * Math.PI / 2; z.downT = z.dead ? 1e9 : 0.9; z.vr = 0;
+          IF.dust(z.x / S, 1, K.reduceMotion); K.sfx('land'); decals.push({ x: z.x, w: 30 * z.d.size, col: z.d.col, t: 4 });
+        }
+      }
+      return true;
+    }
+    if (z.ko) { // knocked out on the feet: tips over like a plank, the feet stay put
+      var sg = z.rotT > 0 ? 1 : -1; z.vr = (z.vr || 0) + sg * 15 * Math.sin(Math.abs(z.rot || 0) + 0.18) * dt; z.rot = (z.rot || 0) + z.vr * dt; z.x += z.vx * dt; z.vx *= Math.pow(0.05, dt);
+      z.pose = blend(z.pose, pose('zlimp'), 1 - Math.exp(-dt * 6));
+      if (Math.abs(z.rot) >= Math.PI / 2) { z.rot = sg * Math.PI / 2; z.ko = false; z.downT = z.dead ? 1e9 : 0.9; z.vr = 0; IF.dust(z.x / S, 1.1, K.reduceMotion); K.sfx('land'); K.shake(4); }
+      return true;
+    }
+    if (z.downT > 0) {
+      z.rot += (z.rotT - z.rot) * lieK; z.x += z.vx * dt; z.vx *= Math.pow(0.004, dt);
+      z.pose = blend(z.pose, pose('zlimp'), 1 - Math.exp(-dt * (z.dead ? 4 : 9)));
+      if (!z.dead) { z.downT -= dt; if (z.downT <= 0) { z.downT = 0; z.getUp = 0.4; } }
+      return true;
+    }
+    if (z.getUp > 0) { z.getUp -= dt; z.rot *= Math.pow(0.0005, dt); z.pose = blend(z.pose, pose('zhurt'), lieK); if (z.getUp <= 0) { z.getUp = 0; z.rot = 0; z.cd = Math.max(z.cd, 0.4); } return true; }
+    if (z.clinch) { z.stun = Math.max(z.stun, 0.1); z.vx = 0; z.y = 0; z.vy = 0; z.pose = blend(z.pose, pose(z.fl || 'zfgut'), 1 - Math.exp(-dt * 20)); return true; }
+    return false;
+  }
+  function wrapA(a) { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; }
+  // a melee kill keeps the body: it falls (or keeps flying) and lies limp, then fades
+  function toCorpse(K, z, ko) {
+    z.corpse = { t: 0 }; z.clinch = false; z.stun = 0;
+    if (!z.jug && !(z.downT > 0)) { if (z.y < -2) { z.jug = true; z.gS = 1; z.vr = z.vr || ko.f * 2; } else { z.ko = true; z.rot = z.rot || 0; z.rotT = ko.f; z.vr = ko.f * 1.2; } }
+    corpses.push(z);
+  }
+  function updateCorpses(K, dt) {
+    capFrame++;
+    corpses.forEach(function (z) { bodyStep(K, z, dt); if (!z.jug && !z.ko) z.corpse.t += dt; z.alpha = z.corpse.t < 2.2 ? 1 : Math.max(0, 1 - (z.corpse.t - 2.2) / 0.7); });
+    corpses = corpses.filter(function (z) { return z.alpha > 0; });
+  }
+  // the hero's body each frame: the engine drives during a combo, otherwise it mirrors the game physics
+  function heroBody(K, dt) {
+    var h = hero, F = h.F, S = heroS(), def = h.def;
+    F.weaponShown = !!F.weapon;
+    if (h.cmb || F.busy()) {
+      IF.update(F, dt, ctxFor(K));
+      var nx = clamp(F.x * S, 30, AW - 30); if (nx !== F.x * S) { F.x = nx / S; F.vx = 0; }
+      h.x = nx; h.y = -F.air * S; h.vx = F.vx * S; h.vy = -F.vAir * S; h.ground = F.grounded; h.face = F.face;
+      if (h.cmb && h.cmb.cur >= 0 && F.cur && F.cur.hit && !h.cmb.cageHit && F.curT > F.cur.d * 0.5) { // cages break by the swing
+        h.cmb.cageHit = true; cages.forEach(function (cg) { var cx = (cg.x - h.x) * F.face; if (cx > -20 && cx < 130 && hitCage(K, cg, meleeSpec().dmg[0] * mods.melee * POW[F.cur.hit.power])) { hs = Math.max(hs, 0.05); K.sfx('heavy'); } });
+      }
+      if (!h.cmb && !F.busy() && h.cmbBuf != null) { var b = h.cmbBuf; h.cmbBuf = null; startCombo(K, b); }
+      return true;
+    }
+    // mirror the game's movement
+    F.weapon = null; F.x = h.x / S; F.vx = h.vx / S; F.air = Math.max(0, -h.y / S); F.vAir = -h.vy / S; flipFace(F, h.face);
+    var wasG = F.grounded; F.grounded = h.ground; if (h.ground && !wasG) { IF.plantFeet(F); IF.dust(F.x, 0.6, K.reduceMotion); }
+    var sk = h.specialT > 0 ? h.specialKind : null, run = Math.abs(h.vx) > 40 && h.ground;
+    if (h.hurtT > 0) F.setPose('hurt', 9, 0.45);
+    else if (sk === 'cyclone') F.setPose(Math.floor(h.specialT * 18) % 2 ? 'highKick' : 'hkChamb', 16, 0.6);
+    else if (sk === 'overdrive') F.setPose('aim', 16, 0.7);
+    else if (sk === 'bladedash') F.setPose('wThrust', 16, 0.7);
+    else if (sk === 'quake' || (h.quakeArmed && !h.ground)) F.setPose(h.vy < 0 ? 'axeUp' : 'axeDown', 12, 0.6);
+    else if (h.dive) F.setPose('diveKick', 16, 0.6);
+    else if (!h.ground) F.setPose(h.vy < 0 ? 'jumpUp' : 'fall', 10, 0.6);
+    else if (h.shootPose > 0) F.setPose(run ? Object.assign(IF.runPose(h.animT, Math.min(1, Math.abs(h.vx) / def.spd), false), { a1: 1.52, e1: 0.06 }) : 'aim', 18, 0.7);
+    else if (run) F.setPose(IF.runPose(h.animT, Math.min(1, Math.abs(h.vx) / def.spd), heldKind() !== 'fists'), 16, 0.7);
+    else F.setPose(heldKind() !== 'fists' ? 'wGuard' : 'stance', 9, 0.6);
+    F.ghostOn = sk === 'bladedash' || sk === 'cyclone';
+    IF.update(F, dt, { drive: false, vic: null, others: [], reduce: K.reduceMotion });
+    return false;
+  }
+  function drawHeroBody(c, K) {
+    var h = hero, F = h.F, S = heroS(), def = h.def, lw = def.lw * def.size * 0.85 / S, hr = 15 * def.size / S, k = sc * S;
+    c.save(); c.translate(-camX * sc, gyS); c.scale(k, k);
+    if (!K.reduceMotion) F.ghosts.forEach(function (g, i) { c.globalAlpha = 0.12 + 0.3 * i / Math.max(1, F.ghosts.length); IF.drawBody(c, function (n) { return g.w[n]; }, def.acc, def.acc, lw, hr); });
+    c.globalAlpha = 1;
+    IF.drawTrails(c, F, '#FFFFFF', 1);
+    IF.drawBody(c, function (n) { return F.w(n); }, '#111111', '#2B2B2B', lw, hr);
+    c.restore();
+  }
+  function drawFightFx(c, K) {
+    var T = THEMES[theme] || THEMES.ruins, S = heroS(), k = sc * S;
+    c.save(); c.translate(-camX * sc, gyS); c.scale(k, k); IF.drawFx(c, { ground: T.g[1], hole: 'rgba(0,0,0,0.45)', dust: theme === 'margin' ? '#9A8F78' : '#E8DCC8' }); c.restore();
+  }
+
   /* ---------------- update ---------------- */
   function updateHero(K, dt) {
     var h = hero, def = h.def;
@@ -742,7 +990,8 @@
     if (h.reloadT > 0) { h.reloadT -= dt; if (h.reloadT <= 0) h.ammo = Math.round(def.gun.mag * mods.mag); }
     if ((keys.shoot || held.shoot) && !h.atkT) fire(K);
     var spd = def.spd * (h.atkT > 0 ? 0.25 : 1) * (h.specialKind === 'cyclone' && h.specialT > 0 ? 0.6 : 1);
-    if (h.hurtT <= 0 && !h.dive && !(h.specialT > 0 && h.specialKind === 'bladedash')) {
+    var eng = !!(h.cmb || h.F.busy());
+    if (h.hurtT <= 0 && !h.dive && !eng && !(h.specialT > 0 && h.specialKind === 'bladedash')) {
       var tvx = mv * spd; h.vx += (tvx - h.vx) * Math.min(1, dt * (h.ground ? 14 : 5));
       if (mv && h.atkT <= 0 && !h.shootPose) h.face = mv;
     }
@@ -765,29 +1014,8 @@
       }
       if (h.specialT <= 0) h.specialKind = h.specialKind === 'quake' && h.quakeArmed ? 'quake' : null;
     }
-    // melee timing
-    if (h.atkT > 0) {
-      h.atkT -= dt; var el = h.atkDur - h.atkT, m = meleeSpec();
-      if (!h.hitDone && el > h.atkDur * 0.35) {
-        h.hitDone = true; var any = false, fin = h.step === 2, range = m.range[h.step];
-        zombies.forEach(function (z) {
-          if (z.dead) return; var dx = (z.x - h.x) * h.face;
-          if (dx > -14 && dx < range + 16 * z.d.size && z.y > -150) {
-            var src = fin ? 'finisher' : (h.melee && h.melee.id === 'axe') ? 'axe' : 'melee';
-            if (hitZombie(K, z, m.dmg[h.step] * mods.melee, h.face, fin ? 520 : 160, fin ? 380 : 0, src)) any = true;
-          }
-        });
-        cages.forEach(function (cg) { var dx = (cg.x - h.x) * h.face; if (dx > -20 && dx < range + 40 && hitCage(K, cg, m.dmg[h.step] * mods.melee)) any = true; });
-        if (any && fin) zoomK = Math.max(zoomK, 1.045);
-        if (any) {
-          hs = Math.max(hs, fin ? 0.08 : 0.035); K.sfx(fin || m.kind === 'hammer' || m.kind === 'axe' ? 'heavy' : 'punch'); if (fin) K.shake(5);
-          if (h.melee) { h.melee.uses--; if (h.melee.uses <= 0) { h.melee = null; ftext(h.x, -150, K.t('broke'), '#FFFFFF', 18); } }
-          P({ k: 'slash', x: h.x + h.face * range * 0.6, y: -78, vx: 0, vy: 0, g: 0, max: 0.14, col: m.kind === 'fists' ? '#FFFFFF' : '#E6F0FF', size: range * 0.9, ang: h.face > 0 ? 0 : Math.PI, face: h.face });
-        }
-      }
-      if (h.atkT <= 0) { h.atkT = 0; h.comboWin = 0.5; if (h.buf) { h.buf = false; attack(K); } }
-    }
-    // physics
+    // physics (the fight engine owns the body during a combo)
+    if (!eng) {
     h.vy += G * dt; h.x += h.vx * dt; h.y += h.vy * dt;
     if (h.dive) zombies.forEach(function (z) { if (!z.dead && h.diveHits.indexOf(z) < 0 && Math.abs(z.x - h.x) < 50 * z.d.size && h.y > -130 * z.d.size) { h.diveHits.push(z); hitZombie(K, z, 24 * mods.melee, h.face, 380, 300, 'dive'); hs = Math.max(hs, 0.05); K.sfx('heavy'); } });
     if (h.y >= 0) {
@@ -803,23 +1031,13 @@
       h.y = 0; h.vy = 0; h.ground = true; h.dive = false;
     } else h.ground = false;
     h.x = clamp(h.x, 30, AW - 30);
+    }
     // pose
     h.animT += dt * (Math.abs(h.vx) > 40 ? Math.abs(h.vx) / 26 : 3);
-    var tp, m2 = meleeSpec();
-    if (h.hurtT > 0) tp = pose('hurt');
-    else if (h.specialKind === 'cyclone' && h.specialT > 0) tp = pose('spin', h.animT);
-    else if (h.specialKind === 'overdrive' && h.specialT > 0) tp = pose('shoot');
-    else if (h.dive) tp = pose('dive');
-    else if (h.atkT > 0) tp = m2.kind === 'fists' ? pose(['jab', 'cross', 'kick'][h.step]) : pose(['swing1', 'swing2', 'smash'][h.step]);
-    else if (h.shootPose > 0) tp = pose('shoot');
-    else if (!h.ground) tp = pose('jump');
-    else if (Math.abs(h.vx) > 40) tp = pose('run', h.animT);
-    else tp = pose('idle', K.time);
-    if (h.atkT > 0 && m2.kind !== 'fists') { var pr = 1 - h.atkT / h.atkDur; tp.fb = lerp(2.9, 0.8, Math.min(1, pr * 2)); tp.fa = lerp(2.5, 1.1, Math.min(1, pr * 2)); }
-    h.pose = blend(h.pose, tp, 1 - Math.exp(-dt * 26));
+    heroBody(K, dt);
     // scarf (Kai) — verlet tail
     if (def.id === 'kai' || def.id === 'juno') {
-      var J = rig(h.pose, h.x, h.y, h.face, def.size, h.ground, false), anchor = def.id === 'kai' ? J.neck : [J.head[0] - h.face * 10, J.head[1] - 4];
+      var J = heroJ(), anchor = def.id === 'kai' ? J.neck : [J.head[0] - h.face * 10, J.head[1] - 4];
       if (!h.scarf.length) for (var s = 0; s < 8; s++) h.scarf.push([anchor[0], anchor[1]]);
       h.scarf[0] = [anchor[0], anchor[1]];
       for (var q = 1; q < h.scarf.length; q++) {
@@ -836,6 +1054,7 @@
       var z = zombies[i], d = z.d; if (z.dead) continue;
       z.animT += dt * (d.boss ? 3 : z.t === 'dasher' ? 13 : z.t === 'biter' ? 9 : 4);
       if (z.rise > 0) { z.rise -= dt; if (z.rise > 0) continue; }
+      if (bodyStep(K, z, dt)) continue;
       var hdx = hero.x - z.x, dx = hdx;
       z.tgtL = !!(lantern && lantern.hp > 0 && !d.boss && !d.ranged && !d.ai && Math.abs(lantern.x - z.x) < Math.abs(hdx) + 160);
       if (z.tgtL) dx = lantern.x - z.x;
@@ -873,14 +1092,15 @@
       // pose
       var tp;
       if (d.ai === 'null') tp = z.stun > 0.04 ? pose('hurt') : (z.npose || pose('idle', K.time));
-      else if (z.stun > 0) tp = pose('zhurt');
+      else if (z.stun > 0) tp = pose(z.fl || 'zhurt');
       else if (z.atkT > 0) tp = d.ranged ? pose('zspit', 0, { k: 1 - z.atkT / 0.6 }) : pose('zatk', 0, { k: 1 - z.atkT / (d.boss ? 0.9 : d.heavy ? 0.7 : 0.45) });
       else if (z.t === 'biter') tp = pose('zcrawl', z.animT);
       else if (z.t === 'dasher') tp = pose('zrun', z.animT);
       else if (z.t === 'doorman' && z.shield > 0) tp = pose('zshield', z.animT);
       else tp = pose('zwalk', z.animT, { lean: z.t === 'gloop' ? 0.35 : 0 });
       if (z.t === 'biter' && z.atkT > 0) { tp.tor = 1.2; }
-      z.pose = blend(z.pose, tp, 1 - Math.exp(-dt * 16));
+      if (z.stun <= 0) z.fl = null;
+      z.pose = blend(z.pose, tp, 1 - Math.exp(-dt * (z.fl ? 22 : 16)));
     }
     zombies = zombies.filter(function (z) { return !z.dead; });
   }
@@ -1147,15 +1367,16 @@
   }
   function drawHero(c, K) {
     var h = hero; if (h.dead) return;
-    var def = h.def, J = rig(h.pose, h.x, h.y, h.face, def.size, h.ground, false);
-    c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(sx(h.x), gyS + 2 * sc, 34 * sc * (1 + h.y / 600), 7 * sc, 0, 0, TAU); c.fill();
+    var def = h.def, J = heroJ();
+    c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(sx(h.x), gyS + 2 * sc, 34 * sc * Math.max(0.4, 1 + h.y / 600), 7 * sc, 0, 0, TAU); c.fill();
     if (h.inv > 0 && Math.floor(h.inv * 16) % 2) c.globalAlpha = 0.5;
-    if (h.rage > 0 || (h.specialT > 0)) { c.shadowColor = h.rage > 0 ? '#FF3B4E' : def.acc; c.shadowBlur = 24 * sc; }
-    // scarf / mask tails behind body
     if (h.scarf.length) { c.strokeStyle = def.acc; c.lineCap = 'round'; for (var i = 1; i < h.scarf.length; i++) { c.lineWidth = (def.id === 'kai' ? 9 : 5) * sc * (1 - i / h.scarf.length * 0.6); c.beginPath(); c.moveTo(sx(h.scarf[i - 1][0]), sy(h.scarf[i - 1][1])); c.lineTo(sx(h.scarf[i][0]), sy(h.scarf[i][1])); c.stroke(); } }
-    drawRig(c, J, '#111111', '#2B2B2B', def.lw * def.size, null);
+    var slung = !h.F.weapon && heldKind() !== 'fists' && (h.cmb || h.F.busy());
+    if (slung) drawWeapon(c, J, h, true);
+    if (h.rage > 0 || (h.specialT > 0)) { c.shadowColor = h.rage > 0 ? '#FF3B4E' : def.acc; c.shadowBlur = 24 * sc; }
+    drawHeroBody(c, K);
     c.shadowBlur = 0;
-    drawWeapon(c, J, h);
+    if (!slung) drawWeapon(c, J, h, false);
     if (h.shield > 0) { var bub = sy(-62 * def.size); c.strokeStyle = 'rgba(62,224,255,' + (h.shield < 2 && Math.floor(h.shield * 8) % 2 ? 0.2 : 0.85) + ')'; c.lineWidth = 4 * sc; c.fillStyle = 'rgba(62,224,255,0.12)'; c.beginPath(); c.arc(sx(h.x), bub, 78 * sc * def.size, 0, TAU); c.fill(); c.stroke(); }
     drawAccessory(c, J, def, h.face);
     c.globalAlpha = 1;
@@ -1167,9 +1388,12 @@
     else if (def.id === 'vex') { c.fillStyle = '#1B1B1B'; c.fillRect(hx - r * 1.05, hy - r * 0.42, r * 2.1, r * 0.52); c.shadowColor = def.acc; c.shadowBlur = 14 * sc; c.fillStyle = def.acc; c.fillRect(hx + face * r * 0.05 - (face < 0 ? r * 0.9 : 0), hy - r * 0.36, r * 0.9, r * 0.38); c.shadowBlur = 0; }
     else if (def.id === 'juno') { c.fillStyle = def.acc; c.fillRect(hx - r, hy - r * 0.3, r * 2, r * 0.5); c.fillStyle = '#FFFFFF'; c.fillRect(hx + face * r * 0.35 - r * 0.12, hy - r * 0.2, r * 0.3, r * 0.14); }
   }
-  function drawWeapon(c, J, h) {
+  function drawWeapon(c, J, h, slung) {
     var hx = sx(J.fh[0]), hy = sy(J.fh[1]), ang = Math.PI / 2 - J.handAng, f = h.face, kind = h.melee ? h.melee.id : h.def.melee.kind;
-    var gunOut = h.shootPose > 0 || (h.specialKind === 'overdrive' && h.specialT > 0);
+    var gunOut = !slung && (h.shootPose > 0 || (h.specialKind === 'overdrive' && h.specialT > 0));
+    if (slung && kind === 'fists') return;
+    if (slung) { hx = sx(J.neck[0] - f * 14 * h.def.size); hy = sy(J.neck[1] + 6); ang = Math.PI / 2 - (Math.PI + 0.75); }
+    else if (!h.F.weapon && kind !== 'fists' && !gunOut) { ang = Math.PI / 2 - 2.6; }
     c.save(); c.translate(hx, hy); c.scale(f, 1); c.rotate(ang);
     if (gunOut && !h.atkT) {
       var look = h.gun2 ? GUNS[h.gun2.id].look : gunDef(curGun).look;
@@ -1182,12 +1406,12 @@
   }
   function drawZombie(c, K, z) {
     if (z.hidden) return;
-    var d = z.d, s = d.size, crawl = z.t === 'biter', J = rig(z.pose, z.x, z.y, z.face, s, z.y > -2, crawl);
+    var d = z.d, s = d.size, crawl = z.t === 'biter', J = zJ(z);
     if (d.ai === 'null') { drawNull(c, K, z, J); return; }
     if (z.rise > 0) { c.save(); c.beginPath(); c.rect(0, 0, K.W, gyS); c.clip(); var off = z.rise / 0.6 * 90 * s * sc; c.translate(0, off); }
-    c.fillStyle = 'rgba(0,0,0,0.22)'; c.beginPath(); c.ellipse(sx(z.x), gyS + 2 * sc, 30 * s * sc, 6 * sc, 0, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.22)'; c.beginPath(); c.ellipse(sx((J.hip[0] + J.neck[0]) / 2), gyS + 2 * sc, (z.downT > 0 ? 55 : 30) * s * sc, 6 * sc, 0, 0, TAU); c.fill();
     var lw = (d.boss ? 12 : d.heavy ? 12 : 9) * s;
-    var flash = z.stun > 0.18;
+    var flash = z.stun > 0.18 && !z.corpse;
     if (z.fuse > 0) { c.shadowColor = '#FF3B4E'; c.shadowBlur = 20 * sc * (0.5 + 0.5 * Math.sin(K.time * 40)); }
     else if (z.elite) { c.shadowColor = '#FFD43B'; c.shadowBlur = (16 + 6 * Math.sin(K.time * 6)) * sc; }
     var zc = z.ice > 0 ? '#CDEFFF' : z.frozen > 0 ? mix(d.col, '#9BE7FF', 0.55) : d.col;
@@ -1203,6 +1427,7 @@
     if (z.t === 'conductor') { var chx = sx(J.head[0]), chy = sy(J.head[1]), cr2 = J.R * sc; c.fillStyle = '#0E3A44'; c.fillRect(chx - cr2 * 1.1, chy - cr2 * 1.25, cr2 * 2.2, cr2 * 0.7); c.fillStyle = '#FFD628'; c.fillRect(chx - cr2 * 1.1, chy - cr2 * 0.62, cr2 * 2.2, cr2 * 0.18); c.fillStyle = '#0E3A44'; c.fillRect(chx + (f > 0 ? 0 : -cr2 * 1.6), chy - cr2 * 0.62, cr2 * 1.6, cr2 * 0.2); }
     if (d.boss && !d.ai) { c.fillStyle = '#F2E6D8'; for (var sp = 0; sp < 4; sp++) { var t = sp / 3, bxx = sx(lerp(J.hip[0], J.neck[0], t)) - f * 12 * s * sc, byy = sy(lerp(J.hip[1], J.neck[1], t)); c.beginPath(); c.moveTo(bxx, byy - 6 * sc); c.lineTo(bxx - f * 26 * sc, byy - 18 * sc); c.lineTo(bxx, byy + 6 * sc); c.fill(); } }
     // glowing eyes
+    if (z.corpse) { if (z.rise > 0) c.restore(); return; }
     var eyeCol = z.t === 'hollow' ? '#FFFFFF' : d.boss ? '#FFE15A' : '#F4FFB0';
     c.shadowColor = d.boss ? eyeCol : '#E8FF5A'; c.shadowBlur = 10 * sc; c.fillStyle = z.t === 'hollow' ? '#05020A' : eyeCol;
     c.beginPath(); c.arc(hx + f * r * 0.35, hy - r * 0.1, r * (z.t === 'hollow' ? 0.27 : 0.2), 0, TAU); c.arc(hx + f * r * 0.75, hy - r * 0.05, r * (z.t === 'hollow' ? 0.22 : 0.15), 0, TAU); c.fill(); c.shadowBlur = 0;
@@ -1218,7 +1443,7 @@
       c.restore();
     }
     if (z.rise > 0) c.restore();
-    if (!d.boss && z.hp < z.maxHp) { var bw = 44 * s * sc; c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(sx(z.x) - bw / 2, sy(-150 * s), bw, 5 * sc); c.fillStyle = d.col; c.fillRect(sx(z.x) - bw / 2, sy(-150 * s), bw * Math.max(0, z.hp / z.maxHp), 5 * sc); }
+    if (!d.boss && z.hp < z.maxHp && !z.corpse) { var bw = 44 * s * sc; c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(sx(z.x) - bw / 2, sy(-150 * s), bw, 5 * sc); c.fillStyle = d.col; c.fillRect(sx(z.x) - bw / 2, sy(-150 * s), bw * Math.max(0, z.hp / z.maxHp), 5 * sc); }
   }
   function drawNull(c, K, z, J) {
     var d = z.d, s = d.size, flash = z.stun > 0.04;
@@ -1304,11 +1529,13 @@
   /* ---------------- HUD + touch controls ---------------- */
   function btns(K) {
     var R = clamp(Math.min(K.W, K.H) * 0.085, 30, 46), H = K.H, W = K.W, by = H - R * 1.35;
-    return {
+    var o = {
       left: { x: R * 1.35, y: by, r: R }, right: { x: R * 3.75, y: by, r: R },
       atk: { x: W - R * 1.55, y: H - R * 1.6, r: R * 1.28 }, jump: { x: W - R * 4.05, y: H - R * 1.15, r: R * 0.95 },
       shoot: { x: W - R * 1.35, y: H - R * 4.25, r: R * 0.95 }, spec: { x: W - R * 3.75, y: H - R * 3.55, r: R * 0.95 }
     };
+    if (hero && comboSlots()[1]) o.atk2 = { x: W - R * 6.2, y: H - R * 1.6, r: R * 1.05 };
+    return o;
   }
   function drawHud(c, K) {
     var W = K.W, top = K.hudH + (K.W < 600 ? 22 : 4), h = hero, def = h.def;
@@ -1349,9 +1576,9 @@
     else if (introT > 0) { c.globalAlpha = Math.min(1, introT * 2); c.textAlign = 'center'; c.font = K.font(Math.min(64, W / 7)); c.lineWidth = 9; c.strokeStyle = 'rgba(20,10,30,0.9)'; var wt = (wave % 5 === 0 ? K.t('bossWave') + ' · ' : '') + '\u221E ' + K.t('wave') + ' ' + wave; c.strokeText(wt, W / 2, gyS * 0.5); c.fillStyle = wave % 5 === 0 ? '#FF3B4E' : '#FFE15A'; c.fillText(wt, W / 2, gyS * 0.5); c.globalAlpha = 1; }
     // touch controls
     if (touchUI && mode !== 'down') {
-      var B = btns(K), lbl = { atk: K.t('bAtk'), jump: K.t('bJump'), shoot: K.t('bShoot'), spec: K.t('bSpec') }, col = { left: '#FFFFFF', right: '#FFFFFF', atk: '#FF3B4E', jump: '#22C55E', shoot: '#3B82F6', spec: h.ink >= 100 ? '#FFE15A' : '#6B6B7B' };
+      var B = btns(K), lbl = { atk: K.t('bAtk'), atk2: 'B', jump: K.t('bJump'), shoot: K.t('bShoot'), spec: K.t('bSpec') }, col = { left: '#FFFFFF', right: '#FFFFFF', atk: '#FF3B4E', atk2: '#FF8A1F', jump: '#22C55E', shoot: '#3B82F6', spec: h.ink >= 100 ? '#FFE15A' : '#6B6B7B' };
       Object.keys(B).forEach(function (k) {
-        var b = B[k], on = held[k] || (k === 'atk' && held.atkFlash > 0);
+        var b = B[k], on = held[k] || (k === 'atk' && held.atkFlash > 0) || (k === 'atk2' && held.atk2Flash > 0);
         c.globalAlpha = on ? 0.95 : 0.72;
         c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.arc(b.x, b.y + 4, b.r, 0, TAU); c.fill();
         var gr = c.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.4, 2, b.x, b.y, b.r); gr.addColorStop(0, '#FFFFFF'); gr.addColorStop(0.25, col[k]); gr.addColorStop(1, k === 'left' || k === 'right' ? '#8FA3BF' : col[k]);
@@ -1736,7 +1963,7 @@
   function press(K, k, down) {
     if (k === 'left' || k === 'right' || k === 'shoot') held[k] = down;
     if (!down) return;
-    if (k === 'atk') { attack(K); held.atkFlash = 0.12; } else if (k === 'jump') jump(K); else if (k === 'spec') special(K); else if (k === 'shoot') fire(K);
+    if (k === 'atk') { attack(K); held.atkFlash = 0.12; } else if (k === 'atk2') { attack2(K); held.atk2Flash = 0.12; } else if (k === 'jump') jump(K); else if (k === 'spec') special(K); else if (k === 'shoot') fire(K);
   }
   var touchMap = {};
   function mascot(mood, size) {
@@ -1755,9 +1982,9 @@
     id: 'ink-heroes', coinRate: 0.01, noSkins: true, theme: 'dark', mascot: mascot,
     title: { en: 'Ink Heroes', fr: 'Héros d’Encre', ar: 'أبطال الحبر' },
     strings: {
-      en: { story: "STORY", infShort: "INFINITY", storyTitle: "THE INKFALL", chapter: "Chapter", play: "PLAY", next: "NEXT", map: "MAP", skip: "Skip", tapNext: "Tap to continue", locked: "Locked", oC: "Defeat every zombie", oR: "Free the survivors", oS: "Survive", oD: "Protect the Ink Lantern", oB: "Defeat", m_swarm: "SWARM: more zombies", m_nogun: "NO GUNS: fists only", m_elite: "ELITE NIGHT: gold zombies", m_dark: "BLACKOUT: stay in the light", star1: "Win", star2: "Keep half your health", star3: "Combo", lvClear: "LEVEL CLEAR!", failed: "Level failed", lanternOut: "The lantern went out", joins: "joins your team!", survivors: "Survivors", left: "Zombies left", lantern: "Lantern", nightmare: "NIGHTMARE", firstClear: "First clear ×2", freed: "FREED!", noGun: "No guns here!", allAboard: "ALL ABOARD!", twinRage: "THE OTHER TWIN IS ANGRY!", phase2: "NULL · PHASE 2", phase2s: "He drew copies of himself!", theEnd: "THE END…?", nmUnlocked: "NIGHTMARE MODE unlocked!", hero: "Hero", tagline: 'A 40-level story and an endless zombie night. Punch, shoot, survive!', choose: 'Choose your hero', fight: 'FIGHT!', unlock: 'Unlock', needCoins: 'Not enough coins yet', wave: 'Wave', bossWave: 'BOSS', cleared: 'Wave cleared!', pickPerk: 'Pick a power-up', combo: 'COMBO', reloading: 'Reloading…', newZ: 'New:', block: 'BLOCK', broken: 'SMASHED!', broke: 'Broken!', empty: 'Empty!', rage: 'RAGE MODE!', overrun: 'Overrun!', reached: 'Fell at wave', record: 'New record!', infinity: 'INFINITY MODE · every wave is harder', bestWave: 'Best wave', eliteT: 'ELITE ZOMBIES!', eliteS: 'Gold glow = tougher, but 3× points and more coins', threat: 'Threat', shop: 'SHOP', guns: 'GUNS', items: 'ITEMS', back: 'Back', buy: 'BUY', equip: 'EQUIP', equipped: 'EQUIPPED', owned: 'OWNED', maxed: 'Full!', have: 'Have', dps: 'DPS', sDmg: 'Damage', sRate: 'Fire rate', sMag: 'Ammo', sReload: 'Reload', sRange: 'Range', adCoins: '+60 · AD', adWait: 'Next ad reward soon', reviveQ: 'You fell! Use a heart?', revive: 'REVIVE', giveUp: 'Give up', revived: 'BACK IN THE FIGHT!', heartSaved: 'Hearts revive you when you fall', fullHp: 'Health is full', airstrike: 'AIRSTRIKE!', tryGun: 'TRY:', tryGunSub: 'Like it? Buy it in the shop', gunLabel: 'Gun', bAtk: 'HIT', bJump: 'JUMP', bShoot: 'FIRE', bSpec: 'POWER', sPow: 'POWER', sSpd: 'SPEED', sHp: 'HEALTH', keys: '←/→ move · W jump · J hit · K fire · L power · R reload' },
-      fr: { story: "HISTOIRE", infShort: "INFINI", storyTitle: "LA CHUTE D’ENCRE", chapter: "Chapitre", play: "JOUER", next: "SUIVANT", map: "CARTE", skip: "Passer", tapNext: "Touche pour continuer", locked: "Verrouillé", oC: "Élimine tous les zombies", oR: "Libère les survivants", oS: "Survis", oD: "Protège la Lanterne d’encre", oB: "Bats", m_swarm: "ESSAIM : plus de zombies", m_nogun: "SANS ARMES : poings seulement", m_elite: "NUIT D’ÉLITE : zombies dorés", m_dark: "PANNE : reste dans la lumière", star1: "Gagne", star2: "Garde la moitié de ta vie", star3: "Combo", lvClear: "NIVEAU RÉUSSI !", failed: "Niveau raté", lanternOut: "La lanterne s’est éteinte", joins: "rejoint ton équipe !", survivors: "Survivants", left: "Zombies restants", lantern: "Lanterne", nightmare: "CAUCHEMAR", firstClear: "Première victoire ×2", freed: "LIBÉRÉ !", noGun: "Pas d’armes ici !", allAboard: "EN VOITURE !", twinRage: "L’AUTRE JUMEAU EST FURIEUX !", phase2: "NULL · PHASE 2", phase2s: "Il a dessiné des copies de lui !", theEnd: "FIN… ?", nmUnlocked: "MODE CAUCHEMAR débloqué !", hero: "Héros", tagline: 'Une histoire de 40 niveaux et une nuit zombie sans fin. Frappe, tire, survis !', choose: 'Choisis ton héros', fight: 'COMBAT !', unlock: 'Débloquer', needCoins: 'Pas encore assez de pièces', wave: 'Vague', bossWave: 'BOSS', cleared: 'Vague terminée !', pickPerk: 'Choisis un bonus', combo: 'COMBO', reloading: 'Rechargement…', newZ: 'Nouveau :', block: 'BLOQUÉ', broken: 'BRISÉ !', broke: 'Cassé !', empty: 'Vide !', rage: 'MODE FURIE !', overrun: 'Submergé !', reached: 'Tombé à la vague', record: 'Nouveau record !', infinity: 'MODE INFINI · chaque vague est plus dure', bestWave: 'Meilleure vague', eliteT: 'ZOMBIES D\u2019ÉLITE !', eliteS: 'Lueur dorée = plus coriaces, mais 3× points et plus de pièces', threat: 'Menace', shop: 'BOUTIQUE', guns: 'ARMES', items: 'OBJETS', back: 'Retour', buy: 'ACHETER', equip: 'ÉQUIPER', equipped: 'ÉQUIPÉE', owned: 'ACQUISE', maxed: 'Plein !', have: 'Possédé', dps: 'DPS', sDmg: 'Dégâts', sRate: 'Cadence', sMag: 'Munitions', sReload: 'Recharge', sRange: 'Portée', adCoins: '+60 · PUB', adWait: 'Prochaine récompense bientôt', reviveQ: 'Tu es tombé ! Utiliser un cœur ?', revive: 'REVIVRE', giveUp: 'Abandonner', revived: 'DE RETOUR AU COMBAT !', heartSaved: 'Les cœurs te relèvent quand tu tombes', fullHp: 'Vie au maximum', airstrike: 'FRAPPE AÉRIENNE !', tryGun: 'ESSAIE :', tryGunSub: 'Elle te plaît ? Achète-la en boutique', gunLabel: 'Arme', bAtk: 'FRAPPE', bJump: 'SAUT', bShoot: 'TIR', bSpec: 'POUVOIR', sPow: 'PUISSANCE', sSpd: 'VITESSE', sHp: 'VIE', keys: '←/→ bouger · W sauter · J frapper · K tirer · L pouvoir · R recharger' },
-      ar: { story: "القصة", infShort: "لا نهائي", storyTitle: "سقوط الحبر", chapter: "الفصل", play: "العب", next: "التالي", map: "الخريطة", skip: "تخطَّ", tapNext: "المس للمتابعة", locked: "مقفل", oC: "اهزم كل الزومبي", oR: "حرّر الناجين", oS: "انجُ", oD: "احمِ فانوس الحبر", oB: "اهزم", m_swarm: "سرب: زومبي أكثر", m_nogun: "بلا أسلحة: القبضات فقط", m_elite: "ليلة النخبة: زومبي ذهبي", m_dark: "انقطاع الكهرباء: ابقَ في الضوء", star1: "افُز", star2: "احتفظ بنصف صحتك", star3: "كومبو", lvClear: "اكتملت المرحلة!", failed: "فشلت المرحلة", lanternOut: "انطفأ الفانوس", joins: "ينضم إلى فريقك!", survivors: "الناجون", left: "الزومبي المتبقون", lantern: "الفانوس", nightmare: "كابوس", firstClear: "أول فوز ×2", freed: "حُرّر!", noGun: "لا أسلحة هنا!", allAboard: "الكل إلى القطار!", twinRage: "التوأم الآخر غاضب!", phase2: "نَل · المرحلة 2", phase2s: "رسم نسخاً من نفسه!", theEnd: "النهاية…؟", nmUnlocked: "فُتح وضع الكابوس!", hero: "البطل", tagline: 'قصة من 40 مرحلة وليلة زومبي لا تنتهي. اضرب، أطلق، انجُ!', choose: 'اختر بطلك', fight: 'قتال!', unlock: 'افتح', needCoins: 'العملات لا تكفي بعد', wave: 'الموجة', bossWave: 'زعيم', cleared: 'انتهت الموجة!', pickPerk: 'اختر قوة', combo: 'كومبو', reloading: 'إعادة التلقيم…', newZ: 'جديد:', block: 'صدّ', broken: 'تحطّم!', broke: 'انكسر!', empty: 'فارغ!', rage: 'وضع الغضب!', overrun: 'غُمِرت!', reached: 'سقطت في الموجة', record: 'رقم قياسي جديد!', infinity: 'الوضع اللانهائي · كل موجة أصعب', bestWave: 'أفضل موجة', eliteT: 'زومبي النخبة!', eliteS: 'التوهج الذهبي = أقوى لكن 3× نقاط وعملات أكثر', threat: 'الخطر', shop: 'المتجر', guns: 'الأسلحة', items: 'الأدوات', back: 'رجوع', buy: 'شراء', equip: 'تجهيز', equipped: 'مُجهَّز', owned: 'مملوك', maxed: 'ممتلئ!', have: 'لديك', dps: 'ضرر/ث', sDmg: 'الضرر', sRate: 'سرعة الإطلاق', sMag: 'الذخيرة', sReload: 'التلقيم', sRange: 'المدى', adCoins: '+60 · إعلان', adWait: 'المكافأة التالية قريباً', reviveQ: 'سقطت! هل تستخدم قلباً؟', revive: 'انهض', giveUp: 'استسلم', revived: 'عدت إلى القتال!', heartSaved: 'القلوب تُنهضك عندما تسقط', fullHp: 'الصحة ممتلئة', airstrike: 'غارة جوية!', tryGun: 'جرّب:', tryGunSub: 'أعجبك؟ اشتره من المتجر', gunLabel: 'السلاح', bAtk: 'ضرب', bJump: 'قفز', bShoot: 'نار', bSpec: 'قوة', sPow: 'القوة', sSpd: 'السرعة', sHp: 'الصحة', keys: '←/→ تحرك · W قفز · J ضرب · K نار · L قوة · R تلقيم' }
+      en: { noCombo: "No combo in slot B — buy one in the shop", story: "STORY", infShort: "INFINITY", storyTitle: "THE INKFALL", chapter: "Chapter", play: "PLAY", next: "NEXT", map: "MAP", skip: "Skip", tapNext: "Tap to continue", locked: "Locked", oC: "Defeat every zombie", oR: "Free the survivors", oS: "Survive", oD: "Protect the Ink Lantern", oB: "Defeat", m_swarm: "SWARM: more zombies", m_nogun: "NO GUNS: fists only", m_elite: "ELITE NIGHT: gold zombies", m_dark: "BLACKOUT: stay in the light", star1: "Win", star2: "Keep half your health", star3: "Combo", lvClear: "LEVEL CLEAR!", failed: "Level failed", lanternOut: "The lantern went out", joins: "joins your team!", survivors: "Survivors", left: "Zombies left", lantern: "Lantern", nightmare: "NIGHTMARE", firstClear: "First clear ×2", freed: "FREED!", noGun: "No guns here!", allAboard: "ALL ABOARD!", twinRage: "THE OTHER TWIN IS ANGRY!", phase2: "NULL · PHASE 2", phase2s: "He drew copies of himself!", theEnd: "THE END…?", nmUnlocked: "NIGHTMARE MODE unlocked!", hero: "Hero", tagline: 'A 40-level story and an endless zombie night. Punch, shoot, survive!', choose: 'Choose your hero', fight: 'FIGHT!', unlock: 'Unlock', needCoins: 'Not enough coins yet', wave: 'Wave', bossWave: 'BOSS', cleared: 'Wave cleared!', pickPerk: 'Pick a power-up', combo: 'COMBO', reloading: 'Reloading…', newZ: 'New:', block: 'BLOCK', broken: 'SMASHED!', broke: 'Broken!', empty: 'Empty!', rage: 'RAGE MODE!', overrun: 'Overrun!', reached: 'Fell at wave', record: 'New record!', infinity: 'INFINITY MODE · every wave is harder', bestWave: 'Best wave', eliteT: 'ELITE ZOMBIES!', eliteS: 'Gold glow = tougher, but 3× points and more coins', threat: 'Threat', shop: 'SHOP', guns: 'GUNS', items: 'ITEMS', back: 'Back', buy: 'BUY', equip: 'EQUIP', equipped: 'EQUIPPED', owned: 'OWNED', maxed: 'Full!', have: 'Have', dps: 'DPS', sDmg: 'Damage', sRate: 'Fire rate', sMag: 'Ammo', sReload: 'Reload', sRange: 'Range', adCoins: '+60 · AD', adWait: 'Next ad reward soon', reviveQ: 'You fell! Use a heart?', revive: 'REVIVE', giveUp: 'Give up', revived: 'BACK IN THE FIGHT!', heartSaved: 'Hearts revive you when you fall', fullHp: 'Health is full', airstrike: 'AIRSTRIKE!', tryGun: 'TRY:', tryGunSub: 'Like it? Buy it in the shop', gunLabel: 'Gun', bAtk: 'HIT', bJump: 'JUMP', bShoot: 'FIRE', bSpec: 'POWER', sPow: 'POWER', sSpd: 'SPEED', sHp: 'HEALTH', keys: '←/→ move · W jump · J hit · K fire · L power · R reload' },
+      fr: { noCombo: "Aucun combo en B — achète-en un", story: "HISTOIRE", infShort: "INFINI", storyTitle: "LA CHUTE D’ENCRE", chapter: "Chapitre", play: "JOUER", next: "SUIVANT", map: "CARTE", skip: "Passer", tapNext: "Touche pour continuer", locked: "Verrouillé", oC: "Élimine tous les zombies", oR: "Libère les survivants", oS: "Survis", oD: "Protège la Lanterne d’encre", oB: "Bats", m_swarm: "ESSAIM : plus de zombies", m_nogun: "SANS ARMES : poings seulement", m_elite: "NUIT D’ÉLITE : zombies dorés", m_dark: "PANNE : reste dans la lumière", star1: "Gagne", star2: "Garde la moitié de ta vie", star3: "Combo", lvClear: "NIVEAU RÉUSSI !", failed: "Niveau raté", lanternOut: "La lanterne s’est éteinte", joins: "rejoint ton équipe !", survivors: "Survivants", left: "Zombies restants", lantern: "Lanterne", nightmare: "CAUCHEMAR", firstClear: "Première victoire ×2", freed: "LIBÉRÉ !", noGun: "Pas d’armes ici !", allAboard: "EN VOITURE !", twinRage: "L’AUTRE JUMEAU EST FURIEUX !", phase2: "NULL · PHASE 2", phase2s: "Il a dessiné des copies de lui !", theEnd: "FIN… ?", nmUnlocked: "MODE CAUCHEMAR débloqué !", hero: "Héros", tagline: 'Une histoire de 40 niveaux et une nuit zombie sans fin. Frappe, tire, survis !', choose: 'Choisis ton héros', fight: 'COMBAT !', unlock: 'Débloquer', needCoins: 'Pas encore assez de pièces', wave: 'Vague', bossWave: 'BOSS', cleared: 'Vague terminée !', pickPerk: 'Choisis un bonus', combo: 'COMBO', reloading: 'Rechargement…', newZ: 'Nouveau :', block: 'BLOQUÉ', broken: 'BRISÉ !', broke: 'Cassé !', empty: 'Vide !', rage: 'MODE FURIE !', overrun: 'Submergé !', reached: 'Tombé à la vague', record: 'Nouveau record !', infinity: 'MODE INFINI · chaque vague est plus dure', bestWave: 'Meilleure vague', eliteT: 'ZOMBIES D\u2019ÉLITE !', eliteS: 'Lueur dorée = plus coriaces, mais 3× points et plus de pièces', threat: 'Menace', shop: 'BOUTIQUE', guns: 'ARMES', items: 'OBJETS', back: 'Retour', buy: 'ACHETER', equip: 'ÉQUIPER', equipped: 'ÉQUIPÉE', owned: 'ACQUISE', maxed: 'Plein !', have: 'Possédé', dps: 'DPS', sDmg: 'Dégâts', sRate: 'Cadence', sMag: 'Munitions', sReload: 'Recharge', sRange: 'Portée', adCoins: '+60 · PUB', adWait: 'Prochaine récompense bientôt', reviveQ: 'Tu es tombé ! Utiliser un cœur ?', revive: 'REVIVRE', giveUp: 'Abandonner', revived: 'DE RETOUR AU COMBAT !', heartSaved: 'Les cœurs te relèvent quand tu tombes', fullHp: 'Vie au maximum', airstrike: 'FRAPPE AÉRIENNE !', tryGun: 'ESSAIE :', tryGunSub: 'Elle te plaît ? Achète-la en boutique', gunLabel: 'Arme', bAtk: 'FRAPPE', bJump: 'SAUT', bShoot: 'TIR', bSpec: 'POUVOIR', sPow: 'PUISSANCE', sSpd: 'VITESSE', sHp: 'VIE', keys: '←/→ bouger · W sauter · J frapper · K tirer · L pouvoir · R recharger' },
+      ar: { noCombo: "لا توجد سلسلة في الخانة B — اشترِ واحدة", story: "القصة", infShort: "لا نهائي", storyTitle: "سقوط الحبر", chapter: "الفصل", play: "العب", next: "التالي", map: "الخريطة", skip: "تخطَّ", tapNext: "المس للمتابعة", locked: "مقفل", oC: "اهزم كل الزومبي", oR: "حرّر الناجين", oS: "انجُ", oD: "احمِ فانوس الحبر", oB: "اهزم", m_swarm: "سرب: زومبي أكثر", m_nogun: "بلا أسلحة: القبضات فقط", m_elite: "ليلة النخبة: زومبي ذهبي", m_dark: "انقطاع الكهرباء: ابقَ في الضوء", star1: "افُز", star2: "احتفظ بنصف صحتك", star3: "كومبو", lvClear: "اكتملت المرحلة!", failed: "فشلت المرحلة", lanternOut: "انطفأ الفانوس", joins: "ينضم إلى فريقك!", survivors: "الناجون", left: "الزومبي المتبقون", lantern: "الفانوس", nightmare: "كابوس", firstClear: "أول فوز ×2", freed: "حُرّر!", noGun: "لا أسلحة هنا!", allAboard: "الكل إلى القطار!", twinRage: "التوأم الآخر غاضب!", phase2: "نَل · المرحلة 2", phase2s: "رسم نسخاً من نفسه!", theEnd: "النهاية…؟", nmUnlocked: "فُتح وضع الكابوس!", hero: "البطل", tagline: 'قصة من 40 مرحلة وليلة زومبي لا تنتهي. اضرب، أطلق، انجُ!', choose: 'اختر بطلك', fight: 'قتال!', unlock: 'افتح', needCoins: 'العملات لا تكفي بعد', wave: 'الموجة', bossWave: 'زعيم', cleared: 'انتهت الموجة!', pickPerk: 'اختر قوة', combo: 'كومبو', reloading: 'إعادة التلقيم…', newZ: 'جديد:', block: 'صدّ', broken: 'تحطّم!', broke: 'انكسر!', empty: 'فارغ!', rage: 'وضع الغضب!', overrun: 'غُمِرت!', reached: 'سقطت في الموجة', record: 'رقم قياسي جديد!', infinity: 'الوضع اللانهائي · كل موجة أصعب', bestWave: 'أفضل موجة', eliteT: 'زومبي النخبة!', eliteS: 'التوهج الذهبي = أقوى لكن 3× نقاط وعملات أكثر', threat: 'الخطر', shop: 'المتجر', guns: 'الأسلحة', items: 'الأدوات', back: 'رجوع', buy: 'شراء', equip: 'تجهيز', equipped: 'مُجهَّز', owned: 'مملوك', maxed: 'ممتلئ!', have: 'لديك', dps: 'ضرر/ث', sDmg: 'الضرر', sRate: 'سرعة الإطلاق', sMag: 'الذخيرة', sReload: 'التلقيم', sRange: 'المدى', adCoins: '+60 · إعلان', adWait: 'المكافأة التالية قريباً', reviveQ: 'سقطت! هل تستخدم قلباً؟', revive: 'انهض', giveUp: 'استسلم', revived: 'عدت إلى القتال!', heartSaved: 'القلوب تُنهضك عندما تسقط', fullHp: 'الصحة ممتلئة', airstrike: 'غارة جوية!', tryGun: 'جرّب:', tryGunSub: 'أعجبك؟ اشتره من المتجر', gunLabel: 'السلاح', bAtk: 'ضرب', bJump: 'قفز', bShoot: 'نار', bSpec: 'قوة', sPow: 'القوة', sSpd: 'السرعة', sHp: 'الصحة', keys: '←/→ تحرك · W قفز · J ضرب · K نار · L قوة · R تلقيم' }
     },
     init: function (K) { K0 = K; if (K.store.get('cur:ink-heroes', null) === null) K.store.set('cur:ink-heroes', K.wallet() || Math.floor(K.store.get('coins', 0) || 0)); /* keep old coins as Ink Drops */ held = {}; keys = {}; ui = []; waves = []; layout(K); picked = K.store.get('ink:hero', 'kai'); bestWave = K.store.get('ink:bestWave', 0) || 0;
       prog = loadProg(); storyMode = K.store.get('ink:mode', 'story') !== 'inf';
@@ -1767,12 +1994,12 @@
       K0 = K; layout(K); held = {}; keys = {}; touchMap = {}; waves = [];
       var own = owned(); picked = K.store.get('ink:hero', 'kai'); if (own.indexOf(picked) < 0) picked = 'kai';
       sel = Math.max(0, HEROES.map(function (h) { return h.id; }).indexOf(picked));
-      hero = newHero(K); zombies = []; bullets = []; spits = []; pickups = []; parts = []; decals = []; allies = []; banners = []; wave = 0; combo = 0; comboT = 0; hs = 0; slow = 0; introT = 0; bossRef = null;
+      hero = newHeroF(K); corpses = []; IF.fx.length = 0; zombies = []; bullets = []; spits = []; pickups = []; parts = []; decals = []; allies = []; banners = []; wave = 0; combo = 0; comboT = 0; hs = 0; slow = 0; introT = 0; bossRef = null;
       mods = { maxHp: 0, melee: 1, rate: 1, mag: 1, vamp: 0, focus: 1, buddy: 0, luck: 1, crit: 0.05 };
       camX = clamp(hero.x - viewW(K) / 2, 0, Math.max(0, AW - viewW(K))); mode = 'pick'; queue = []; curGun = equippedGun(); bag = inv(); turrets = []; bombs = []; nades = []; planeT = 0;
       prog = loadProg(); story = null; cut = null; cages = []; lantern = null; civs = []; theme = 'ruins'; zoomK = 1; curMut = [];
       if (storyRetry !== null) { var rIdx = storyRetry; storyRetry = null; goMap(K, rIdx); }
-      if (K.test) window.__ink = { hurt: function (n) { hurtHero(K, n, 1); }, spawn: function (t) { spawnZombie(K, t); }, use: function (id) { useItem(K, id); }, fire: function () { fire(K); }, clear: function () { zombies = []; queue = []; }, story: { win: function () { storyWin(K); }, prog: function () { return prog; }, set: function (p) { prog = p; saveProg(); }, start: function (i, nm) { nmOn = !!nm; startLevel(K, i); }, play: function (i) { playLevel(K, i); }, map: function (i) { goMap(K, i); }, killBoss: function (frac) { zombies.forEach(function (z) { if (z.d.boss && !z.dead) { z.hidden = false; if (frac) { z.hp -= z.maxHp * frac; } else { z.hp = 1; hitZombie(K, z, 99999, 1, 0, 0, 'boom'); } } }); }, timer: function (t) { if (story) story.timer = t; }, cages: function () { cages.forEach(function (c) { hitCage(K, c, 9999); }); }, lanternHit: function (n) { hurtLantern(K, n); } }, setGun: function (id) { curGun = id; hero.ammo = baseMag(); hero.reloadT = 0; hero.shootCd = 0; } };
+      if (K.test) window.__ink = { hp: function (n) { zombies.forEach(function (z) { z.hp = z.maxHp = n; }); }, combo: function (id) { hero.F.log.length = 0; if (id) { var o = ownedCombos(); if (o.indexOf(id) < 0 && !COMBOS[id].free) { o.push(id); K0.store.set('ink:combos', o); } setSlot(1, id); } attack2(K); }, equip: function (i, id) { var o = ownedCombos(); if (id && o.indexOf(id) < 0) { o.push(id); K0.store.set('ink:combos', o); } setSlot(i, id); }, fight: function () { return { cmb: hero.cmb && hero.cmb.id, busy: hero.F.busy(), x: hero.x, y: hero.y, log: hero.F.log.slice(-30), corpses: corpses.length, zs: zombies.map(function (z) { return { t: z.t, x: Math.round(z.x), y: Math.round(z.y), hp: z.hp, jug: !!z.jug, down: z.downT > 0 }; }) }; }, hurt: function (n) { hurtHero(K, n, 1); }, spawn: function (t) { spawnZombie(K, t); }, use: function (id) { useItem(K, id); }, fire: function () { fire(K); }, clear: function () { zombies = []; queue = []; }, story: { win: function () { storyWin(K); }, prog: function () { return prog; }, set: function (p) { prog = p; saveProg(); }, start: function (i, nm) { nmOn = !!nm; startLevel(K, i); }, play: function (i) { playLevel(K, i); }, map: function (i) { goMap(K, i); }, killBoss: function (frac) { zombies.forEach(function (z) { if (z.d.boss && !z.dead) { z.hidden = false; if (frac) { z.hp -= z.maxHp * frac; } else { z.hp = 1; hitZombie(K, z, 99999, 1, 0, 0, 'boom'); } } }); }, timer: function (t) { if (story) story.timer = t; }, cages: function () { cages.forEach(function (c) { hitCage(K, c, 9999); }); }, lanternHit: function (n) { hurtLantern(K, n); } }, setGun: function (id) { curGun = id; hero.ammo = baseMag(); hero.reloadT = 0; hero.shootCd = 0; } };
       if (K.test) K.dbg = function () { return { mode: mode, wave: wave, bag: bag, gun: curGun, ammo: hero.ammo, muts: curMut, elites: zombies.filter(function (z) { return z.elite; }).length, threat: [1, 2, 3, 5, 10, 15, 20, 30, 40, 60].map(function (n) { var t = threat(n); t.n = n; return t; }), seen: Object.keys(firstTypes || {}), weapon: (hero.melee && hero.melee.id) || (hero.gun2 && hero.gun2.id) || null, boss: !!bossRef, hero: { x: hero.x, y: hero.y, hp: hero.hp, ink: hero.ink, face: hero.face, ground: hero.ground, ammo: hero.ammo }, zombies: zombies.map(function (z) { return { t: z.t, x: z.x, y: z.y, hp: z.hp, maxHp: z.maxHp, shield: z.shield, atkT: z.atkT, ice: z.ice || 0, frozen: z.frozen || 0 }; }), shieldT: hero.shield || 0, rage: hero.rage, turrets: turrets.length, bombs: bombs.length, nades: nades.length, bullets: bullets.length, waves: waves.map(function (w) { return { x: w.x }; }), kills: kills, perkOpts: perkOpts, sel: sel, queue: queue.length, storyMode: storyMode, theme: theme, mapCh: mapCh, mapSel: mapSel, nmOn: nmOn, cut: cut ? { i: cut.i, n: cut.lines.length, who: cut.lines[cut.i][0] } : null,
           story: story ? { idx: story.d.idx, o: story.d.o, m: story.d.m, timer: story.timer, done: story.done, eff: story.eff, maxCombo: story.maxCombo, dmg: story.dmg, bossSpawned: story.bossSpawned } : null, cages: cages.map(function (c) { return c.freed; }), lantern: lantern ? lantern.hp : null,
           win: winInfo && mode === 'win' ? { stars: winInfo.stars, coins: winInfo.coins, unlock: winInfo.unlock, ending: winInfo.ending } : null, zoom: zoomK, bosses: zombies.filter(function (z) { return z.d.boss; }).map(function (z) { return { t: z.t, hp: z.hp, x: z.x, st: z.st || z.bossAct || null, phase2: !!z.phase2, hidden: !!z.hidden }; }) }; };
@@ -1843,19 +2070,22 @@
       if (!down || rep) return;
       if (code === 'ArrowUp' || code === 'KeyW' || code === 'Space') jump(K);
       else if (code === 'KeyJ' || code === 'KeyZ' || code === 'Enter') attack(K);
+      else if (code === 'KeyU' || code === 'KeyV') attack2(K);
       else if (code === 'KeyL' || code === 'KeyC' || code === 'ShiftLeft') special(K);
       else if (code === 'KeyR') reload(K);
       else { var dk = /^(Digit|Numpad)([1-7])$/.exec(code); if (dk) ITEM_ORDER.forEach(function (k) { if (ITEMS[k].key === dk[2]) useItem(K, k); }); }
     },
     update: function (dt, K) {
       if (held.atkFlash) held.atkFlash = Math.max(0, held.atkFlash - dt);
+      if (held.atk2Flash) held.atk2Flash = Math.max(0, held.atk2Flash - dt);
       if (mode === 'down') { downT -= dt; updateParts(dt); if (downT <= 0) endRun(K); return; }
       trainT += dt; zoomK += (1 - zoomK) * Math.min(1, dt * 3.5);
       if (mode === 'cut' && cut) { cut.t += dt * 48; updateParts(dt); return; }
       if (mode === 'win' && winInfo) winInfo.t += dt;
       if (mode !== 'fight') { updateParts(dt); return; }
       if (slow > 0) { slow -= dt; dt *= 0.3; }
-      if (hs > 0) { hs -= dt; updateParts(dt * 0.2); return; }
+      if (hs > 0) { hs -= dt; updateParts(dt * 0.2); IF.updateFx(dt * 0.25); return; }
+      IF.updateFx(dt); updateCorpses(K, dt);
       tutT += dt; introT = Math.max(0, introT - dt);
       if (comboT > 0) { comboT -= dt; if (comboT <= 0) combo = 0; }
       banners.forEach(function (b) { b.t -= dt; }); banners = banners.filter(function (b) { return b.t > 0; });
@@ -1889,6 +2119,7 @@
       if (mode === 'map') { if (zc) c.restore(); drawMap(c, K); return; }
       // depth-sorted actors (2.5D): farther = drawn first, smaller and higher
       var items = [];
+      corpses.forEach(function (z) { items.push([(z.dz || 0) - 0.01, z.x, function () { c.globalAlpha = z.alpha; drawZombie(c, K, z); c.globalAlpha = 1; }, z]); });
       zombies.forEach(function (z) { items.push([z.dz || 0, z.x, function () { drawZombie(c, K, z); }, z]); });
       allies.forEach(function (a) { if (a && !a.dead) items.push([-14, a.x, function () { drawAlly(c, a); }, null]); });
       cages.forEach(function (cg) { items.push([-20, cg.x, function () { drawCage(c, K, cg); }, null]); });
@@ -1898,6 +2129,7 @@
       items.sort(function (a, b) { return a[0] - b[0]; });
       if (mode !== 'cut') items.forEach(function (it) { withDepth(c, it[1], it[0] === 0.5 ? 0 : it[0], it[2], it[3]); });
       drawPickups(c, K);
+      drawFightFx(c, K);
       drawParts(c, K);
       // blackout levels: only the light around the hero (and the lantern) cuts through
       if (story && story.d.m === 'dark' && mode !== 'cut') {

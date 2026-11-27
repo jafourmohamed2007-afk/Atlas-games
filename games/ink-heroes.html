@@ -1145,6 +1145,482 @@ var BubziCur = (function () {
 
 </script>
 <script>
+/* Ink Fight: the stickman-fighter engine (see .claude/skills/stickman-fighter) as a module for Ink Heroes.
+   Engine units ("eu"): the hero is about 86 eu tall, y is down, the ground is y = 0. The game converts with a
+   scale S (game units per eu). The hero is a jointed rig: spine in two parts, hip and shoulder twist, 2-bone IK
+   legs on planted feet that step, joint springs chasing key poses, sub-stepped at 240 Hz. Strikes land only by
+   real contact between the striking part and a victim's capsules. Victims are adaptors (see `victim` notes). */
+var InkFight = (function () {
+  'use strict';
+  var TAU = Math.PI * 2, GROUND = 0, G = 1900;
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; }, rand = function (a, b) { return a + Math.random() * (b - a); };
+  var LEN = { sp: 15, nk: 4, head: 8.2, ua: 15, fa: 15, th: 20, sh: 20.5, ft: 6.5, ank: 2.4 };
+  var LEG = LEN.th + LEN.sh;
+  var KEYS = ['px', 'py', 't1', 't2', 'tw', 'h', 'a1', 'e1', 'a2', 'e2', 'l1', 'k1', 'l2', 'k2', 'fa1', 'fa2'];
+  function dir(a) { return [Math.sin(a), Math.cos(a)]; }
+  function up(a) { return [Math.sin(a), -Math.cos(a)]; }
+  function fwd(a) { return [Math.cos(a), Math.sin(a)]; }
+  function spring(v) { return { v: v, w: 0 }; }
+  function add(p, d, k) { return [p[0] + d[0] * k, p[1] + d[1] * k]; }
+  function wrapA(a) { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; }
+  function mixA(a, b, k) { return a + wrapA(b - a) * k; }
+
+  var STANCE = { px: -1, py: 35.5, t1: 0.06, t2: 0.05, tw: 0.35, h: 0.1, a1: 0.72, e1: 2.28, a2: 0.36, e2: 2.68, l1: 0.3, k1: -0.4, l2: -0.3, k2: -0.3, fa1: 0, fa2: 0.18, p1: 12, p2: -12 };
+  function D(o) { var r = {}, k; for (k in STANCE) r[k] = STANCE[k]; for (k in o) r[k] = o[k]; return r; }
+  var POSE = {
+    stance: D({}),
+    // ---- punches: the other hand always stays home on the chin ----
+    jab: D({ px: 4, py: 35, t1: 0.12, t2: 0.1, tw: 0.75, h: 0.12, a1: 1.56, e1: 0.03, p1: 15 }),
+    crossLoad: D({ px: 1, py: 34, t1: 0.1, tw: 0.55, fa2: 0.35 }),
+    cross: D({ px: 6, py: 35, t1: 0.22, t2: 0.12, tw: -0.8, h: 0.14, a1: 0.8, e1: 2.3, a2: 1.53, e2: 0.03, fa2: 1 }),
+    hookLoad: D({ px: 1, py: 33, t1: 0.1, tw: 0.75, a1: 1.0, e1: 1.6, fa2: 0.3 }),
+    hook: D({ px: 4, py: 33, t1: 0.16, t2: 0.04, tw: -0.55, h: 0.12, a1: 1.62, e1: 0.75, fa1: 0.85, fa2: 0 }),
+    overLoad: D({ px: -1, py: 33, t1: -0.05, t2: -0.08, tw: 0.6, h: 0.05, a2: 2.75, e2: 1.2, fa2: 0.4 }),
+    overhand: D({ px: 8, py: 32, t1: 0.42, t2: 0.15, tw: -0.95, h: 0.2, a1: 0.6, e1: 2.2, a2: 1.85, e2: 0.32, fa2: 1, p1: 15 }),
+    overFollow: D({ px: 8, py: 31, t1: 0.55, t2: 0.2, tw: -0.95, h: 0.25, a1: 0.6, e1: 2.2, a2: 0.9, e2: 0.5, fa2: 1, p1: 15 }),
+    // ---- uppercuts: dip the knees, then the legs and hips drive the fist up ----
+    luDip: D({ px: 1, py: 30, t1: 0.28, t2: 0.12, tw: 0.75, h: 0.2, a1: 0.5, e1: 1.85, fa1: 0 }),
+    leadUpper: D({ px: 5, py: 35.5, t1: 0.12, t2: -0.04, tw: -0.2, h: 0.04, a1: 1.3, e1: 1.5, fa1: 0.6 }),
+    ruDip: D({ px: 2, py: 28.5, t1: 0.38, t2: 0.14, tw: 0.8, h: 0.25, a2: 0.15, e2: 1.95, fa2: 0.15 }),
+    rearUpper: D({ px: 6, py: 38.5, t1: -0.04, t2: -0.16, tw: -0.85, h: -0.06, a2: 1.6, e2: 1.32, fa2: 1, fa1: 0.25 }),
+    ruFollow: D({ px: 6, py: 39, t1: -0.12, t2: -0.2, tw: -0.9, h: -0.12, a2: 2.25, e2: 0.85, fa2: 1, fa1: 0.3 }),
+    juDip: D({ px: 3, py: 23, t1: 0.5, t2: 0.15, tw: 0.85, h: 0.3, a2: 0.1, e2: 1.9, fa2: 0.2 }),
+    jumpUpper: D({ px: 6, py: 38, t1: -0.08, t2: -0.18, tw: -0.9, h: -0.1, a2: 1.72, e2: 1.22, fk1: 1, fk2: 1, l1: 0.9, k1: -1.4, l2: -0.2, k2: -0.5 }),
+    juFollow: D({ px: 4, py: 36, t1: -0.15, t2: -0.2, tw: -0.9, h: -0.15, a2: 2.8, e2: 0.25, fk1: 1, fk2: 1, l1: 1.1, k1: -1.7, l2: 0.1, k2: -1.0 }),
+    airLeadUp: D({ px: 3, py: 34, t1: 0.0, t2: -0.1, tw: -0.2, h: 0, a1: 1.65, e1: 1.3, fk1: 1, fk2: 1, l1: 1.2, k1: -1.9, l2: 0.3, k2: -1.3 }),
+    airRearUp: D({ px: 3, py: 34, t1: -0.05, t2: -0.15, tw: -0.9, h: -0.05, a2: 1.7, e2: 1.25, fk1: 1, fk2: 1, l1: 1.0, k1: -1.7, l2: 0.5, k2: -1.6 }),
+    tuck: D({ px: 0, py: 31, t1: 0.15, t2: 0.1, fk1: 1, fk2: 1, l1: 1.35, k1: -2.1, l2: 0.6, k2: -1.9 }),
+    axeUp: D({ px: 0, py: 33, t1: -0.35, t2: -0.1, tw: 0.2, h: 0.2, a1: 1.3, e1: 0.8, a2: -0.6, e2: 0.9, fk1: 1, fk2: 1, l1: 2.95, k1: -0.08, l2: 0.25, k2: -0.9 }),
+    axeDown: D({ px: 0, py: 33, t1: 0.4, t2: 0.12, tw: 0, h: -0.05, a1: -0.3, e1: 1.1, a2: 0.9, e2: 0.9, fk1: 1, fk2: 1, l1: 0.95, k1: -0.04, l2: -0.3, k2: -0.6 }),
+    land: D({ px: 0, py: 27, t1: 0.32, t2: 0.1, h: 0.05 }),
+    // ---- kicks: rear-leg kicks turn the hips over, pivot on the lead foot and swing the arm back ----
+    lkChamb: D({ px: 0, py: 34, t1: -0.08, t2: 0, tw: 0.2, fk2: 1, l2: 0.75, k2: -1.55, fa1: 0.5, a2: 0.2, e2: 1.5 }),
+    lowKick: D({ px: 2, py: 34, t1: -0.22, t2: -0.06, tw: -0.9, h: 0.15, fk2: 1, l2: 1.12, k2: -0.12, fa1: 1, a2: -0.65, e2: 0.35, a1: 0.85, e1: 2.2 }),
+    lkRecover: D({ px: 0, py: 34, t1: -0.05, fk2: 1, l2: 0.45, k2: -1.3, fa1: 0.4 }),
+    teepChamb: D({ px: -2, py: 35, t1: -0.15, t2: -0.05, tw: 0.5, fk1: 1, l1: 1.78, k1: -2.35, fa1: 0, fa2: 0.2 }),
+    teep: D({ px: 4, py: 36, t1: -0.38, t2: -0.1, tw: 0.6, h: 0.2, fk1: 1, l1: 1.75, k1: -0.04, fa1: -0.6, fa2: 0.6, a1: 0.95, e1: 2.0, a2: 0.2, e2: 2.4 }),
+    rkChamb: D({ px: 0, py: 34, t1: -0.25, t2: -0.05, tw: 0, fk2: 1, l2: 1.45, k2: -2.2, fa1: 0.8, a2: -0.2, e2: 1.2 }),
+    bodyKick: D({ px: 2, py: 35, t1: -0.55, t2: -0.12, tw: -1, h: 0.25, fk2: 1, l2: 1.95, k2: -0.08, fa1: 1, a2: -0.9, e2: 0.25, a1: 0.95, e1: 2.15 }),
+    rkRecover: D({ px: 0, py: 34, t1: -0.2, tw: -0.3, fk2: 1, l2: 0.9, k2: -1.7, fa1: 0.5, a2: 0.0, e2: 1.2 }),
+    hkChamb: D({ px: -1, py: 34, t1: -0.45, t2: -0.1, tw: -0.1, fk2: 1, l2: 1.85, k2: -2.3, fa1: 0.9, a2: -0.5, e2: 1.0 }),
+    highKick: D({ px: 1, py: 36, t1: -0.85, t2: -0.15, tw: -1, h: 0.35, fk2: 1, l2: 2.32, k2: -0.05, fa1: 1, a2: -1.15, e2: 0.2, a1: 1.05, e1: 2.1 }),
+    // ---- clinch: hands lock behind the head, knees and headbutts ----
+    clinchReach: D({ px: 4, py: 34, t1: 0.2, t2: 0.1, tw: 0.3, h: 0.1, a1: 1.7, e1: 0.4, a2: 1.6, e2: 0.5, p1: 14 }),
+    clinch: D({ px: 3, py: 34, t1: 0.22, t2: 0.12, tw: 0.15, h: 0.18, grab: 1 }),
+    kneeLoad: D({ px: 0, py: 34, t1: 0.3, t2: 0.15, tw: 0.2, h: 0.2, grab: 1, fk2: 1, l2: -0.25, k2: -1.2, fa1: 0.3 }),
+    knee: D({ px: 6, py: 35, t1: -0.05, t2: 0.05, tw: -0.5, h: 0.12, grab: 1, fk2: 1, l2: 2.3, k2: -2.6, fa1: 1 }),
+    hbLoad: D({ px: -1, py: 36, t1: 0.0, t2: -0.3, tw: 0.15, h: -0.55, grab: 1 }),
+    headbutt: D({ px: 6, py: 34, t1: 0.2, t2: 0.3, tw: 0.15, h: 0.5, grab: 1, fa2: 0.6 }),
+    hbLoad2: D({ px: -3, py: 37, t1: -0.08, t2: -0.4, tw: 0.15, h: -0.7, grab: 1, fa1: 0.4 }),
+    headbutt2: D({ px: 8, py: 33, t1: 0.26, t2: 0.36, tw: 0.15, h: 0.55, grab: 1, fa2: 1 }),
+    release: D({ px: 2, py: 34, t1: 0.15, t2: 0.1, h: 0.2, a1: 1.2, e1: 0.5, a2: 1.0, e2: 0.6 }),
+    // ---- game states ----
+    jumpUp: D({ px: 0, py: 34, t1: 0.1, t2: 0.05, h: 0.05, a1: 1.3, e1: 1.4, a2: 0.4, e2: 1.9, fk1: 1, fk2: 1, l1: 1.1, k1: -1.5, l2: 0.1, k2: -0.7 }),
+    fall: D({ px: 0, py: 34, t1: 0.12, t2: 0.04, h: 0.1, a1: 1.6, e1: 0.9, a2: 0.9, e2: 1.2, fk1: 1, fk2: 1, l1: 0.6, k1: -0.7, l2: -0.15, k2: -0.5 }),
+    hurt: D({ px: -4, py: 33, t1: -0.3, t2: -0.35, tw: 0.25, h: -0.55, a1: 0.2, e1: 1.2, a2: -0.2, e2: 1.0, fa1: 0.5 }),
+    aim: D({ px: 0, py: 35, t1: 0.06, t2: 0.04, tw: 0.4, h: 0.08, a1: 1.52, e1: 0.06, a2: 0.5, e2: 2.4 }),
+    diveKick: D({ px: 0, py: 34, t1: 0.35, t2: 0.1, tw: -0.3, h: 0.15, a1: 2.3, e1: 0.6, a2: -0.4, e2: 1.0, fk1: 1, fk2: 1, l1: 0.55, k1: -0.05, l2: -0.2, k2: -1.6 }),
+    // ---- weapon swings: the weapon is in the near hand (h1); see WEAPON ----
+    wGuard: D({ a1: 0.55, e1: 1.55, a2: 0.4, e2: 2.4 }),
+    wLoad1: D({ px: -1, py: 34, t1: -0.05, t2: -0.1, tw: 0.75, h: 0.05, a1: 2.75, e1: 0.55, fa2: 0.3 }),
+    wSwing1: D({ px: 7, py: 33, t1: 0.3, t2: 0.12, tw: -0.7, h: 0.12, a1: 1.15, e1: 0.05, fa2: 1, p1: 15 }),
+    wLoad2: D({ px: 1, py: 33, t1: 0.25, t2: 0.1, tw: -0.6, h: 0.1, a1: 0.25, e1: -0.35, fa2: 0.6 }),
+    wSwing2: D({ px: 6, py: 36, t1: -0.05, t2: -0.12, tw: 0.7, h: 0, a1: 2.15, e1: 0.15, fa1: 0.5 }),
+    wLoad3: D({ px: -2, py: 33, t1: -0.3, t2: -0.2, tw: 0.3, h: -0.1, a1: 3.05, e1: 0.9, a2: 2.6, e2: 0.9, fa2: 0.4 }),
+    wSmash: D({ px: 9, py: 29, t1: 0.65, t2: 0.25, tw: -0.3, h: 0.25, a1: 1.05, e1: -0.1, a2: 1.0, e2: 0.2, fa2: 1, p1: 17 }),
+    wThrust: D({ px: 10, py: 32, t1: 0.35, t2: 0.1, tw: -0.4, h: 0.12, a1: 1.5, e1: 0.02, a2: 0.2, e2: 1.3, fa2: 1, p1: 18 }),
+    // ---- reactions and bodies ----
+    tumble: D({ t1: -0.62, t2: -0.2, h: -0.6, a1: -1.85, e1: 0.4, a2: -2.45, e2: 0.6, fk1: 1, fk2: 1, l1: 0.92, k1: -1.15, l2: 0.42, k2: -0.62 }),
+    down: D({ t1: 0.0, t2: 0.0, h: 0.15, a1: 0.75, e1: 0.35, a2: 0.95, e2: 0.25, fk1: 1, fk2: 1, l1: 0.1, k1: -0.1, l2: -0.06, k2: -0.22, fa1: -0.5, fa2: -0.5 }),
+    getUp: D({ t1: 0.7, t2: 0.2, h: -0.2, a1: 0.4, e1: 1.2, a2: -0.1, e2: 1.4, fk1: 1, fk2: 1, l1: 1.0, k1: -1.6, l2: -0.3, k2: -1.2 })
+  };
+  // procedural run cycle: free (FK) legs and pumping arms; the lowest foot is snapped to the ground
+  function runPose(t, k, wpn) {
+    var s = Math.sin(t), c = Math.cos(t), r = D({ px: 2, py: 34, t1: 0.22 * k + 0.04, t2: 0.05, tw: 0.3 * s * k, h: -0.05, fk1: 1, fk2: 1 });
+    r.l1 = 0.95 * s * k + 0.1; r.k1 = -(0.25 + 1.25 * Math.max(0, -c)) * k - 0.15;
+    r.l2 = -0.95 * s * k + 0.1; r.k2 = -(0.25 + 1.25 * Math.max(0, c)) * k - 0.15;
+    r.fa1 = 0.3; r.fa2 = 0.3;
+    r.a1 = wpn ? 0.6 - 0.25 * s * k : -0.75 * s * k + 0.3; r.e1 = wpn ? 1.5 : 1.55;
+    r.a2 = 0.75 * s * k + 0.3; r.e2 = 1.55;
+    return r;
+  }
+
+  /* ---------------- fighter ---------------- */
+  function Fighter(x, face) {
+    this.x = x; this.vx = 0; this.face = face; this.air = 0; this.vAir = 0; this.gS = 1; this.grounded = true;
+    this.rot = spring(0); this.rotT = 0;
+    this.j = {}; for (var i = 0; i < KEYS.length; i++) this.j[KEYS[i]] = spring(STANCE[KEYS[i]]);
+    this.target = POSE.stance; this.f = 8; this.z = 0.55; this.queue = []; this.cur = null; this.curT = 0; this.state = 'idle';
+    this.flash = 0; this.whip = 0; this.seed = Math.random() * 10; this.trails = { h1: [], h2: [], an1: [], an2: [], wp: [] };
+    this.feet = [{ x: x + face * STANCE.p1, lift: 0, sw: null }, { x: x + face * STANCE.p2, lift: 0, sw: null }];
+    this.legIK = [true, true]; this.xSpring = false; this.xT = x; this.L = null; this.yo = 0; this.grab = null; this.ghosts = [];
+    this.weapon = null; this.t = 0; this.burst = 0; this.log = [];
+  }
+  Fighter.prototype.setPose = function (p, f, z) { this.target = typeof p === 'string' ? POSE[p] : p; this.f = f || 8; this.z = z == null ? 0.55 : z; };
+  Fighter.prototype.busy = function () { return !!this.cur || this.queue.length > 0; };
+  Fighter.prototype.play = function (steps, replace) { if (replace) { this.queue = []; this.cur = null; } for (var i = 0; i < steps.length; i++) this.queue.push(steps[i]); };
+  Fighter.prototype.stop = function () { this.queue = []; this.cur = null; this.clinch = null; this.grab = null; this.xSpring = false; };
+  Fighter.prototype.ragdoll = function () { return false; };
+  Fighter.prototype.standing = function () { return this.grounded; };
+
+  function ik2(hp, tg, l1, l2, bendSign) {
+    var dx = tg[0] - hp[0], dy = tg[1] - hp[1], d = clamp(Math.hypot(dx, dy), Math.abs(l1 - l2) + 0.01, l1 + l2 - 0.01);
+    var base = Math.atan2(dx, dy), al = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1)), a = base + bendSign * al;
+    var j = add(hp, dir(a), l1), e = add(hp, dir(base), d);
+    return [j, e, a, Math.atan2(e[0] - j[0], e[1] - j[1]) - a];
+  }
+  // local skeleton (x forward from the root, y down from the ground line)
+  Fighter.prototype.solve = function (V) {
+    var F = this, j = F.j, v = V || function (k) { return j[k].v; }, L = {};
+    var t1 = v('t1'), cs = t1 + v('t2'), tw = v('tw');
+    var pel = [v('px'), -v('py')], foot = [], i;
+    for (i = 0; i < 2; i++) {
+      if (V ? !F._fk[i] : F.legIK[i]) {
+        var ft = V ? { x: V('p' + (i + 1)), lift: 0 } : { x: (F.feet[i].x - F.x) * F.face, lift: F.feet[i].lift };
+        var ph = clamp(v('fa' + (i + 1)), 0, 1) * 0.95, toe = [ft.x + LEN.ft, -ft.lift], ank = [toe[0] - LEN.ft * Math.cos(ph), toe[1] - LEN.ank - LEN.ft * Math.sin(ph)];
+        foot[i] = { toe: toe, ank: ank };
+        var hx = pel[0] + fwd(t1)[0] * 2.2 * tw * (i ? -0.6 : 0.6), dx = ank[0] - hx, need = ank[1] - Math.sqrt(Math.max(0, (LEG - 0.4) * (LEG - 0.4) - dx * dx));
+        if (pel[1] < need) pel[1] = need;
+      }
+    }
+    L.pel = pel; L.mid = add(pel, up(t1), LEN.sp); L.neck = add(L.mid, up(cs), LEN.sp);
+    L.head = add(L.neck, up(cs + v('h')), LEN.nk + LEN.head);
+    var sb = add(L.mid, up(cs), LEN.sp * 0.9);
+    L.s1 = add(sb, fwd(cs), 3.2 * tw); L.s2 = add(sb, fwd(cs), -3.2 * tw);
+    L.hp1 = add(pel, fwd(t1), 2.2 * tw * 0.6); L.hp2 = add(pel, fwd(t1), -2.2 * tw * 0.6);
+    for (i = 1; i <= 2; i++) {
+      var s = L['s' + i], g = !V && F.grab ? F.grab[i - 1] : null;
+      if (g) { var r = ik2(s, g, LEN.ua, LEN.fa, -1); L['e' + i] = r[0]; L['h' + i] = r[1]; F._armIK = F._armIK || []; F._armIK[i - 1] = [r[2], r[3]]; }
+      else { L['e' + i] = add(s, dir(v('a' + i)), LEN.ua); L['h' + i] = add(L['e' + i], dir(v('a' + i) + v('e' + i)), LEN.fa); }
+    }
+    for (i = 0; i < 2; i++) {
+      var n = i + 1, hp = L['hp' + n];
+      if (foot[i]) { var q = ik2(hp, foot[i].ank, LEN.th, LEN.sh, 1); L['kn' + n] = q[0]; L['an' + n] = q[1]; L['toe' + n] = foot[i].toe; L['ikA' + n] = [q[2], q[3]]; }
+      else {
+        L['kn' + n] = add(hp, dir(v('l' + n)), LEN.th); L['an' + n] = add(L['kn' + n], dir(v('l' + n) + v('k' + n)), LEN.sh);
+        L['toe' + n] = add(L['an' + n], dir(v('l' + n) + v('k' + n) + 1.4 + v('fa' + n) * 0.9), LEN.ft);
+      }
+    }
+    var low = -1e9, fl = -1e9, k;
+    for (k in L) { if (k.indexOf('ikA') === 0) continue; var lo = L[k][1] + (k === 'head' ? LEN.head : 2.1); if (lo > low) low = lo; }
+    ['an1', 'an2', 'toe1', 'toe2'].forEach(function (n) { if (L[n][1] + 2.1 > fl) fl = L[n][1] + 2.1; });
+    L.low = low; L.footLow = fl; return L;
+  };
+  Fighter.prototype.w = function (n) { var p = this.L[n]; return [this.x + this.face * p[0], GROUND + p[1] + this.yo]; };
+  Fighter.prototype.refresh = function () {
+    this.L = this.solve();
+    if (this.grounded) this.yo = this.target.fk1 && this.target.fk2 ? -this.L.footLow : 0; // both legs free on the ground (running): the lowest foot touches
+    else this.yo = -this.air - Math.max(0, this.L.low);
+  };
+  // the weapon in the near hand: points along the forearm, `len` eu long
+  Fighter.prototype.weaponLine = function () {
+    var e = this.w('e1'), h = this.w('h1'), dx = h[0] - e[0], dy = h[1] - e[1], m = Math.hypot(dx, dy) || 1, len = this.weapon ? this.weapon.len : 0;
+    return { a: h, b: [h[0] + dx / m * len, h[1] + dy / m * len], ang: Math.atan2(dx / m * this.face, dy / m) };
+  };
+
+  /* ---------------- moves ---------------- */
+  // aim: where the strike must land. eff: what touches (h1/h2 fist, head, kn knee, shin, foot, an ankle, wpn weapon)
+  function aim(p, eff, mode) { return { p: p, eff: eff, mode: mode || 'edge' }; }
+  var MOVES = {
+    jab: [{ p: 'jab', d: 0.15, f: 18, z: 0.55, sfx: 'whoosh', aim: aim('jab', 'h1'), hit: { eff: 'h1', power: 1 } }, { p: 'stance', d: 0.09, f: 12 }],
+    cross: [{ p: 'crossLoad', d: 0.05, f: 15, aim: aim('cross', 'h2') }, { p: 'cross', d: 0.16, f: 18, sfx: 'whoosh', aim: aim('cross', 'h2'), hit: { eff: 'h2', power: 2 } }, { p: 'stance', d: 0.11, f: 11 }],
+    hook: [{ p: 'hookLoad', d: 0.07, f: 14, aim: aim('hook', 'h1') }, { p: 'hook', d: 0.16, f: 17, sfx: 'whoosh', aim: aim('hook', 'h1'), hit: { eff: 'h1', power: 2 } }, { p: 'stance', d: 0.11, f: 11 }],
+    overhand: [{ p: 'overLoad', d: 0.13, f: 12, aim: aim('overhand', 'h2') }, { p: 'overhand', d: 0.17, f: 19, sfx: 'whooshBig', aim: aim('overhand', 'h2'), hit: { eff: 'h2', power: 4, ko: 1 } }, { p: 'overFollow', d: 0.22, f: 9 }, { p: 'stance', d: 0.3, f: 7 }],
+    lowKick: [{ p: 'lkChamb', d: 0.1, f: 13, aim: aim('lowKick', 'shin2') }, { p: 'lowKick', d: 0.16, f: 17, sfx: 'whoosh', aim: aim('lowKick', 'shin2'), hit: { eff: 'shin2', power: 2, zone: ['leg'] } }, { p: 'lkRecover', d: 0.1, f: 12 }, { p: 'stance', d: 0.14, f: 9 }],
+    teep: [{ p: 'teepChamb', d: 0.11, f: 13, aim: aim('teep', 'foot1') }, { p: 'teep', d: 0.15, f: 18, sfx: 'whoosh', aim: aim('teep', 'foot1'), hit: { eff: 'foot1', power: 2, push: 1, zone: ['gut', 'chest'] } }, { p: 'teepChamb', d: 0.08, f: 13 }, { p: 'stance', d: 0.14, f: 9 }],
+    bodyKick: [{ p: 'rkChamb', d: 0.11, f: 13, aim: aim('bodyKick', 'shin2') }, { p: 'bodyKick', d: 0.17, f: 18, sfx: 'whooshBig', aim: aim('bodyKick', 'shin2'), hit: { eff: 'shin2', power: 3, zone: ['gut', 'chest', 'arm'] } }, { p: 'rkRecover', d: 0.12, f: 11 }, { p: 'stance', d: 0.16, f: 9 }],
+    highKick: [{ p: 'hkChamb', d: 0.13, f: 12, aim: aim('highKick', 'shin2') }, { p: 'highKick', d: 0.2, f: 18, sfx: 'whooshBig', aim: aim('highKick', 'shin2'), hit: { eff: 'shin2', power: 4, ko: 1, zone: ['head', 'arm', 'chest'] } }, { p: 'rkRecover', d: 0.16, f: 10 }, { p: 'stance', d: 0.22, f: 8 }],
+    clinchIn: [{ p: 'clinchReach', d: 0.2, f: 10, aim: aim('clinch', 'h1', 'close') }, { p: 'clinch', d: 0.16, f: 10, act: 'clinch' }],
+    knee: [{ p: 'kneeLoad', d: 0.13, f: 11 }, { p: 'knee', d: 0.16, f: 17, sfx: 'whoosh', hit: { eff: 'kn2', power: 2, kind: 'knee', zone: ['gut', 'chest', 'head', 'arm'] } }, { p: 'clinch', d: 0.12, f: 11 }],
+    headbutt: [{ p: 'hbLoad', d: 0.15, f: 10 }, { p: 'headbutt', d: 0.14, f: 19, sfx: 'whoosh', hit: { eff: 'head', power: 2, kind: 'headbutt' } }, { p: 'clinch', d: 0.15, f: 10 }],
+    headbuttKO: [{ p: 'hbLoad2', d: 0.22, f: 8 }, { p: 'headbutt2', d: 0.16, f: 20, sfx: 'whooshBig', hit: { eff: 'head', power: 4, kind: 'headbutt', ko: 1 } }, { p: 'release', d: 0.2, f: 9, act: 'release' }, { p: 'stance', d: 0.3, f: 7 }],
+    leadUpper: [{ p: 'luDip', d: 0.09, f: 13, aim: aim('leadUpper', 'h1') }, { p: 'leadUpper', d: 0.15, f: 18, sfx: 'whoosh', aim: aim('leadUpper', 'h1'), hit: { eff: 'h1', power: 1 } }, { p: 'stance', d: 0.09, f: 11 }],
+    rearUpper: [{ p: 'ruDip', d: 0.13, f: 12, aim: aim('rearUpper', 'h2', 'chin') }, { p: 'rearUpper', d: 0.13, f: 19, sfx: 'whoosh', aim: aim('rearUpper', 'h2', 'chin'), hit: { eff: 'h2', power: 2, kind: 'upper' } }, { p: 'ruFollow', d: 0.1, f: 12 }, { p: 'stance', d: 0.12, f: 10 }],
+    jumpUpper: [{ p: 'juDip', d: 0.2, f: 9, aim: aim('jumpUpper', 'h2', 'chin') }, { p: 'jumpUpper', d: 0.16, f: 21, sfx: 'whooshBig', jump: 800, quake: 1, hit: { eff: 'h2', power: 3, kind: 'launch' } }, { p: 'juFollow', d: 0.12, f: 11, needs: 'air' }],
+    airLeadUp: [{ p: 'airLeadUp', d: 0.16, f: 20, sfx: 'whoosh', needs: 'air', plan: 0.1, aim: aim('airLeadUp', 'h1', 'air'), hit: { eff: 'h1', power: 2, kind: 'air' } }, { p: 'tuck', d: 0.05, f: 14, needs: 'air' }],
+    airRearUp: [{ p: 'airRearUp', d: 0.16, f: 20, sfx: 'whoosh', needs: 'air', plan: 0.1, aim: aim('airRearUp', 'h2', 'air'), hit: { eff: 'h2', power: 2, kind: 'air', lift: 1 } }, { p: 'tuck', d: 0.04, f: 14, needs: 'air' }],
+    axe: [{ p: 'axeUp', d: 0.14, f: 15, needs: 'air', plan: 0.22, aim: aim('axeDown', 'an1', 'above') }, { p: 'axeDown', d: 0.2, f: 23, z: 0.5, sfx: 'whooshBig', needs: 'air', hit: { eff: 'foot1', power: 4, kind: 'slam' } }],
+    landing: [{ p: 'tuck', d: 0.1, f: 10, untilLand: true }, { p: 'land', d: 0.18, f: 12 }, { p: 'stance', d: 0.2, f: 8 }],
+    // weapon basics (hammer, katana, axe pick-up): the weapon line is the striking part
+    wSwing1: [{ p: 'wLoad1', d: 0.12, f: 12, aim: aim('wSwing1', 'wpn') }, { p: 'wSwing1', d: 0.16, f: 18, sfx: 'whooshBig', aim: aim('wSwing1', 'wpn'), hit: { eff: 'wpn', power: 2 } }, { p: 'wGuard', d: 0.12, f: 10 }],
+    wSwing2: [{ p: 'wLoad2', d: 0.1, f: 13, aim: aim('wSwing2', 'wpn') }, { p: 'wSwing2', d: 0.16, f: 18, sfx: 'whooshBig', aim: aim('wSwing2', 'wpn'), hit: { eff: 'wpn', power: 2 } }, { p: 'wGuard', d: 0.12, f: 10 }],
+    wSmash: [{ p: 'wLoad3', d: 0.18, f: 11, aim: aim('wSmash', 'wpn') }, { p: 'wSmash', d: 0.18, f: 20, sfx: 'whooshBig', aim: aim('wSmash', 'wpn'), hit: { eff: 'wpn', power: 4, smash: 1 } }, { p: 'wGuard', d: 0.26, f: 8 }],
+    wThrust: [{ p: 'wLoad2', d: 0.1, f: 13, aim: aim('wThrust', 'wpn') }, { p: 'wThrust', d: 0.15, f: 19, sfx: 'whooshBig', aim: aim('wThrust', 'wpn'), hit: { eff: 'wpn', power: 3, push: 1 } }, { p: 'wGuard', d: 0.18, f: 9 }]
+  };
+
+  /* ---------------- contact geometry ---------------- */
+  function capsules(F) {
+    var w = function (n) { return F.w(n); }, hd = w('head');
+    return [
+      { a: hd, b: hd, r: LEN.head, part: 'head' }, { a: w('pel'), b: w('mid'), r: 5, part: 'gut' }, { a: w('mid'), b: w('neck'), r: 5.2, part: 'chest' },
+      { a: w('s1'), b: w('e1'), r: 2.8, part: 'arm' }, { a: w('e1'), b: w('h1'), r: 2.8, part: 'arm' }, { a: w('s2'), b: w('e2'), r: 2.8, part: 'arm' }, { a: w('e2'), b: w('h2'), r: 2.8, part: 'arm' },
+      { a: w('hp1'), b: w('kn1'), r: 3.6, part: 'leg' }, { a: w('kn1'), b: w('an1'), r: 3.2, part: 'leg' }, { a: w('hp2'), b: w('kn2'), r: 3.6, part: 'leg' }, { a: w('kn2'), b: w('an2'), r: 3.2, part: 'leg' }
+    ];
+  }
+  function closest(a, b, p) { var dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy, t = L ? clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L, 0, 1) : 0; return [a[0] + dx * t, a[1] + dy * t]; }
+  function effPts(F, eff) {
+    var w = function (n) { return F.w(n); };
+    if (eff === 'h1' || eff === 'h2') return { pts: [w(eff)], r: 3.4, aim: w(eff) };
+    if (eff === 'head') return { pts: [w('head')], r: LEN.head, aim: w('head') };
+    if (eff === 'kn1' || eff === 'kn2') return { pts: [w(eff)], r: 4.6, aim: w(eff) };
+    if (eff === 'an1' || eff === 'an2') return { pts: [w(eff)], r: 3.4, aim: w(eff) };
+    if (eff === 'wpn') { var wl = F.weaponLine(), ps0 = []; for (var j = 0; j < 6; j++) { var u = 0.25 + j * 0.15; ps0.push([wl.a[0] + (wl.b[0] - wl.a[0]) * u, wl.a[1] + (wl.b[1] - wl.a[1]) * u]); } return { pts: ps0, r: F.weapon ? F.weapon.r : 4, aim: ps0[4] }; }
+    var n = eff.slice(-1);
+    if (eff.indexOf('shin') === 0) { var k = w('kn' + n), a = w('an' + n), ps = []; for (var i = 0; i < 5; i++) { var t = 0.3 + i * 0.175; ps.push([k[0] + (a[0] - k[0]) * t, k[1] + (a[1] - k[1]) * t]); } return { pts: ps, r: 3.5, aim: ps[3] }; }
+    var an = w('an' + n), to = w('toe' + n); return { pts: [an, [(an[0] + to[0]) / 2, (an[1] + to[1]) / 2], to], r: 3.3, aim: to };
+  }
+  function touch(E, caps, zone) {
+    var best = null;
+    for (var p = 0; p < E.pts.length; p++) for (var i = 0; i < caps.length; i++) {
+      var c = caps[i]; if (zone && zone.indexOf(c.part) < 0) continue; var P = E.pts[p], q = closest(c.a, c.b, P), d = Math.hypot(P[0] - q[0], P[1] - q[1]), pen = c.r + E.r - d;
+      if (pen > 0 && (!best || pen > best.pen)) { var nx = d > 1e-4 ? (P[0] - q[0]) / d : 1, ny = d > 1e-4 ? (P[1] - q[1]) / d : 0; best = { pen: pen, part: c.part, n: [nx, ny], pt: [q[0] + nx * c.r, q[1] + ny * c.r] }; }
+    }
+    return best;
+  }
+  function frontEdge(caps, y, face) {
+    var best = null;
+    for (var i = 0; i < caps.length; i++) {
+      var c = caps[i]; if (c.part === 'arm') continue;
+      for (var k = 0; k <= 10; k++) { var px = c.a[0] + (c.b[0] - c.a[0]) * k / 10, py = c.a[1] + (c.b[1] - c.a[1]) * k / 10, dy = Math.abs(py - y); if (dy >= c.r) continue; var ex = px - face * Math.sqrt(c.r * c.r - dy * dy); if (best == null || face * ex < face * best) best = ex; }
+    }
+    return best;
+  }
+  // striking point of a pose relative to the root (static solve, feet planted at the pose's spots)
+  var POSE_CACHE = {};
+  function poseOff(F, pose, eff) {
+    var key = pose + ':' + eff + ':' + (F.weapon ? F.weapon.len : 0); if (POSE_CACHE[key]) return POSE_CACHE[key];
+    var P = POSE[pose], T = { j: F.j, x: 0, face: 1, yo: 0, weapon: F.weapon, _fk: [!!P.fk1, !!P.fk2] };
+    T.L = Fighter.prototype.solve.call(T, function (k) { return P[k]; }); T.w = Fighter.prototype.w; T.weaponLine = Fighter.prototype.weaponLine;
+    var e = effPts(T, eff).aim; return (POSE_CACHE[key] = [e[0], e[1] - GROUND]);
+  }
+  function aimRoot(F, vic, a) {
+    var off = poseOff(F, a.p, a.eff), f = F.face, caps = vic.caps();
+    if (a.mode === 'edge') { var edge = frontEdge(caps, GROUND - F.air + off[1], f); if (edge == null) edge = vic.w('head')[0] - f * vic.headR; return { x: edge + f * 5 - f * off[0] }; }
+    if (a.mode === 'chin') { var hd = vic.w('head'); return { x: hd[0] - f * 3 - f * off[0] }; }
+    if (a.mode === 'close') return { x: vic.x - f * 40 };
+    var core = vic.core();
+    if (a.mode === 'above') return { x: core[0] - f * off[0] + f * 2, air: -(core[1] + 12 - GROUND) + off[1] };
+    return { x: core[0] + f * 6 - f * off[0], air: -(core[1] - GROUND) + off[1] };
+  }
+
+  /* ---------------- step timeline ---------------- */
+  // one ballistic lunge per air strike: the velocity that meets the victim's predicted spot, then gravity does the rest
+  function planAir(F, vic, s) {
+    var T = s.plan, r = aimRoot(F, vic, s.aim);
+    var dx = vic.vx * T, da = vic.vAir * T - 0.5 * G * vic.gS * T * T;
+    var vx = (r.x + dx - F.x) / T, va = (r.air + da - F.air) / T + 0.5 * G * F.gS * T, m = Math.hypot(vx, va);
+    if (m > 1250) { vx *= 1250 / m; va *= 1250 / m; }
+    F.vx = vx; F.vAir = va; F.burst = 0.16;
+  }
+  function startStep(F, s, ctx) {
+    var vic = ctx.vic;
+    if (s.needs === 'air' && (!vic || vic.state !== 'juggled')) { F.cur = null; F.queue = F.queue.filter(function (q) { return q.needs !== 'air'; }); if (!F.grounded && !F.queue.length) F.play(MOVES.landing); return; }
+    if (s.hit && vic && vic.state === 'down' && !F.grounded) { F.cur = null; F.queue = []; F.play(MOVES.landing); return; }
+    F.cur = s; F.curT = 0; F.setPose(s.p, s.f, s.z); s._hit = false; F.hitSet = [];
+    if (s.jump) { F.vAir = s.jump; F.grounded = false; F.gS = 1; F.vx = F.face * 70; F.xSpring = false; if (s.quake && ctx.quake) ctx.quake((F.feet[0].x + F.feet[1].x) / 2, 1); }
+    if (s.plan && !F.grounded && vic && vic.state === 'juggled') planAir(F, vic, s);
+    if (s.act === 'clinch' && vic && vic.canClinch) { F.clinch = vic; vic.clinched(true); }
+    if (s.act === 'release') { if (F.clinch) F.clinch.clinched(false); F.clinch = null; F.grab = null; }
+    if (s.sfx && ctx.snd) ctx.snd(s.sfx);
+  }
+  function updateGrab(F) {
+    var vic = F.clinch;
+    if (!vic || !F.target.grab) {
+      if (F.grab && F._armIK) for (var i = 0; i < 2; i++) { var r = F._armIK[i]; if (r) { F.j['a' + (i + 1)].v = r[0]; F.j['e' + (i + 1)].v = wrapA(r[1]); F.j['a' + (i + 1)].w = F.j['e' + (i + 1)].w = 0; } }
+      F.grab = null; return;
+    }
+    var nk = vic.w('neck'), hd = vic.w('head'), tgt = [hd[0] + F.face * 4, (nk[1] + hd[1]) / 2 + 2];
+    var lx = (tgt[0] - F.x) * F.face, ly = tgt[1] - GROUND - F.yo;
+    F.grab = [[lx, ly + 1], [lx - 3, ly - 1]];
+  }
+  function stepFeet(F, dt, ctx) {
+    if (!F.grounded) return;
+    var want = [F.target.p1 != null ? F.target.p1 : 12, F.target.p2 != null ? F.target.p2 : -12], other = function (i) { return F.feet[1 - i].sw; };
+    for (var i = 0; i < 2; i++) {
+      var ft = F.feet[i]; if (!F.legIK[i]) continue;
+      if (ft.sw) {
+        ft.sw.t += dt; var k = clamp(ft.sw.t / ft.sw.d, 0, 1), e = k * k * (3 - 2 * k);
+        ft.x = ft.sw.x0 + (ft.sw.x1 - ft.sw.x0) * e; ft.lift = ft.sw.h0 * (1 - e) + Math.sin(Math.PI * k) * ft.sw.arc;
+        if (k >= 1) { ft.sw = null; ft.lift = 0; }
+        continue;
+      }
+      var goal = F.x + F.face * want[i] + F.vx * 0.09, err = Math.abs(ft.x - goal);
+      if (err > 5.5 && (!other(i) || err > 18)) ft.sw = { t: 0, d: clamp(0.09 + err / 500, 0.09, 0.2), x0: ft.x, x1: goal, h0: ft.lift, arc: Math.min(7, 1.5 + err * 0.22) };
+    }
+  }
+  function setLegMode(F, i, ik) {
+    if (F.legIK[i] === ik) return;
+    var n = i + 1;
+    if (ik) { // a free leg comes back down: start a step from where the foot is now
+      var an = F.w('an' + n), ft = F.feet[i], goal = F.x + F.face * (F.target['p' + n] != null ? F.target['p' + n] : (i ? -12 : 12));
+      ft.x = an[0]; ft.lift = Math.max(0, GROUND - an[1] - LEN.ank); ft.sw = { t: 0, d: 0.12, x0: ft.x, x1: goal, h0: ft.lift, arc: 2 };
+    } else { var a = F.L && F.L['ikA' + n]; if (a) { F.j['l' + n].v = a[0]; F.j['k' + n].v = a[1]; } }
+    F.legIK[i] = ik;
+  }
+  // grounded feet after a landing or a face turn: plant them where the ankles are
+  function plantFeet(F) { F.refresh(); for (var q = 0; q < 2; q++) { var an = F.w('an' + (q + 1)); F.feet[q].x = an[0]; F.feet[q].lift = 0; F.feet[q].sw = null; } F.legIK = [false, false]; }
+
+  /* ctx: { vic: target victim or null, others: [victims], drive: true when the engine owns root motion,
+            land(F, victims, hit, tc, vel), snd(name), quake(x, s), onLand(F, hard) } */
+  function update(F, dt, ctx) {
+    var vic = ctx.vic; F.t += dt;
+    if (F.cur) { F.curT += dt; var s = F.cur, done = s.untilLand ? (F.grounded && F.curT > 0.02) : F.curT >= s.d; if (done) { if (s.hit && !s._hit) F.log.push('miss ' + s.p); F.cur = null; } }
+    if (!F.cur && !F.queue.length && ctx.next) ctx.next(F);
+    if (!F.cur && F.queue.length) { var nx = F.queue.shift(); startStep(F, nx, ctx); if (!F.cur && F.queue.length) { nx = F.queue.shift(); startStep(F, nx, ctx); } }
+    vic = ctx.vic; // ctx.next may have picked a new target
+    var cur = F.cur, strike = cur && cur.hit && !cur._hit ? cur.hit : null;
+    if (F.grounded) { setLegMode(F, 0, !F.target.fk1); setLegMode(F, 1, !F.target.fk2); } else { setLegMode(F, 0, false); setLegMode(F, 1, false); }
+    // aiming: step in on the ground (air strikes aim once, in planAir)
+    if (cur && cur.aim && !cur._hit && vic && ctx.drive && F.grounded && vic.grounded) {
+      var r = aimRoot(F, vic, cur.aim), minD = cur.aim.mode === 'close' ? 36 : 25 * (vic.size || 1);
+      F.xT = F.face * (vic.x - r.x) < minD ? vic.x - F.face * minD : r.x; F.xSpring = true;
+    }
+    if (F.clinch && F.clinch.standing()) F.clinch.pullTo(F.x + F.face * 40, 1 - Math.exp(-14 * dt));
+    if (F.clinch && !F.clinch.alive()) { F.clinch.clinched(false); F.clinch = null; }
+    updateGrab(F);
+    // joint springs, sub-stepped; strikes are tested for contact on every sub-step
+    var tg = F.target, TT = {}, k, key;
+    for (k = 0; k < KEYS.length; k++) { key = KEYS[k]; var t = tg[key]; if (F.state === 'idle' && !cur && key === 'py' && !tg.fk1) t += Math.sin(F.t * 6.5) * 0.7; if (key === 'h' && !cur) t += Math.sin(F.t * 3.1 + F.seed) * 0.03; TT[key] = t; }
+    var n = Math.max(1, Math.ceil(dt * 240)), h = dt / n, vics = vic ? [vic].concat(ctx.others || []) : (ctx.others || []);
+    for (var i = 0; i < n; i++) {
+      for (k = 0; k < KEYS.length; k++) {
+        key = KEYS[k]; var sp = F.j[key], fr = F.f, z = F.z;
+        if (key === 'h') { fr *= 0.85; z *= 0.8; } // the head lags a little behind the spine
+        if (key === 'px' || key === 'py') fr = Math.min(fr, 13);
+        var w0 = TAU * fr; sp.w += (w0 * w0 * (TT[key] - sp.v) - 2 * z * w0 * sp.w) * h; sp.v += sp.w * h;
+      }
+      if (strike && vics.length) {
+        F.refresh(); var E = effPts(F, cur.hit.eff), prev = F.prevE || E.aim, hitL = [], tc0 = null; F.prevE = E.aim;
+        for (var v = 0; v < vics.length; v++) {
+          var V = vics[v]; if (!V.alive() || F.hitSet.indexOf(V) >= 0) continue;
+          var tc = touch(E, V.caps(), V.big ? null : cur.hit.zone); if (tc) { hitL.push({ v: V, tc: tc }); if (!tc0) tc0 = tc; }
+        }
+        if (hitL.length) {
+          cur._hit = true; strike = null;
+          for (v = 0; v < hitL.length; v++) F.hitSet.push(hitL[v].v);
+          ctx.land(F, hitL, cur.hit, [(E.aim[0] - prev[0]) / h, (E.aim[1] - prev[1]) / h]);
+          for (k = 0; k < KEYS.length; k++) F.j[KEYS[k]].w *= 0.25; // the limb stops on the body
+          break;
+        }
+      }
+    }
+    if (!strike) F.prevE = null;
+    // root motion (only when the engine drives: combos and specials; otherwise the game moves the body)
+    if (ctx.drive) {
+      if (F.xSpring && F.grounded) { var xw = TAU * 4.2; F.vx += (xw * xw * (F.xT - F.x) - 2 * 0.95 * xw * F.vx) * dt; if (Math.abs(F.xT - F.x) < 0.5 && Math.abs(F.vx) < 5) F.xSpring = false; }
+      else F.vx *= Math.pow(F.grounded ? 0.004 : 0.8, dt);
+      F.x += F.vx * dt;
+      if (!F.grounded) {
+        F.vAir -= G * F.gS * dt; F.air += F.vAir * dt;
+        if (F.air <= 0) { var hard = F.vAir < -500; F.air = 0; F.vAir = 0; F.grounded = true; F.gS = 1; plantFeet(F); if (ctx.onLand) ctx.onLand(F, hard); }
+      }
+    }
+    F.flash = Math.max(0, F.flash - dt);
+    stepFeet(F, dt, ctx);
+    F.refresh();
+    // afterimages while the body moves fast through the air; smear trails of the striking parts
+    F.burst = Math.max(0, F.burst - dt);
+    if (!ctx.reduce && (Math.hypot(F.vx, F.vAir) > 480 || F.burst > 0 || F.ghostOn) && (!F.grounded || F.ghostOn)) { var snap = {}; for (var gi = 0; gi < GHOST.length; gi++) snap[GHOST[gi]] = F.w(GHOST[gi]); if (F.weapon) snap.wpB = F.weaponLine().b; F.ghosts.push({ t: F.t, w: snap }); }
+    while (F.ghosts.length && F.t - F.ghosts[0].t > 0.13) F.ghosts.shift();
+    var map = { h1: 'e1', h2: 'e2', an1: 'kn1', an2: 'kn2' };
+    for (var e in map) { var tr = F.trails[e], a1 = F.w(map[e]), b1 = F.w(e); tr.push({ t: F.t, m: [a1[0] - F.x, a1[1] + F.air], x: [b1[0] - F.x, b1[1] + F.air] }); while (tr.length && F.t - tr[0].t > 0.075) tr.shift(); }
+    var wtr = F.trails.wp; if (F.weapon && F.weaponShown) { var wl = F.weaponLine(); wtr.push({ t: F.t, m: [wl.a[0] - F.x, wl.a[1] + F.air], x: [wl.b[0] - F.x, wl.b[1] + F.air] }); } while (wtr.length && (F.t - wtr[0].t > 0.09 || !F.weaponShown)) wtr.shift();
+  }
+
+  /* ---------------- fx (engine units) ---------------- */
+  var fx = [];
+  function star(x, y, r, big) { fx.push({ k: 'star', x: x, y: y, r: r, t: 0, life: big ? 0.3 : 0.2, rot: rand(0, TAU), pts: big ? 12 : 9, big: big }); }
+  function ring(x, y, r, pw) { fx.push({ k: 'ring', x: x, y: y, r: r, t: 0, life: 0.18 + pw * 0.03, pw: pw }); }
+  function sparksDir(x, y, dx, dy, n, pw, rm) { if (rm) n = Math.ceil(n / 3); var b = Math.atan2(dy, dx); for (var i = 0; i < n; i++) { var a = b + rand(-1.1, 1.1), s = rand(260, 520) * (0.7 + pw * 0.15); fx.push({ k: 'spark', x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: rand(0.12, 0.24), w: rand(1.5, 3) }); } }
+  function dust(x, s, rm) { for (var i = 0; i < (rm ? 2 : 6); i++) fx.push({ k: 'dust', x: x + rand(-14, 14) * s, y: GROUND - rand(0, 4), vx: rand(-60, 60) * s, vy: rand(-40, -10), r: rand(3, 6) * s, t: 0, life: rand(0.3, 0.5) }); }
+  function quake(x, s, rm) {
+    // the ground breaks: a crater with cracks, slabs that pop up, flying rocks, a dust wave and a shockwave
+    var cr = { k: 'crack', x: x, s: s, t: 0, life: 3.2, lines: [], slabs: [] };
+    for (var i = 0; i < 7; i++) { var a = Math.PI * (0.12 + 0.76 * i / 6) + rand(-0.08, 0.08), L = rand(5, 10) * s, pts = [[x + Math.cos(a) * 6 * s, GROUND + 2]]; for (var k = 1; k <= 3; k++) { var q = pts[k - 1], aa = a + rand(-0.35, 0.35); pts.push([q[0] + Math.cos(aa) * L / 3 * 1.6, q[1] + Math.sin(aa) * L / 3 * 0.55]); } cr.lines.push(pts); }
+    for (i = -1; i <= 1; i += 2) cr.slabs.push({ x: x + i * rand(9, 13) * s, w: rand(7, 10) * s, a: i * rand(0.25, 0.45), h: rand(2.5, 4) * s });
+    fx.push(cr);
+    var n = Math.round((rm ? 5 : 16) * s);
+    for (i = 0; i < n; i++) { var an = -Math.PI / 2 + rand(-1.15, 1.15), sp = rand(240, 620) * Math.sqrt(s); fx.push({ k: 'rock', x: x + rand(-8, 8) * s, y: GROUND - 1, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, rot: rand(0, TAU), vr: rand(-18, 18), r: rand(1.4, 3.4) * Math.sqrt(s), t: 0, life: rand(0.9, 1.5) }); }
+    for (i = 0; i < (rm ? 3 : 12); i++) { var sd = i % 2 ? 1 : -1; fx.push({ k: 'dust', x: x + sd * rand(2, 10), y: GROUND - rand(0, 3), vx: sd * rand(90, 260) * s, vy: rand(-50, -8), r: rand(4, 8) * s, t: 0, life: rand(0.45, 0.8) }); }
+    fx.push({ k: 'shock', x: x, t: 0, life: 0.38, s: s });
+  }
+  function updateFx(dt) {
+    for (var i = fx.length - 1; i >= 0; i--) { var p = fx[i]; p.t += dt; if (p.k === 'rock') { p.vy += G * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; if (p.y > GROUND) { p.y = GROUND; p.vy *= -0.35; p.vx *= 0.55; p.vr *= 0.5; } } else if (p.vx != null) { p.x += p.vx * dt; p.y += p.vy * dt; var d = Math.pow(p.k === 'spark' ? 0.02 : 0.2, dt); p.vx *= d; p.vy *= d; } if (p.t >= p.life) fx.splice(i, 1); }
+    if (fx.length > 500) fx.splice(0, fx.length - 500);
+  }
+  function easeOutBack(k) { var c = 1.9, m = k - 1; return 1 + (c + 1) * m * m * m + c * m * m; }
+  // ctx is already transformed to engine units; col: { ground, bg, dust }
+  function drawFx(c, col) {
+    fx.forEach(function (p) {
+      var k = p.t / p.life;
+      if (p.k === 'star') {
+        var s = k < 0.3 ? easeOutBack(k / 0.3) : 1 - (k - 0.3) / 0.7 * 0.35, a = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4, r = p.r * s;
+        c.save(); c.translate(p.x, p.y); c.rotate(p.rot + k * 0.6); c.globalAlpha = a;
+        c.beginPath(); for (var i = 0; i < p.pts * 2; i++) { var rr = i % 2 ? r * 0.38 : r * (i % 4 === 0 ? 1 : 0.72), an = i * Math.PI / p.pts; c.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); } c.closePath();
+        c.fillStyle = '#FFFFFF'; c.fill(); c.lineWidth = p.big ? 3 : 2.2; c.strokeStyle = p.big ? '#FF5FA2' : '#FFB020'; c.stroke();
+        c.fillStyle = p.big ? '#FFE66D' : '#FFF4C2'; c.beginPath(); c.arc(0, 0, r * 0.26, 0, TAU); c.fill();
+        c.restore();
+      } else if (p.k === 'ring') {
+        var e = 1 - Math.pow(1 - k, 3); c.globalAlpha = (1 - k) * 0.9; c.strokeStyle = p.pw >= 4 ? '#FF5FA2' : '#FFB020'; c.lineWidth = 3.2 * (1 - k) + 0.5;
+        c.beginPath(); c.arc(p.x, p.y, p.r + e * (18 + p.pw * 10), 0, TAU); c.stroke();
+      } else if (p.k === 'spark') {
+        c.globalAlpha = 1 - k; c.strokeStyle = k < 0.4 ? '#FFFFFF' : '#FFB020'; c.lineWidth = p.w * (1 - k * 0.6); c.lineCap = 'round';
+        c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.vx * 0.035, p.y - p.vy * 0.035); c.stroke();
+      } else if (p.k === 'crack') {
+        var al = k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25, g0 = Math.min(1, p.t / 0.06);
+        c.globalAlpha = 0.9 * al; c.fillStyle = col.hole; c.strokeStyle = col.ground; c.lineCap = 'round'; c.lineJoin = 'round';
+        c.beginPath(); c.ellipse(p.x, GROUND + 2, 13 * p.s * g0, 3.2 * p.s * g0, 0, 0, Math.PI); c.fill(); c.lineWidth = 1.6; c.stroke();
+        c.lineWidth = 1.3; p.lines.forEach(function (L) { c.beginPath(); var m = Math.max(2, Math.round(L.length * g0)); for (var i = 0; i < m; i++) i ? c.lineTo(L[i][0], L[i][1]) : c.moveTo(L[i][0], L[i][1]); c.stroke(); });
+        p.slabs.forEach(function (sl) { c.save(); c.translate(sl.x, GROUND + 1.5); c.rotate(sl.a * g0); c.fillStyle = col.ground; c.fillRect(-sl.w / 2, -sl.h, sl.w, sl.h); c.restore(); });
+      } else if (p.k === 'rock') {
+        c.globalAlpha = k < 0.8 ? 1 : (1 - k) / 0.2; c.fillStyle = col.ground; c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.beginPath(); c.moveTo(-p.r, -p.r * 0.6); c.lineTo(p.r * 0.8, -p.r); c.lineTo(p.r, p.r * 0.5); c.lineTo(-p.r * 0.4, p.r); c.closePath(); c.fill(); c.restore();
+      } else if (p.k === 'shock') {
+        var e2 = 1 - Math.pow(1 - k, 2.5); c.globalAlpha = (1 - k) * 0.9; c.strokeStyle = '#FFB020'; c.lineWidth = 4 * (1 - k) + 0.6;
+        c.beginPath(); c.ellipse(p.x, GROUND, 10 + e2 * 95 * p.s, 2 + e2 * 9 * p.s, 0, 0, TAU); c.stroke();
+        c.strokeStyle = '#FFFFFF'; c.lineWidth = 2 * (1 - k); c.beginPath(); c.ellipse(p.x, GROUND, 6 + e2 * 60 * p.s, 1.5 + e2 * 6 * p.s, 0, 0, TAU); c.stroke();
+      } else if (p.k === 'dust') {
+        c.globalAlpha = 0.35 * (1 - k); c.fillStyle = col.dust; c.beginPath(); c.arc(p.x, p.y, p.r * (1 + k * 1.6), 0, TAU); c.fill();
+      }
+    });
+    c.globalAlpha = 1;
+  }
+
+  /* ---------------- draw the body (engine units) ---------------- */
+  var GHOST = ['pel', 'mid', 'neck', 'head', 's1', 's2', 'e1', 'e2', 'h1', 'h2', 'hp1', 'hp2', 'kn1', 'kn2', 'an1', 'an2', 'toe1', 'toe2'];
+  function drawBody(c, w, col, back, lw, headR) {
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    function line(pts, cl, wd) { c.strokeStyle = cl; c.lineWidth = wd; c.beginPath(); for (var i = 0; i < pts.length; i++) { var p = w(pts[i]); i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); } c.stroke(); }
+    function fist(n, cl) { var p = w(n); c.fillStyle = cl; c.beginPath(); c.arc(p[0], p[1], lw * 0.62, 0, TAU); c.fill(); }
+    line(['s2', 'e2', 'h2'], back, lw); fist('h2', back);
+    line(['hp2', 'kn2', 'an2', 'toe2'], back, lw);
+    var pl = w('pel'), md = w('mid'), nk = w('neck');
+    c.strokeStyle = col; c.lineWidth = lw * 1.18; c.beginPath(); c.moveTo(pl[0], pl[1]); c.quadraticCurveTo(md[0] * 2 - (pl[0] + nk[0]) / 2, md[1] * 2 - (pl[1] + nk[1]) / 2, nk[0], nk[1]); c.stroke();
+    line(['hp2', 'hp1'], col, lw); line(['s2', 's1'], col, lw);
+    line(['hp1', 'kn1', 'an1', 'toe1'], col, lw);
+    var hd = w('head'); line(['neck', 'head'], col, lw * 0.85); c.fillStyle = col; c.beginPath(); c.arc(hd[0], hd[1], headR, 0, TAU); c.fill();
+    line(['s1', 'e1', 'h1'], col, lw); fist('h1', col);
+  }
+  function drawTrails(c, F, col, alpha) {
+    for (var e in F.trails) {
+      var tr = F.trails[e]; if (tr.length < 3) continue;
+      var ox = F.x, oy = GROUND - F.air, a = tr[0].x, b = tr[tr.length - 1].x, sp = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (sp < 22) continue;
+      var k = clamp((sp - 22) / 40, 0, 1), i;
+      c.globalAlpha = (e === 'wp' ? 0.45 : 0.3) * k * alpha; c.fillStyle = col; c.beginPath();
+      for (i = 0; i < tr.length; i++) c.lineTo(ox + tr[i].x[0], oy + tr[i].x[1]);
+      for (i = tr.length - 1; i >= 0; i--) c.lineTo(ox + tr[i].m[0], oy + tr[i].m[1]);
+      c.closePath(); c.fill();
+    }
+    c.globalAlpha = 1;
+  }
+
+  return {
+    LEN: LEN, KEYS: KEYS, POSE: POSE, D: D, MOVES: MOVES, G: G, Fighter: Fighter, aim: aim, runPose: runPose, capsules: capsules, effPts: effPts, touch: touch,
+    update: update, plantFeet: plantFeet, setLegMode: setLegMode, fx: fx, star: star, ring: ring, sparksDir: sparksDir, dust: dust, quake: quake, updateFx: updateFx,
+    drawFx: drawFx, drawBody: drawBody, drawTrails: drawTrails, GHOST: GHOST, poseOff: poseOff, clamp: clamp
+  };
+})();
+
 /* Ink Heroes — original 2.5D stickman brawler: 40-level story "The Inkfall" + endless zombie mode */
 (function () {
   'use strict';
@@ -1446,6 +1922,11 @@ var BubziCur = (function () {
       case 'zatk': { var k = o.k || 0; var up = k < 0.6 ? 2.8 : lerp(2.8, 0.9, (k - 0.6) / 0.4); return { tor: 0.2 + (k > 0.6 ? 0.4 : -0.1), hd: 0.2, ua: up - 0.3, ub: up - 0.2, fa: up, fb: up + 0.1, bt: -0.4, bs: -0.2, ft: 0.4, fs: 0.2 }; }
       case 'zspit': { var q = o.k || 0; return { tor: 0.75 - q * 0.6, hd: 0.6 - q, ua: 0.3, ub: 0.4, fa: 0.4, fb: 0.6, bt: -0.4, bs: -0.2, ft: 0.4, fs: 0.2 }; }
       case 'zcrawl': { var c2 = Math.sin(t); return { tor: 1.4, hd: -0.5, ua: 0.4 + c2 * 0.4, ub: 0.15 + c2 * 0.3, fa: 0.4 - c2 * 0.4, fb: 0.15 - c2 * 0.3, bt: -1.1, bs: -1.55, ft: -0.95, fs: -1.6 }; }
+      case 'zfhead': return { tor: -0.5, hd: -0.75, ua: 0.9, ub: 1.7, fa: 1.15, fb: 1.9, bt: -0.4, bs: -0.1, ft: 0.25, fs: 0.1 };
+      case 'zfgut': return { tor: 0.95, hd: 0.45, ua: 0.45, ub: 0.8, fa: 0.6, fb: 0.95, bt: -0.2, bs: 0.15, ft: 0.35, fs: 0.25 };
+      case 'zfleg': return { tor: 0.35, hd: 0.25, ua: 1.1, ub: 1.5, fa: 1.25, fb: 1.7, bt: -0.15, bs: 0.7, ft: 0.5, fs: 0.25 };
+      case 'ztumble': return { tor: -0.25, hd: -0.45, ua: -1.0, ub: -0.6, fa: 2.3, fb: 2.8, bt: -0.6, bs: -1.15, ft: 0.55, fs: 0.05 };
+      case 'zlimp': return { tor: 0, hd: 0.4, ua: 0.12, ub: 0.22, fa: -0.1, fb: -0.04, bt: 0.1, bs: 0.28, ft: -0.08, fs: 0.06 };
       case 'zhurt': return { tor: -0.3, hd: -0.5, ua: 2.2, ub: 2.6, fa: 2.0, fb: 2.4, bt: -0.3, bs: 0, ft: 0.4, fs: 0.2 };
       case 'zshield': { var r = Math.sin(t); return { tor: 0.15, hd: 0.2, ua: 1.4, ub: 1.4, fa: 1.45, fb: 1.45, bt: -0.35 * r, bs: -0.35 * r - 0.3, ft: 0.35 * r, fs: 0.35 * r - 0.1 }; }
     }
@@ -1517,8 +1998,9 @@ var BubziCur = (function () {
       atkT: 0, atkDur: 0, step: -1, buf: false, comboWin: 0, hitDone: false, dive: false, diveHits: [], shootCd: 0, ammo: h.gun.mag, reloadT: 0,
       ink: 0, specialT: 0, specialKind: null, specTick: 0, hurtT: 0, inv: 0, rage: 0, melee: null, gun2: null, scarf: [], dashes: 0 };
   }
+  function newHeroF(K) { var o = newHero(K); o.F = newFighter(o); o.cmb = null; o.cmbBuf = null; return o; }
   function setupRun(K) {
-    hero = newHero(K); zombies = []; bullets = []; spits = []; pickups = []; parts = []; decals = []; allies = []; banners = [];
+    hero = newHeroF(K); corpses = []; IF.fx.length = 0; zombies = []; bullets = []; spits = []; pickups = []; parts = []; decals = []; allies = []; banners = [];
     curGun = equippedGun(); bag = inv(); turrets = []; bombs = []; nades = []; planeT = 0;
     waves = []; wave = 0; queue = []; spawnT = 0; hs = 0; slow = 0; combo = 0; comboT = 0; kills = 0; bossRef = null; tutT = 0; firstTypes = {}; introT = 0; clearT = 0;
     mods = { maxHp: 0, melee: 1, rate: 1, mag: 1, vamp: 0, focus: 1, buddy: 0, luck: 1, crit: 0.05 };
@@ -1710,20 +2192,8 @@ var BubziCur = (function () {
   }
   function baseMag() { return Math.round(gunDef(curGun).mag * mods.mag); }
   function itemScale() { return 0.6 + 0.4 * threat(Math.max(1, curEff())).hp; }
-  function attack(K) {
-    if (mode !== 'fight' || hero.hp <= 0 || hero.specialT > 0) return;
-    if (hero.atkT > 0) { hero.buf = true; return; }
-    if (!hero.ground) { if (!hero.dive) { hero.dive = true; hero.diveHits = []; hero.vy = 760; hero.vx = hero.face * 420; hero.atkT = 0; K.sfx('whoosh'); } return; }
-    var m = meleeSpec();
-    // auto-face: if nothing is in front but a zombie is close behind, turn around
-    var front = false, behind = null;
-    zombies.forEach(function (z) { if (z.dead) return; var dx = (z.x - hero.x) * hero.face; if (dx > -10 && dx < m.range[2] + 30) front = true; else if (dx < 0 && dx > -160 && (!behind || Math.abs(z.x - hero.x) < Math.abs(behind.x - hero.x))) behind = z; });
-    if (!front && behind) hero.face = -hero.face;
-    hero.step = hero.comboWin > 0 ? (hero.step + 1) % 3 : 0;
-    hero.atkT = hero.atkDur = m.time[hero.step]; hero.hitDone = false; hero.buf = false;
-    hero.vx = hero.face * (hero.step === 2 ? 220 : 120);
-    K.sfx('whoosh');
-  }
+  function attack(K) { startCombo(K, 0); }
+  function attack2(K) { startCombo(K, 1); }
   function hitZombie(K, z, dmg, dir, kb, ky, src) {
     if (z.dead || z.rise > 0.2 || z.hidden) return false;
     var crit = Math.random() < mods.crit && src !== 'boom';
@@ -1752,9 +2222,9 @@ var BubziCur = (function () {
     z.dead = true; kills++;
     var mult = 1 + Math.min(2, Math.floor(combo / 10) * 0.25);
     K.addScore(Math.round(z.d.score * mult * (z.elite ? 3 : 1) * (1 + (wave - 1) * 0.05)));
-    var J = rig(z.pose, z.x, z.y, z.face, z.d.size, z.y >= -1, z.t === 'biter');
-    ragdoll(J, z.d.col, dir || -z.face, z.d.size, 10 * z.d.size);
-    goo(z.x, -50, z.d.col, 16, 520); decals.push({ x: z.x, w: rnd(30, 60) * z.d.size, col: z.d.col, t: 8 });
+    if (meleeKO) { toCorpse(K, z, meleeKO); goo(z.x, -50, z.d.col, 8, 360); }
+    else { var J = zJ(z); ragdoll(J, z.d.col, dir || -z.face, z.d.size, 10 * z.d.size); goo(z.x, -50, z.d.col, 16, 520); }
+    decals.push({ x: z.x, w: rnd(30, 60) * z.d.size, col: z.d.col, t: 8 });
     if (z.d.explode) explode(K, z.x, -50 * z.d.size, 140, 60, z);
     if (mods.vamp) hero.hp = Math.min(hero.maxHp, hero.hp + mods.vamp);
     // drops
@@ -1791,13 +2261,15 @@ var BubziCur = (function () {
     if (K.test && window.__inkGod) return;
     if (hero.shield > 0) { sparks(hero.x, -80, 6, '#3EE0FF'); K.sfx('block'); return; }
     if (hero.specialT > 0 && (hero.specialKind === 'overdrive' || hero.specialKind === 'bladedash')) return;
+    if ((hero.cmb || hero.F.busy()) && dmg < hero.maxHp * 0.2) { hero.hp -= Math.round(dmg); if (story) story.dmg += Math.round(dmg); hero.inv = 0.45; K.sfx('hit'); K.flash('#FF3B4E', 0.12); goo(hero.x, -70, '#111111', 4, 220); if (hero.hp > 0) return; hero.hp = 1; }
+    if (hero.cmb || hero.F.busy()) { endCombo(); hero.F.stop(); }
     hero.hp -= Math.round(dmg); if (story) story.dmg += Math.round(dmg); hero.inv = 0.7; hero.hurtT = 0.28; hero.vx = dir * 340; hero.vy = -260; hero.ground = false;
     hero.atkT = 0; hero.dive = false; combo = 0;
     K.sfx('hit'); K.shake(7); K.flash('#FF3B4E', 0.22); K.haptic(40);
     goo(hero.x, -70, '#111111', 6, 260);
     if (hero.hp <= 0) {
       hero.hp = 0;
-      var J = rig(hero.pose, hero.x, hero.y, hero.face, hero.def.size, hero.ground, false);
+      var J = heroJ();
       ragdoll(J, '#111111', dir, 1, hero.def.lw); hero.dead = true;
       if (bag.heart > 0) { mode = 'down'; downT = 6; held = {}; keys = {}; K.sfx('over'); return; }
       endRun(K);
@@ -1812,7 +2284,7 @@ var BubziCur = (function () {
   function reviveHero(K) {
     if (!hero || (!wave && !story)) { startRun(K); return; }
     if (story) { story.revived = true; if (lantern && lantern.hp <= 0) lantern.hp = Math.round(lantern.maxHp * 0.5); }
-    hero.dead = false; hero.hp = hero.maxHp; hero.inv = 2.6; hero.y = 0; hero.vy = 0; hero.ground = true; hero.atkT = 0; hero.specialT = 0; hero.specialKind = null; spits = []; waves = [];
+    hero.dead = false; hero.cmb = null; hero.F = newFighter(hero); hero.hp = hero.maxHp; hero.inv = 2.6; hero.y = 0; hero.vy = 0; hero.ground = true; hero.atkT = 0; hero.specialT = 0; hero.specialKind = null; spits = []; waves = [];
     K.sfx('boom'); K.sfx('reward'); ring(hero.x, -60, 380, '#FFFFFF'); ring(hero.x, -60, 220, '#FF3B6B');
     zombies.forEach(function (z) { var d = Math.abs(z.x - hero.x); if (d < 420) hitZombie(K, z, 60 * itemScale(), z.x < hero.x ? -1 : 1, 700, 500, 'boom'); });
     mode = 'fight';
@@ -1847,13 +2319,13 @@ var BubziCur = (function () {
     turrets = turrets.filter(function (t) { return t.t > 0; });
   }
   function fire(K) {
-    if (hero.shootCd > 0 || hero.reloadT > 0 || hero.specialT > 0 || mode !== 'fight' || hero.hp <= 0) return;
+    if (hero.shootCd > 0 || hero.reloadT > 0 || hero.specialT > 0 || mode !== 'fight' || hero.hp <= 0 || hero.cmb || hero.F.busy()) return;
     if (story && story.d.m === 'nogun') { if (!hero.noGunT) { ftext(hero.x, -160, K0.t('noGun'), '#FF8A6A', 20); K.sfx('wrong'); hero.noGunT = 1; } return; }
     var g = gunSpec();
     if (hero.gun2) { if (hero.gun2.ammo <= 0) { hero.gun2 = null; return; } hero.gun2.ammo--; }
     else { if (hero.ammo <= 0) { reload(K); return; } hero.ammo--; }
     hero.shootCd = g.rate; hero.shootPose = 0.18;
-    var hx = hero.x + hero.face * 52 * hero.def.size, hy = -80 * hero.def.size + (hero.y);
+    var HJ = heroJ(), hx = HJ.fh[0] + hero.face * 14 * hero.def.size, hy = HJ.fh[1];
     for (var i = 0; i < g.pel; i++) {
       var a = rnd(-g.spread, g.spread);
       bullets.push({ x: hx, y: hy, vx: hero.face * g.spd * Math.cos(a), vy: g.spd * Math.sin(a), dmg: g.dmg, pierce: g.pierce, laser: g.laser, rocket: g.rocket, frost: g.frost, tesla: g.tesla, col: g.col, life: g.life, hit: [] });
@@ -1868,6 +2340,7 @@ var BubziCur = (function () {
   function reload(K) { if (hero.gun2 || hero.reloadT > 0 || hero.ammo >= baseMag()) return; hero.reloadT = gunSpec().reload; K.sfx('reload'); }
   function special(K) {
     if (hero.ink < 100 || hero.specialT > 0 || mode !== 'fight' || hero.hp <= 0) return;
+    if (hero.cmb || hero.F.busy()) { endCombo(); hero.F.stop(); }
     hero.ink = 0; var k = hero.def.special; hero.specialKind = k; hero.atkT = 0; hero.dive = false;
     K.sfx('flip'); K.flash('#FFFFFF', 0.25); ring(hero.x, -60, 120, hero.def.acc);
     if (k === 'cyclone') { hero.specialT = 1.5; hero.specTick = 0; }
@@ -1880,6 +2353,257 @@ var BubziCur = (function () {
     if (hero.ground) { hero.vy = -hero.def.jump; hero.ground = false; K.sfx('jump'); hero.atkT = 0; }
   }
 
+  /* ---------------- fight engine (InkFight, the stickman-fighter skill): hero rig, combos, reactions, limp bodies ---------------- */
+  var IF = InkFight, POW = [0, 1, 1.35, 1.8, 2.6], HSP = [0, 0.05, 0.07, 0.1, 0.16], TRA = [0, 0.2, 0.3, 0.42, 0.85];
+  // combos: lists of engine moves. Hits = number of striking moves. 'basic' depends on what the hero holds.
+  var COMBOS = {
+    basic: { free: true, end: 1.5, name: { en: 'Starter', fr: 'Débutant', ar: 'المبتدئ' } },
+    punch: { moves: ['jab', 'jab', 'cross', 'hook', 'cross', 'overhand'], end: 1.6, name: { en: 'Boxer Rush', fr: 'Rafale de boxe', ar: 'هجمة الملاكم' } },
+    kick: { moves: ['lowKick', 'teep', 'bodyKick', 'highKick'], end: 1.6, name: { en: 'Kick Ladder', fr: 'Échelle de coups de pied', ar: 'سلّم الركلات' } },
+    head: { moves: ['clinchIn', 'knee', 'knee', 'headbutt', 'headbutt', 'headbuttKO'], end: 1.6, name: { en: 'Clinch Breaker', fr: 'Brise-corps', ar: 'كاسر الإمساك' } },
+    upper: { moves: ['leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'axe', 'landing'], end: 1.6, name: { en: 'Sky Breaker', fr: 'Brise-ciel', ar: 'كاسر السماء' } }
+  };
+  var WPN_LEN = { hammer: [66, 7], katana: [90, 3.2], axe: [66, 6] }; // drawn length (game units), contact radius (eu)
+  var corpses = [], fightCtx = null, meleeKO = null, capFrame = 0;
+  function heroS() { return 1.45 * hero.def.size; }
+  function heldKind() { return hero.melee ? hero.melee.id : hero.def.melee.kind; }
+  function comboMoves(id) {
+    if (id !== 'basic') return COMBOS[id].moves.slice();
+    var k = heldKind(); return k === 'fists' ? ['jab', 'cross', 'bodyKick'] : k === 'katana' ? ['wSwing1', 'wSwing2', 'wThrust'] : ['wSwing1', 'wSwing2', 'wSmash'];
+  }
+  function isStrike(name) { return IF.MOVES[name].some(function (s) { return !!s.hit; }); }
+  function comboHits(id) { return id === 'basic' ? 3 : COMBOS[id].moves.filter(isStrike).length; }
+  function ownedCombos() { var o = K0.store.get('ink:combos', []); return Array.isArray(o) ? o.filter(function (id) { return COMBOS[id]; }) : []; }
+  function comboSlots() { var s = K0.store.get('ink:slots', ['basic', null]); if (!Array.isArray(s)) s = ['basic', null]; var own = ownedCombos(); return [0, 1].map(function (i) { var id = s[i]; return id && COMBOS[id] && (COMBOS[id].free || own.indexOf(id) >= 0) ? id : (i ? null : 'basic'); }); }
+  function setSlot(i, id) { var s = comboSlots(); s[i] = id; K0.store.set('ink:slots', s); }
+  function newFighter(h) { var S = 1.45 * h.def.size, F = new IF.Fighter(h.x / S, h.face); F.refresh(); return F; }
+  function flipFace(F, nf) { if (F.face === nf) return; F.face = nf; for (var i = 0; i < 2; i++) { F.feet[i].x = 2 * F.x - F.feet[i].x; F.feet[i].sw = null; F.feet[i].lift = 0; } for (var e in F.trails) F.trails[e].length = 0; F.ghosts.length = 0; }
+  // the hero's joints in the old J format (game units) for accessories, scarf, ragdoll and the weapon
+  function heroJ() {
+    var F = hero.F, S = heroS(), w = function (n) { var p = F.w(n); return [p[0] * S, p[1] * S]; };
+    var J = { hip: w('pel'), neck: w('neck'), head: w('head'), bk: w('kn2'), bf: w('an2'), fk: w('kn1'), ff: w('an1'), be: w('e2'), bh: w('h2'), fe: w('e1'), fh: w('h1') };
+    J.R = 15 * hero.def.size; J.handAng = F.weapon ? F.weaponLine().ang : 2.2; return J;
+  }
+  /* --- zombies as engine victims --- */
+  function zLive(z) { return !z.dead && z.rise <= 0 && !z.hidden; }
+  function zJ(z) {
+    var s = z.d.size, crawl = z.t === 'biter';
+    if (!z.rot && !z.jug && !(z.downT > 0) && !z.corpse) return rig(z.pose, z.x, z.y, z.face, s, z.y > -2, crawl);
+    var J = rig(z.pose, z.x, z.y, z.face, s, true, false), cx = (J.hip[0] + J.neck[0]) / 2, cy = (J.hip[1] + J.neck[1]) / 2, ca = Math.cos(z.rot || 0), sa = Math.sin(z.rot || 0), low = -1e9, k;
+    for (k in J) { if (k === 'R' || k === 'handAng') continue; var p = J[k], x = p[0] - cx, y = p[1] - cy; J[k] = [cx + x * ca - y * sa, cy + x * sa + y * ca]; low = Math.max(low, J[k][1] + (k === 'head' ? J.R : 4 * s)); }
+    if (z.y >= -1 || low > 0) for (k in J) { if (k !== 'R' && k !== 'handAng') J[k][1] -= low; }
+    return J;
+  }
+  function zV(z) {
+    if (z.V) return z.V;
+    var V = z.V = { z: z, size: z.d.size, big: z.d.size > 1.3 || z.t === 'biter', canClinch: !z.d.boss && !z.d.heavy && z.t !== 'biter', _f: -1, _c: null, _J: null };
+    function S() { return heroS(); }
+    function upd() { if (V._f === capFrame && V._J) return; V._f = capFrame; var J = V._J = zJ(z), k = 1 / S(), s = z.d.size, p = function (q) { return [q[0] * k, q[1] * k]; }, mid = [(J.hip[0] + J.neck[0]) / 2, (J.hip[1] + J.neck[1]) / 2];
+      V._w = { head: p(J.head), neck: p(J.neck), pel: p(J.hip), mid: p(mid) }; V.headR = J.R * k;
+      V._c = [{ a: p(J.head), b: p(J.head), r: J.R * k, part: 'head' }, { a: p(J.hip), b: p(mid), r: 6 * s, part: 'gut' }, { a: p(mid), b: p(J.neck), r: 6.2 * s, part: 'chest' },
+        { a: p(J.neck), b: p(J.be), r: 3 * s, part: 'arm' }, { a: p(J.be), b: p(J.bh), r: 3 * s, part: 'arm' }, { a: p(J.neck), b: p(J.fe), r: 3 * s, part: 'arm' }, { a: p(J.fe), b: p(J.fh), r: 3 * s, part: 'arm' },
+        { a: p(J.hip), b: p(J.bk), r: 3.8 * s, part: 'leg' }, { a: p(J.bk), b: p(J.bf), r: 3.4 * s, part: 'leg' }, { a: p(J.hip), b: p(J.fk), r: 3.8 * s, part: 'leg' }, { a: p(J.fk), b: p(J.ff), r: 3.4 * s, part: 'leg' }]; }
+    V.caps = function () { upd(); return V._c; };
+    V.w = function (n) { upd(); return V._w[n] || V._w.mid; };
+    V.core = function () { upd(); return V._w.mid; };
+    Object.defineProperty(V, 'x', { get: function () { return z.x / S(); } });
+    Object.defineProperty(V, 'vx', { get: function () { return z.vx / S(); } });
+    Object.defineProperty(V, 'vAir', { get: function () { return -z.vy / S(); } });
+    Object.defineProperty(V, 'gS', { get: function () { return z.gS || 1; } });
+    Object.defineProperty(V, 'grounded', { get: function () { return z.y > -2 && !z.jug; } });
+    Object.defineProperty(V, 'state', { get: function () { return z.jug ? 'juggled' : z.downT > 0 || z.ko || z.dead ? 'down' : 'stand'; } });
+    V.alive = function () { return !z.dead; };
+    V.standing = function () { return !z.jug && !(z.downT > 0) && !z.ko && z.y > -2; };
+    V.clinched = function (b) { z.clinch = b; if (b) { z.atkT = 0; z.vx = 0; } };
+    V.pullTo = function (x, k) { z.x += (x * S() - z.x) * k; };
+    return V;
+  }
+  function pickTarget(prev, F) {
+    var S = heroS(), hx = hero.x, best = null, bd = 1e9;
+    if (prev && !prev.dead && (prev.jug || (!(prev.downT > 0) && !prev.ko)) && Math.abs(prev.x - hx) < 300) return prev;
+    zombies.forEach(function (z) {
+      if (!zLive(z) || z.downT > 0 || z.ko || z.getUp > 0) return;
+      var dx = (z.x - hx) * F.face, d = Math.abs(z.x - hx);
+      if (dx < -10 && d > 170) return; if (d > 230) return;
+      var score = d + (dx < -10 ? 60 : 0); if (score < bd) { bd = score; best = z; }
+    });
+    return best;
+  }
+  function cageNear() { return cages.some(function (cg) { return !cg.freed && (cg.x - hero.x) * hero.F.face > -20 && Math.abs(cg.x - hero.x) < 150; }); }
+  function startCombo(K, slot) {
+    if (mode !== 'fight' || hero.hp <= 0 || hero.specialT > 0 || hero.dead) return;
+    var id = comboSlots()[slot]; if (!id) { ftext(hero.x, -160, K.t('noCombo'), '#FFFFFF', 18); return; }
+    var F = hero.F;
+    if (hero.cmb || F.busy()) { hero.cmbBuf = slot; return; }
+    if (!hero.ground) { if (!hero.dive) { hero.dive = true; hero.diveHits = []; hero.vy = 760; hero.vx = hero.face * 420; K.sfx('whoosh'); } return; }
+    var moves = comboMoves(id), fin = -1; moves.forEach(function (m, i) { if (isStrike(m)) fin = i; });
+    hero.cmb = { id: id, moves: moves, i: 0, cur: -1, fin: fin, end: COMBOS[id].end, tgt: null, hits: 0 };
+    hero.cmbBuf = null; F.stop(); F.xSpring = false;
+    var wk = heldKind(); F.weapon = id === 'basic' && wk !== 'fists' && WPN_LEN[wk] ? { len: WPN_LEN[wk][0] / heroS(), r: WPN_LEN[wk][1] } : null;
+    IF.update(F, 0, ctxFor(K)); // starts the first move now
+  }
+  function endCombo() { var F = hero.F; hero.cmb = null; if (F.clinch) { F.clinch.clinched(false); F.clinch = null; } F.grab = null; }
+  function comboNext(K, ctx) {
+    var cm = hero.cmb, F = hero.F; if (!cm) return;
+    if (cm.i >= cm.moves.length) { endCombo(); if (!F.grounded) F.play(IF.MOVES.landing); ctx.vic = null; return; }
+    var name = cm.moves[cm.i], mv = IF.MOVES[name], air = mv[0].needs === 'air';
+    if (name === 'landing') { cm.i++; if (!F.grounded) F.play(mv); else comboNext(K, ctx); return; }
+    if (!F.grounded && !air) { F.play(IF.MOVES.landing); return; } // ground move after an air move: land first
+    var t = pickTarget(cm.tgt, F);
+    if (!t && cm.i > 0) { endCombo(); if (!F.grounded) F.play(IF.MOVES.landing); ctx.vic = null; return; }
+    cm.tgt = t; ctx.vic = t ? zV(t) : null;
+    if (t && F.grounded) { var nf = t.x > hero.x ? 1 : -1; flipFace(F, nf); }
+    cm.cur = cm.i; cm.i++; cm.cageHit = false;
+    F.play(mv);
+  }
+  function ctxFor(K) {
+    var cm = hero.cmb, t = cm && cm.tgt && !cm.tgt.dead ? cm.tgt : null;
+    if (!fightCtx) fightCtx = {
+      drive: true, land: function (F, list, hit, vel) { fightLand(K0, F, list, hit, vel); }, snd: function (n) { K0.sfx(n === 'whooshBig' ? 'whoosh' : n); },
+      quake: function (x, s) { IF.quake(x, s, K0.reduceMotion); K0.shake(6 + 6 * s); K0.sfx('boom'); }, next: function () { comboNext(K0, fightCtx); },
+      onLand: function (F, hard) { K0.sfx('land'); IF.dust(F.x, hard ? 1.2 : 0.6, K0.reduceMotion); }
+    };
+    fightCtx.vic = t ? zV(t) : null; fightCtx.reduce = K.reduceMotion;
+    fightCtx.others = zombies.filter(function (z) { return z !== t && zLive(z) && Math.abs(z.x - hero.x) < 260; }).map(zV);
+    return fightCtx;
+  }
+  // a strike touched one or more zombies
+  function fightLand(K, F, list, hit, vel) {
+    var cm = hero.cmb, pw = hit.power, f = F.face, sp = Math.hypot(vel[0], vel[1]) || 1, dx = vel[0] / sp, dy = vel[1] / sp, kind = hit.kind || 'strike';
+    var fin = cm && cm.cur === cm.fin, m = meleeSpec(), base = m.dmg[0] * mods.melee * (F.weapon ? 1 : (hero.melee ? 1 / WEAPONS[hero.melee.id].mult : 1));
+    F.log.push('hit ' + (cm ? cm.moves[cm.cur] : '?') + ':' + hit.eff + '>' + list.map(function (e) { return e.tc.part; }).join(','));
+    var src = pw >= 4 || fin ? 'finisher' : F.weapon && hero.melee && hero.melee.id === 'axe' ? 'axe' : 'melee', any = false;
+    list.forEach(function (e, i) {
+      var z = e.v.z, tc = e.tc, hp0 = z.hp, dmg = base * POW[pw] * (fin ? cm.end : 1) * (i && e.v !== fightCtx.vic ? 0.7 : 1);
+      if (cm) cm.hits++;
+      meleeKO = { kind: kind, f: f }; hitZombie(K, z, dmg, f, 0, 0, src); meleeKO = null;
+      if (z.hp === hp0 && !z.dead) return; // blocked by a shield
+      any = true; zReact(K, z, kind, hit, tc, f, dx, dy, F);
+      var at = tc.pt; IF.star(at[0], at[1], 9 + pw * 4.5, pw >= 4); IF.ring(at[0], at[1], 8 + pw * 4, pw); IF.sparksDir(at[0], at[1], dx, dy, 5 + pw * 3, pw, K.reduceMotion);
+    });
+    if (!any) return;
+    hs = Math.max(hs, HSP[pw]); K.shake(TRA[pw] * 16); K.haptic(pw >= 4 ? 35 : 12);
+    if (pw >= 4 || fin) { zoomK = Math.max(zoomK, 1.06); if (!K.reduceMotion) slow = Math.max(slow, 0.2); K.sfx('heavy'); K.sfx('boom'); }
+    else K.sfx(pw >= 3 || F.weapon ? 'heavy' : 'punch');
+    if (F.weapon && hero.melee) { hero.melee.uses--; if (hero.melee.uses <= 0) { hero.melee = null; F.weapon = null; ftext(hero.x, -150, K.t('broke'), '#FFFFFF', 18); } }
+  }
+  // the zombie's body answers the blow: flinch by the part touched, or fly (launch / air / slam), or fall like a plank (ko)
+  function zReact(K, z, kind, hit, tc, f, dx, dy, F) {
+    var S = heroS(), heavy = z.d.boss || z.d.heavy, pw = hit.power, res = z.d.boss ? 0.2 : heavy ? 0.45 : 1;
+    z.atkT = 0; z.atkHit = true; z.fuse = z.fuse > 0 ? z.fuse : 0;
+    if ((kind === 'launch' || kind === 'air' || kind === 'slam') && !heavy) {
+      if (z.clinch) { z.clinch = false; }
+      z.jug = true; z.downT = 0; z.getUp = 0; z.ko = false;
+      if (kind === 'launch') { z.y = Math.min(z.y, -3); z.vy = -760 * S; z.vx = f * 45 * S; z.gS = 1; z.bounces = 1; z.vr = f * 2.5; z.pose.hd -= 0.9; }
+      else if (kind === 'air') {
+        var va = Math.max(Math.min(-z.vy / S, 200), 430 + (hit.lift ? 90 : 0)) - dy * 60, vx = f * 80 + dx * 50;
+        z.vy = -va * S; z.vx = vx * S; z.gS = 1; F.vAir = Math.max(F.vAir * 0.4, va * 0.82); F.vx = vx * 0.85; F.gS = 1;
+        var pel = zV(z).w('pel'), ax = tc.pt[0] - pel[0], ay = tc.pt[1] - pel[1]; z.vr = (z.vr || 0) * 0.5 + (ax * dy - ay * dx) / 30 * (4 + pw * 2) + rnd(-1.5, 1.5); z.pose.hd -= 0.6;
+      } else { z.vy = 1250 * S; z.vx = f * 120 * S; z.gS = 1.6; z.bounces = 1; z.slam = true; z.vr = f * 3; F.vAir = 260; F.vx *= 0.3; F.gS = 1; }
+      z.fl = null; z.stun = 0; return;
+    }
+    var high = tc.part === 'head' || tc.part === 'chest' || tc.part === 'arm', legHit = tc.part === 'leg', fl;
+    if (kind === 'headbutt' || (high && !legHit)) { fl = 'zfhead'; z.pose.hd -= 0.5 + 0.15 * pw; z.pose.tor -= 0.25 + 0.06 * pw; z.vx = f * (55 + pw * 40) * S * res; if (kind === 'upper') { z.pose.hd -= 0.4; z.vy = -220 * S * res; } }
+    else if (legHit) { fl = 'zfleg'; z.pose.bs += 0.5; z.pose.tor += 0.2; z.vx = f * 45 * S * res; }
+    else { fl = 'zfgut'; z.pose.tor += 0.45 + 0.08 * pw; z.pose.hd += 0.3; z.vx = f * (hit.push ? 230 : 90 + pw * 30) * S * res; IF.dust(z.x / S, 0.5, K.reduceMotion); }
+    if (kind === 'knee') { z.pose.tor += 0.3; z.vy = -120 * S * res; }
+    if (hit.smash && !heavy) { z.vy = Math.max(z.vy, 0); z.pose.bs += 0.6; }
+    if (z.clinch) z.vx = 0;
+    z.fl = fl; z.stun = Math.max(z.stun, (z.d.boss ? 0.08 : 0.2) + pw * 0.05);
+  }
+  // physics for bodies that are flying, lying, falling over or getting up (alive or dead). Returns true while the body owns the zombie.
+  function bodyStep(K, z, dt) {
+    var S = heroS(), lieK = 1 - Math.exp(-dt * 10);
+    if (z.jug || z.ko || z.downT > 0 || z.getUp > 0 || z.corpse) z.stun = Math.max(0, z.stun - dt);
+    if (z.jug) {
+      z.vy += 1900 * S * (z.gS || 1) * dt; z.x += z.vx * dt; z.y += z.vy * dt; z.rot = (z.rot || 0) + (z.vr || 0) * dt; z.vr *= Math.pow(0.55, dt);
+      z.pose = blend(z.pose, pose(z.dead ? 'zlimp' : 'ztumble'), 1 - Math.exp(-dt * 8));
+      if (z.y >= 0 && z.vy > 0) {
+        z.y = 0; var hard = z.vy > 900 * S;
+        if (z.slam) { IF.quake(z.x / S, 0.9, K.reduceMotion); K.shake(14); K.sfx('boom'); z.slam = false; }
+        if ((z.bounces || 0) > 0 && z.vy > 450 * S) { z.bounces--; z.vy *= -0.3; z.vx *= 0.5; z.vr = (z.vr || 0) * 0.5; IF.dust(z.x / S, hard ? 1.2 : 0.7, K.reduceMotion); K.sfx('land'); }
+        else {
+          z.jug = false; z.vy = 0; z.gS = 1; z.rot = wrapA(z.rot || 0); z.rotT = (Math.abs(z.rot) > 0.15 ? (z.rot > 0 ? 1 : -1) : (z.vx >= 0 ? 1 : -1)) * Math.PI / 2;
+          if (Math.abs(z.rot) > 2.2) z.rotT = (z.rot > 0 ? 1 : -1) * Math.PI / 2; z.downT = z.dead ? 1e9 : 0.9; z.vr = 0;
+          IF.dust(z.x / S, 1, K.reduceMotion); K.sfx('land'); decals.push({ x: z.x, w: 30 * z.d.size, col: z.d.col, t: 4 });
+        }
+      }
+      return true;
+    }
+    if (z.ko) { // knocked out on the feet: tips over like a plank, the feet stay put
+      var sg = z.rotT > 0 ? 1 : -1; z.vr = (z.vr || 0) + sg * 15 * Math.sin(Math.abs(z.rot || 0) + 0.18) * dt; z.rot = (z.rot || 0) + z.vr * dt; z.x += z.vx * dt; z.vx *= Math.pow(0.05, dt);
+      z.pose = blend(z.pose, pose('zlimp'), 1 - Math.exp(-dt * 6));
+      if (Math.abs(z.rot) >= Math.PI / 2) { z.rot = sg * Math.PI / 2; z.ko = false; z.downT = z.dead ? 1e9 : 0.9; z.vr = 0; IF.dust(z.x / S, 1.1, K.reduceMotion); K.sfx('land'); K.shake(4); }
+      return true;
+    }
+    if (z.downT > 0) {
+      z.rot += (z.rotT - z.rot) * lieK; z.x += z.vx * dt; z.vx *= Math.pow(0.004, dt);
+      z.pose = blend(z.pose, pose('zlimp'), 1 - Math.exp(-dt * (z.dead ? 4 : 9)));
+      if (!z.dead) { z.downT -= dt; if (z.downT <= 0) { z.downT = 0; z.getUp = 0.4; } }
+      return true;
+    }
+    if (z.getUp > 0) { z.getUp -= dt; z.rot *= Math.pow(0.0005, dt); z.pose = blend(z.pose, pose('zhurt'), lieK); if (z.getUp <= 0) { z.getUp = 0; z.rot = 0; z.cd = Math.max(z.cd, 0.4); } return true; }
+    if (z.clinch) { z.stun = Math.max(z.stun, 0.1); z.vx = 0; z.y = 0; z.vy = 0; z.pose = blend(z.pose, pose(z.fl || 'zfgut'), 1 - Math.exp(-dt * 20)); return true; }
+    return false;
+  }
+  function wrapA(a) { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; }
+  // a melee kill keeps the body: it falls (or keeps flying) and lies limp, then fades
+  function toCorpse(K, z, ko) {
+    z.corpse = { t: 0 }; z.clinch = false; z.stun = 0;
+    if (!z.jug && !(z.downT > 0)) { if (z.y < -2) { z.jug = true; z.gS = 1; z.vr = z.vr || ko.f * 2; } else { z.ko = true; z.rot = z.rot || 0; z.rotT = ko.f; z.vr = ko.f * 1.2; } }
+    corpses.push(z);
+  }
+  function updateCorpses(K, dt) {
+    capFrame++;
+    corpses.forEach(function (z) { bodyStep(K, z, dt); if (!z.jug && !z.ko) z.corpse.t += dt; z.alpha = z.corpse.t < 2.2 ? 1 : Math.max(0, 1 - (z.corpse.t - 2.2) / 0.7); });
+    corpses = corpses.filter(function (z) { return z.alpha > 0; });
+  }
+  // the hero's body each frame: the engine drives during a combo, otherwise it mirrors the game physics
+  function heroBody(K, dt) {
+    var h = hero, F = h.F, S = heroS(), def = h.def;
+    F.weaponShown = !!F.weapon;
+    if (h.cmb || F.busy()) {
+      IF.update(F, dt, ctxFor(K));
+      var nx = clamp(F.x * S, 30, AW - 30); if (nx !== F.x * S) { F.x = nx / S; F.vx = 0; }
+      h.x = nx; h.y = -F.air * S; h.vx = F.vx * S; h.vy = -F.vAir * S; h.ground = F.grounded; h.face = F.face;
+      if (h.cmb && h.cmb.cur >= 0 && F.cur && F.cur.hit && !h.cmb.cageHit && F.curT > F.cur.d * 0.5) { // cages break by the swing
+        h.cmb.cageHit = true; cages.forEach(function (cg) { var cx = (cg.x - h.x) * F.face; if (cx > -20 && cx < 130 && hitCage(K, cg, meleeSpec().dmg[0] * mods.melee * POW[F.cur.hit.power])) { hs = Math.max(hs, 0.05); K.sfx('heavy'); } });
+      }
+      if (!h.cmb && !F.busy() && h.cmbBuf != null) { var b = h.cmbBuf; h.cmbBuf = null; startCombo(K, b); }
+      return true;
+    }
+    // mirror the game's movement
+    F.weapon = null; F.x = h.x / S; F.vx = h.vx / S; F.air = Math.max(0, -h.y / S); F.vAir = -h.vy / S; flipFace(F, h.face);
+    var wasG = F.grounded; F.grounded = h.ground; if (h.ground && !wasG) { IF.plantFeet(F); IF.dust(F.x, 0.6, K.reduceMotion); }
+    var sk = h.specialT > 0 ? h.specialKind : null, run = Math.abs(h.vx) > 40 && h.ground;
+    if (h.hurtT > 0) F.setPose('hurt', 9, 0.45);
+    else if (sk === 'cyclone') F.setPose(Math.floor(h.specialT * 18) % 2 ? 'highKick' : 'hkChamb', 16, 0.6);
+    else if (sk === 'overdrive') F.setPose('aim', 16, 0.7);
+    else if (sk === 'bladedash') F.setPose('wThrust', 16, 0.7);
+    else if (sk === 'quake' || (h.quakeArmed && !h.ground)) F.setPose(h.vy < 0 ? 'axeUp' : 'axeDown', 12, 0.6);
+    else if (h.dive) F.setPose('diveKick', 16, 0.6);
+    else if (!h.ground) F.setPose(h.vy < 0 ? 'jumpUp' : 'fall', 10, 0.6);
+    else if (h.shootPose > 0) F.setPose(run ? Object.assign(IF.runPose(h.animT, Math.min(1, Math.abs(h.vx) / def.spd), false), { a1: 1.52, e1: 0.06 }) : 'aim', 18, 0.7);
+    else if (run) F.setPose(IF.runPose(h.animT, Math.min(1, Math.abs(h.vx) / def.spd), heldKind() !== 'fists'), 16, 0.7);
+    else F.setPose(heldKind() !== 'fists' ? 'wGuard' : 'stance', 9, 0.6);
+    F.ghostOn = sk === 'bladedash' || sk === 'cyclone';
+    IF.update(F, dt, { drive: false, vic: null, others: [], reduce: K.reduceMotion });
+    return false;
+  }
+  function drawHeroBody(c, K) {
+    var h = hero, F = h.F, S = heroS(), def = h.def, lw = def.lw * def.size * 0.85 / S, hr = 15 * def.size / S, k = sc * S;
+    c.save(); c.translate(-camX * sc, gyS); c.scale(k, k);
+    if (!K.reduceMotion) F.ghosts.forEach(function (g, i) { c.globalAlpha = 0.12 + 0.3 * i / Math.max(1, F.ghosts.length); IF.drawBody(c, function (n) { return g.w[n]; }, def.acc, def.acc, lw, hr); });
+    c.globalAlpha = 1;
+    IF.drawTrails(c, F, '#FFFFFF', 1);
+    IF.drawBody(c, function (n) { return F.w(n); }, '#111111', '#2B2B2B', lw, hr);
+    c.restore();
+  }
+  function drawFightFx(c, K) {
+    var T = THEMES[theme] || THEMES.ruins, S = heroS(), k = sc * S;
+    c.save(); c.translate(-camX * sc, gyS); c.scale(k, k); IF.drawFx(c, { ground: T.g[1], hole: 'rgba(0,0,0,0.45)', dust: theme === 'margin' ? '#9A8F78' : '#E8DCC8' }); c.restore();
+  }
+
   /* ---------------- update ---------------- */
   function updateHero(K, dt) {
     var h = hero, def = h.def;
@@ -1889,7 +2613,8 @@ var BubziCur = (function () {
     if (h.reloadT > 0) { h.reloadT -= dt; if (h.reloadT <= 0) h.ammo = Math.round(def.gun.mag * mods.mag); }
     if ((keys.shoot || held.shoot) && !h.atkT) fire(K);
     var spd = def.spd * (h.atkT > 0 ? 0.25 : 1) * (h.specialKind === 'cyclone' && h.specialT > 0 ? 0.6 : 1);
-    if (h.hurtT <= 0 && !h.dive && !(h.specialT > 0 && h.specialKind === 'bladedash')) {
+    var eng = !!(h.cmb || h.F.busy());
+    if (h.hurtT <= 0 && !h.dive && !eng && !(h.specialT > 0 && h.specialKind === 'bladedash')) {
       var tvx = mv * spd; h.vx += (tvx - h.vx) * Math.min(1, dt * (h.ground ? 14 : 5));
       if (mv && h.atkT <= 0 && !h.shootPose) h.face = mv;
     }
@@ -1912,29 +2637,8 @@ var BubziCur = (function () {
       }
       if (h.specialT <= 0) h.specialKind = h.specialKind === 'quake' && h.quakeArmed ? 'quake' : null;
     }
-    // melee timing
-    if (h.atkT > 0) {
-      h.atkT -= dt; var el = h.atkDur - h.atkT, m = meleeSpec();
-      if (!h.hitDone && el > h.atkDur * 0.35) {
-        h.hitDone = true; var any = false, fin = h.step === 2, range = m.range[h.step];
-        zombies.forEach(function (z) {
-          if (z.dead) return; var dx = (z.x - h.x) * h.face;
-          if (dx > -14 && dx < range + 16 * z.d.size && z.y > -150) {
-            var src = fin ? 'finisher' : (h.melee && h.melee.id === 'axe') ? 'axe' : 'melee';
-            if (hitZombie(K, z, m.dmg[h.step] * mods.melee, h.face, fin ? 520 : 160, fin ? 380 : 0, src)) any = true;
-          }
-        });
-        cages.forEach(function (cg) { var dx = (cg.x - h.x) * h.face; if (dx > -20 && dx < range + 40 && hitCage(K, cg, m.dmg[h.step] * mods.melee)) any = true; });
-        if (any && fin) zoomK = Math.max(zoomK, 1.045);
-        if (any) {
-          hs = Math.max(hs, fin ? 0.08 : 0.035); K.sfx(fin || m.kind === 'hammer' || m.kind === 'axe' ? 'heavy' : 'punch'); if (fin) K.shake(5);
-          if (h.melee) { h.melee.uses--; if (h.melee.uses <= 0) { h.melee = null; ftext(h.x, -150, K.t('broke'), '#FFFFFF', 18); } }
-          P({ k: 'slash', x: h.x + h.face * range * 0.6, y: -78, vx: 0, vy: 0, g: 0, max: 0.14, col: m.kind === 'fists' ? '#FFFFFF' : '#E6F0FF', size: range * 0.9, ang: h.face > 0 ? 0 : Math.PI, face: h.face });
-        }
-      }
-      if (h.atkT <= 0) { h.atkT = 0; h.comboWin = 0.5; if (h.buf) { h.buf = false; attack(K); } }
-    }
-    // physics
+    // physics (the fight engine owns the body during a combo)
+    if (!eng) {
     h.vy += G * dt; h.x += h.vx * dt; h.y += h.vy * dt;
     if (h.dive) zombies.forEach(function (z) { if (!z.dead && h.diveHits.indexOf(z) < 0 && Math.abs(z.x - h.x) < 50 * z.d.size && h.y > -130 * z.d.size) { h.diveHits.push(z); hitZombie(K, z, 24 * mods.melee, h.face, 380, 300, 'dive'); hs = Math.max(hs, 0.05); K.sfx('heavy'); } });
     if (h.y >= 0) {
@@ -1950,23 +2654,13 @@ var BubziCur = (function () {
       h.y = 0; h.vy = 0; h.ground = true; h.dive = false;
     } else h.ground = false;
     h.x = clamp(h.x, 30, AW - 30);
+    }
     // pose
     h.animT += dt * (Math.abs(h.vx) > 40 ? Math.abs(h.vx) / 26 : 3);
-    var tp, m2 = meleeSpec();
-    if (h.hurtT > 0) tp = pose('hurt');
-    else if (h.specialKind === 'cyclone' && h.specialT > 0) tp = pose('spin', h.animT);
-    else if (h.specialKind === 'overdrive' && h.specialT > 0) tp = pose('shoot');
-    else if (h.dive) tp = pose('dive');
-    else if (h.atkT > 0) tp = m2.kind === 'fists' ? pose(['jab', 'cross', 'kick'][h.step]) : pose(['swing1', 'swing2', 'smash'][h.step]);
-    else if (h.shootPose > 0) tp = pose('shoot');
-    else if (!h.ground) tp = pose('jump');
-    else if (Math.abs(h.vx) > 40) tp = pose('run', h.animT);
-    else tp = pose('idle', K.time);
-    if (h.atkT > 0 && m2.kind !== 'fists') { var pr = 1 - h.atkT / h.atkDur; tp.fb = lerp(2.9, 0.8, Math.min(1, pr * 2)); tp.fa = lerp(2.5, 1.1, Math.min(1, pr * 2)); }
-    h.pose = blend(h.pose, tp, 1 - Math.exp(-dt * 26));
+    heroBody(K, dt);
     // scarf (Kai) — verlet tail
     if (def.id === 'kai' || def.id === 'juno') {
-      var J = rig(h.pose, h.x, h.y, h.face, def.size, h.ground, false), anchor = def.id === 'kai' ? J.neck : [J.head[0] - h.face * 10, J.head[1] - 4];
+      var J = heroJ(), anchor = def.id === 'kai' ? J.neck : [J.head[0] - h.face * 10, J.head[1] - 4];
       if (!h.scarf.length) for (var s = 0; s < 8; s++) h.scarf.push([anchor[0], anchor[1]]);
       h.scarf[0] = [anchor[0], anchor[1]];
       for (var q = 1; q < h.scarf.length; q++) {
@@ -1983,6 +2677,7 @@ var BubziCur = (function () {
       var z = zombies[i], d = z.d; if (z.dead) continue;
       z.animT += dt * (d.boss ? 3 : z.t === 'dasher' ? 13 : z.t === 'biter' ? 9 : 4);
       if (z.rise > 0) { z.rise -= dt; if (z.rise > 0) continue; }
+      if (bodyStep(K, z, dt)) continue;
       var hdx = hero.x - z.x, dx = hdx;
       z.tgtL = !!(lantern && lantern.hp > 0 && !d.boss && !d.ranged && !d.ai && Math.abs(lantern.x - z.x) < Math.abs(hdx) + 160);
       if (z.tgtL) dx = lantern.x - z.x;
@@ -2020,14 +2715,15 @@ var BubziCur = (function () {
       // pose
       var tp;
       if (d.ai === 'null') tp = z.stun > 0.04 ? pose('hurt') : (z.npose || pose('idle', K.time));
-      else if (z.stun > 0) tp = pose('zhurt');
+      else if (z.stun > 0) tp = pose(z.fl || 'zhurt');
       else if (z.atkT > 0) tp = d.ranged ? pose('zspit', 0, { k: 1 - z.atkT / 0.6 }) : pose('zatk', 0, { k: 1 - z.atkT / (d.boss ? 0.9 : d.heavy ? 0.7 : 0.45) });
       else if (z.t === 'biter') tp = pose('zcrawl', z.animT);
       else if (z.t === 'dasher') tp = pose('zrun', z.animT);
       else if (z.t === 'doorman' && z.shield > 0) tp = pose('zshield', z.animT);
       else tp = pose('zwalk', z.animT, { lean: z.t === 'gloop' ? 0.35 : 0 });
       if (z.t === 'biter' && z.atkT > 0) { tp.tor = 1.2; }
-      z.pose = blend(z.pose, tp, 1 - Math.exp(-dt * 16));
+      if (z.stun <= 0) z.fl = null;
+      z.pose = blend(z.pose, tp, 1 - Math.exp(-dt * (z.fl ? 22 : 16)));
     }
     zombies = zombies.filter(function (z) { return !z.dead; });
   }
@@ -2294,15 +2990,16 @@ var BubziCur = (function () {
   }
   function drawHero(c, K) {
     var h = hero; if (h.dead) return;
-    var def = h.def, J = rig(h.pose, h.x, h.y, h.face, def.size, h.ground, false);
-    c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(sx(h.x), gyS + 2 * sc, 34 * sc * (1 + h.y / 600), 7 * sc, 0, 0, TAU); c.fill();
+    var def = h.def, J = heroJ();
+    c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(sx(h.x), gyS + 2 * sc, 34 * sc * Math.max(0.4, 1 + h.y / 600), 7 * sc, 0, 0, TAU); c.fill();
     if (h.inv > 0 && Math.floor(h.inv * 16) % 2) c.globalAlpha = 0.5;
-    if (h.rage > 0 || (h.specialT > 0)) { c.shadowColor = h.rage > 0 ? '#FF3B4E' : def.acc; c.shadowBlur = 24 * sc; }
-    // scarf / mask tails behind body
     if (h.scarf.length) { c.strokeStyle = def.acc; c.lineCap = 'round'; for (var i = 1; i < h.scarf.length; i++) { c.lineWidth = (def.id === 'kai' ? 9 : 5) * sc * (1 - i / h.scarf.length * 0.6); c.beginPath(); c.moveTo(sx(h.scarf[i - 1][0]), sy(h.scarf[i - 1][1])); c.lineTo(sx(h.scarf[i][0]), sy(h.scarf[i][1])); c.stroke(); } }
-    drawRig(c, J, '#111111', '#2B2B2B', def.lw * def.size, null);
+    var slung = !h.F.weapon && heldKind() !== 'fists' && (h.cmb || h.F.busy());
+    if (slung) drawWeapon(c, J, h, true);
+    if (h.rage > 0 || (h.specialT > 0)) { c.shadowColor = h.rage > 0 ? '#FF3B4E' : def.acc; c.shadowBlur = 24 * sc; }
+    drawHeroBody(c, K);
     c.shadowBlur = 0;
-    drawWeapon(c, J, h);
+    if (!slung) drawWeapon(c, J, h, false);
     if (h.shield > 0) { var bub = sy(-62 * def.size); c.strokeStyle = 'rgba(62,224,255,' + (h.shield < 2 && Math.floor(h.shield * 8) % 2 ? 0.2 : 0.85) + ')'; c.lineWidth = 4 * sc; c.fillStyle = 'rgba(62,224,255,0.12)'; c.beginPath(); c.arc(sx(h.x), bub, 78 * sc * def.size, 0, TAU); c.fill(); c.stroke(); }
     drawAccessory(c, J, def, h.face);
     c.globalAlpha = 1;
@@ -2314,9 +3011,12 @@ var BubziCur = (function () {
     else if (def.id === 'vex') { c.fillStyle = '#1B1B1B'; c.fillRect(hx - r * 1.05, hy - r * 0.42, r * 2.1, r * 0.52); c.shadowColor = def.acc; c.shadowBlur = 14 * sc; c.fillStyle = def.acc; c.fillRect(hx + face * r * 0.05 - (face < 0 ? r * 0.9 : 0), hy - r * 0.36, r * 0.9, r * 0.38); c.shadowBlur = 0; }
     else if (def.id === 'juno') { c.fillStyle = def.acc; c.fillRect(hx - r, hy - r * 0.3, r * 2, r * 0.5); c.fillStyle = '#FFFFFF'; c.fillRect(hx + face * r * 0.35 - r * 0.12, hy - r * 0.2, r * 0.3, r * 0.14); }
   }
-  function drawWeapon(c, J, h) {
+  function drawWeapon(c, J, h, slung) {
     var hx = sx(J.fh[0]), hy = sy(J.fh[1]), ang = Math.PI / 2 - J.handAng, f = h.face, kind = h.melee ? h.melee.id : h.def.melee.kind;
-    var gunOut = h.shootPose > 0 || (h.specialKind === 'overdrive' && h.specialT > 0);
+    var gunOut = !slung && (h.shootPose > 0 || (h.specialKind === 'overdrive' && h.specialT > 0));
+    if (slung && kind === 'fists') return;
+    if (slung) { hx = sx(J.neck[0] - f * 14 * h.def.size); hy = sy(J.neck[1] + 6); ang = Math.PI / 2 - (Math.PI + 0.75); }
+    else if (!h.F.weapon && kind !== 'fists' && !gunOut) { ang = Math.PI / 2 - 2.6; }
     c.save(); c.translate(hx, hy); c.scale(f, 1); c.rotate(ang);
     if (gunOut && !h.atkT) {
       var look = h.gun2 ? GUNS[h.gun2.id].look : gunDef(curGun).look;
@@ -2329,12 +3029,12 @@ var BubziCur = (function () {
   }
   function drawZombie(c, K, z) {
     if (z.hidden) return;
-    var d = z.d, s = d.size, crawl = z.t === 'biter', J = rig(z.pose, z.x, z.y, z.face, s, z.y > -2, crawl);
+    var d = z.d, s = d.size, crawl = z.t === 'biter', J = zJ(z);
     if (d.ai === 'null') { drawNull(c, K, z, J); return; }
     if (z.rise > 0) { c.save(); c.beginPath(); c.rect(0, 0, K.W, gyS); c.clip(); var off = z.rise / 0.6 * 90 * s * sc; c.translate(0, off); }
-    c.fillStyle = 'rgba(0,0,0,0.22)'; c.beginPath(); c.ellipse(sx(z.x), gyS + 2 * sc, 30 * s * sc, 6 * sc, 0, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.22)'; c.beginPath(); c.ellipse(sx((J.hip[0] + J.neck[0]) / 2), gyS + 2 * sc, (z.downT > 0 ? 55 : 30) * s * sc, 6 * sc, 0, 0, TAU); c.fill();
     var lw = (d.boss ? 12 : d.heavy ? 12 : 9) * s;
-    var flash = z.stun > 0.18;
+    var flash = z.stun > 0.18 && !z.corpse;
     if (z.fuse > 0) { c.shadowColor = '#FF3B4E'; c.shadowBlur = 20 * sc * (0.5 + 0.5 * Math.sin(K.time * 40)); }
     else if (z.elite) { c.shadowColor = '#FFD43B'; c.shadowBlur = (16 + 6 * Math.sin(K.time * 6)) * sc; }
     var zc = z.ice > 0 ? '#CDEFFF' : z.frozen > 0 ? mix(d.col, '#9BE7FF', 0.55) : d.col;
@@ -2350,6 +3050,7 @@ var BubziCur = (function () {
     if (z.t === 'conductor') { var chx = sx(J.head[0]), chy = sy(J.head[1]), cr2 = J.R * sc; c.fillStyle = '#0E3A44'; c.fillRect(chx - cr2 * 1.1, chy - cr2 * 1.25, cr2 * 2.2, cr2 * 0.7); c.fillStyle = '#FFD628'; c.fillRect(chx - cr2 * 1.1, chy - cr2 * 0.62, cr2 * 2.2, cr2 * 0.18); c.fillStyle = '#0E3A44'; c.fillRect(chx + (f > 0 ? 0 : -cr2 * 1.6), chy - cr2 * 0.62, cr2 * 1.6, cr2 * 0.2); }
     if (d.boss && !d.ai) { c.fillStyle = '#F2E6D8'; for (var sp = 0; sp < 4; sp++) { var t = sp / 3, bxx = sx(lerp(J.hip[0], J.neck[0], t)) - f * 12 * s * sc, byy = sy(lerp(J.hip[1], J.neck[1], t)); c.beginPath(); c.moveTo(bxx, byy - 6 * sc); c.lineTo(bxx - f * 26 * sc, byy - 18 * sc); c.lineTo(bxx, byy + 6 * sc); c.fill(); } }
     // glowing eyes
+    if (z.corpse) { if (z.rise > 0) c.restore(); return; }
     var eyeCol = z.t === 'hollow' ? '#FFFFFF' : d.boss ? '#FFE15A' : '#F4FFB0';
     c.shadowColor = d.boss ? eyeCol : '#E8FF5A'; c.shadowBlur = 10 * sc; c.fillStyle = z.t === 'hollow' ? '#05020A' : eyeCol;
     c.beginPath(); c.arc(hx + f * r * 0.35, hy - r * 0.1, r * (z.t === 'hollow' ? 0.27 : 0.2), 0, TAU); c.arc(hx + f * r * 0.75, hy - r * 0.05, r * (z.t === 'hollow' ? 0.22 : 0.15), 0, TAU); c.fill(); c.shadowBlur = 0;
@@ -2365,7 +3066,7 @@ var BubziCur = (function () {
       c.restore();
     }
     if (z.rise > 0) c.restore();
-    if (!d.boss && z.hp < z.maxHp) { var bw = 44 * s * sc; c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(sx(z.x) - bw / 2, sy(-150 * s), bw, 5 * sc); c.fillStyle = d.col; c.fillRect(sx(z.x) - bw / 2, sy(-150 * s), bw * Math.max(0, z.hp / z.maxHp), 5 * sc); }
+    if (!d.boss && z.hp < z.maxHp && !z.corpse) { var bw = 44 * s * sc; c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(sx(z.x) - bw / 2, sy(-150 * s), bw, 5 * sc); c.fillStyle = d.col; c.fillRect(sx(z.x) - bw / 2, sy(-150 * s), bw * Math.max(0, z.hp / z.maxHp), 5 * sc); }
   }
   function drawNull(c, K, z, J) {
     var d = z.d, s = d.size, flash = z.stun > 0.04;
@@ -2451,11 +3152,13 @@ var BubziCur = (function () {
   /* ---------------- HUD + touch controls ---------------- */
   function btns(K) {
     var R = clamp(Math.min(K.W, K.H) * 0.085, 30, 46), H = K.H, W = K.W, by = H - R * 1.35;
-    return {
+    var o = {
       left: { x: R * 1.35, y: by, r: R }, right: { x: R * 3.75, y: by, r: R },
       atk: { x: W - R * 1.55, y: H - R * 1.6, r: R * 1.28 }, jump: { x: W - R * 4.05, y: H - R * 1.15, r: R * 0.95 },
       shoot: { x: W - R * 1.35, y: H - R * 4.25, r: R * 0.95 }, spec: { x: W - R * 3.75, y: H - R * 3.55, r: R * 0.95 }
     };
+    if (hero && comboSlots()[1]) o.atk2 = { x: W - R * 6.2, y: H - R * 1.6, r: R * 1.05 };
+    return o;
   }
   function drawHud(c, K) {
     var W = K.W, top = K.hudH + (K.W < 600 ? 22 : 4), h = hero, def = h.def;
@@ -2496,9 +3199,9 @@ var BubziCur = (function () {
     else if (introT > 0) { c.globalAlpha = Math.min(1, introT * 2); c.textAlign = 'center'; c.font = K.font(Math.min(64, W / 7)); c.lineWidth = 9; c.strokeStyle = 'rgba(20,10,30,0.9)'; var wt = (wave % 5 === 0 ? K.t('bossWave') + ' · ' : '') + '\u221E ' + K.t('wave') + ' ' + wave; c.strokeText(wt, W / 2, gyS * 0.5); c.fillStyle = wave % 5 === 0 ? '#FF3B4E' : '#FFE15A'; c.fillText(wt, W / 2, gyS * 0.5); c.globalAlpha = 1; }
     // touch controls
     if (touchUI && mode !== 'down') {
-      var B = btns(K), lbl = { atk: K.t('bAtk'), jump: K.t('bJump'), shoot: K.t('bShoot'), spec: K.t('bSpec') }, col = { left: '#FFFFFF', right: '#FFFFFF', atk: '#FF3B4E', jump: '#22C55E', shoot: '#3B82F6', spec: h.ink >= 100 ? '#FFE15A' : '#6B6B7B' };
+      var B = btns(K), lbl = { atk: K.t('bAtk'), atk2: 'B', jump: K.t('bJump'), shoot: K.t('bShoot'), spec: K.t('bSpec') }, col = { left: '#FFFFFF', right: '#FFFFFF', atk: '#FF3B4E', atk2: '#FF8A1F', jump: '#22C55E', shoot: '#3B82F6', spec: h.ink >= 100 ? '#FFE15A' : '#6B6B7B' };
       Object.keys(B).forEach(function (k) {
-        var b = B[k], on = held[k] || (k === 'atk' && held.atkFlash > 0);
+        var b = B[k], on = held[k] || (k === 'atk' && held.atkFlash > 0) || (k === 'atk2' && held.atk2Flash > 0);
         c.globalAlpha = on ? 0.95 : 0.72;
         c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.arc(b.x, b.y + 4, b.r, 0, TAU); c.fill();
         var gr = c.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.4, 2, b.x, b.y, b.r); gr.addColorStop(0, '#FFFFFF'); gr.addColorStop(0.25, col[k]); gr.addColorStop(1, k === 'left' || k === 'right' ? '#8FA3BF' : col[k]);
@@ -2883,7 +3586,7 @@ var BubziCur = (function () {
   function press(K, k, down) {
     if (k === 'left' || k === 'right' || k === 'shoot') held[k] = down;
     if (!down) return;
-    if (k === 'atk') { attack(K); held.atkFlash = 0.12; } else if (k === 'jump') jump(K); else if (k === 'spec') special(K); else if (k === 'shoot') fire(K);
+    if (k === 'atk') { attack(K); held.atkFlash = 0.12; } else if (k === 'atk2') { attack2(K); held.atk2Flash = 0.12; } else if (k === 'jump') jump(K); else if (k === 'spec') special(K); else if (k === 'shoot') fire(K);
   }
   var touchMap = {};
   function mascot(mood, size) {
@@ -2902,9 +3605,9 @@ var BubziCur = (function () {
     id: 'ink-heroes', coinRate: 0.01, noSkins: true, theme: 'dark', mascot: mascot,
     title: { en: 'Ink Heroes', fr: 'Héros d’Encre', ar: 'أبطال الحبر' },
     strings: {
-      en: { story: "STORY", infShort: "INFINITY", storyTitle: "THE INKFALL", chapter: "Chapter", play: "PLAY", next: "NEXT", map: "MAP", skip: "Skip", tapNext: "Tap to continue", locked: "Locked", oC: "Defeat every zombie", oR: "Free the survivors", oS: "Survive", oD: "Protect the Ink Lantern", oB: "Defeat", m_swarm: "SWARM: more zombies", m_nogun: "NO GUNS: fists only", m_elite: "ELITE NIGHT: gold zombies", m_dark: "BLACKOUT: stay in the light", star1: "Win", star2: "Keep half your health", star3: "Combo", lvClear: "LEVEL CLEAR!", failed: "Level failed", lanternOut: "The lantern went out", joins: "joins your team!", survivors: "Survivors", left: "Zombies left", lantern: "Lantern", nightmare: "NIGHTMARE", firstClear: "First clear ×2", freed: "FREED!", noGun: "No guns here!", allAboard: "ALL ABOARD!", twinRage: "THE OTHER TWIN IS ANGRY!", phase2: "NULL · PHASE 2", phase2s: "He drew copies of himself!", theEnd: "THE END…?", nmUnlocked: "NIGHTMARE MODE unlocked!", hero: "Hero", tagline: 'A 40-level story and an endless zombie night. Punch, shoot, survive!', choose: 'Choose your hero', fight: 'FIGHT!', unlock: 'Unlock', needCoins: 'Not enough coins yet', wave: 'Wave', bossWave: 'BOSS', cleared: 'Wave cleared!', pickPerk: 'Pick a power-up', combo: 'COMBO', reloading: 'Reloading…', newZ: 'New:', block: 'BLOCK', broken: 'SMASHED!', broke: 'Broken!', empty: 'Empty!', rage: 'RAGE MODE!', overrun: 'Overrun!', reached: 'Fell at wave', record: 'New record!', infinity: 'INFINITY MODE · every wave is harder', bestWave: 'Best wave', eliteT: 'ELITE ZOMBIES!', eliteS: 'Gold glow = tougher, but 3× points and more coins', threat: 'Threat', shop: 'SHOP', guns: 'GUNS', items: 'ITEMS', back: 'Back', buy: 'BUY', equip: 'EQUIP', equipped: 'EQUIPPED', owned: 'OWNED', maxed: 'Full!', have: 'Have', dps: 'DPS', sDmg: 'Damage', sRate: 'Fire rate', sMag: 'Ammo', sReload: 'Reload', sRange: 'Range', adCoins: '+60 · AD', adWait: 'Next ad reward soon', reviveQ: 'You fell! Use a heart?', revive: 'REVIVE', giveUp: 'Give up', revived: 'BACK IN THE FIGHT!', heartSaved: 'Hearts revive you when you fall', fullHp: 'Health is full', airstrike: 'AIRSTRIKE!', tryGun: 'TRY:', tryGunSub: 'Like it? Buy it in the shop', gunLabel: 'Gun', bAtk: 'HIT', bJump: 'JUMP', bShoot: 'FIRE', bSpec: 'POWER', sPow: 'POWER', sSpd: 'SPEED', sHp: 'HEALTH', keys: '←/→ move · W jump · J hit · K fire · L power · R reload' },
-      fr: { story: "HISTOIRE", infShort: "INFINI", storyTitle: "LA CHUTE D’ENCRE", chapter: "Chapitre", play: "JOUER", next: "SUIVANT", map: "CARTE", skip: "Passer", tapNext: "Touche pour continuer", locked: "Verrouillé", oC: "Élimine tous les zombies", oR: "Libère les survivants", oS: "Survis", oD: "Protège la Lanterne d’encre", oB: "Bats", m_swarm: "ESSAIM : plus de zombies", m_nogun: "SANS ARMES : poings seulement", m_elite: "NUIT D’ÉLITE : zombies dorés", m_dark: "PANNE : reste dans la lumière", star1: "Gagne", star2: "Garde la moitié de ta vie", star3: "Combo", lvClear: "NIVEAU RÉUSSI !", failed: "Niveau raté", lanternOut: "La lanterne s’est éteinte", joins: "rejoint ton équipe !", survivors: "Survivants", left: "Zombies restants", lantern: "Lanterne", nightmare: "CAUCHEMAR", firstClear: "Première victoire ×2", freed: "LIBÉRÉ !", noGun: "Pas d’armes ici !", allAboard: "EN VOITURE !", twinRage: "L’AUTRE JUMEAU EST FURIEUX !", phase2: "NULL · PHASE 2", phase2s: "Il a dessiné des copies de lui !", theEnd: "FIN… ?", nmUnlocked: "MODE CAUCHEMAR débloqué !", hero: "Héros", tagline: 'Une histoire de 40 niveaux et une nuit zombie sans fin. Frappe, tire, survis !', choose: 'Choisis ton héros', fight: 'COMBAT !', unlock: 'Débloquer', needCoins: 'Pas encore assez de pièces', wave: 'Vague', bossWave: 'BOSS', cleared: 'Vague terminée !', pickPerk: 'Choisis un bonus', combo: 'COMBO', reloading: 'Rechargement…', newZ: 'Nouveau :', block: 'BLOQUÉ', broken: 'BRISÉ !', broke: 'Cassé !', empty: 'Vide !', rage: 'MODE FURIE !', overrun: 'Submergé !', reached: 'Tombé à la vague', record: 'Nouveau record !', infinity: 'MODE INFINI · chaque vague est plus dure', bestWave: 'Meilleure vague', eliteT: 'ZOMBIES D\u2019ÉLITE !', eliteS: 'Lueur dorée = plus coriaces, mais 3× points et plus de pièces', threat: 'Menace', shop: 'BOUTIQUE', guns: 'ARMES', items: 'OBJETS', back: 'Retour', buy: 'ACHETER', equip: 'ÉQUIPER', equipped: 'ÉQUIPÉE', owned: 'ACQUISE', maxed: 'Plein !', have: 'Possédé', dps: 'DPS', sDmg: 'Dégâts', sRate: 'Cadence', sMag: 'Munitions', sReload: 'Recharge', sRange: 'Portée', adCoins: '+60 · PUB', adWait: 'Prochaine récompense bientôt', reviveQ: 'Tu es tombé ! Utiliser un cœur ?', revive: 'REVIVRE', giveUp: 'Abandonner', revived: 'DE RETOUR AU COMBAT !', heartSaved: 'Les cœurs te relèvent quand tu tombes', fullHp: 'Vie au maximum', airstrike: 'FRAPPE AÉRIENNE !', tryGun: 'ESSAIE :', tryGunSub: 'Elle te plaît ? Achète-la en boutique', gunLabel: 'Arme', bAtk: 'FRAPPE', bJump: 'SAUT', bShoot: 'TIR', bSpec: 'POUVOIR', sPow: 'PUISSANCE', sSpd: 'VITESSE', sHp: 'VIE', keys: '←/→ bouger · W sauter · J frapper · K tirer · L pouvoir · R recharger' },
-      ar: { story: "القصة", infShort: "لا نهائي", storyTitle: "سقوط الحبر", chapter: "الفصل", play: "العب", next: "التالي", map: "الخريطة", skip: "تخطَّ", tapNext: "المس للمتابعة", locked: "مقفل", oC: "اهزم كل الزومبي", oR: "حرّر الناجين", oS: "انجُ", oD: "احمِ فانوس الحبر", oB: "اهزم", m_swarm: "سرب: زومبي أكثر", m_nogun: "بلا أسلحة: القبضات فقط", m_elite: "ليلة النخبة: زومبي ذهبي", m_dark: "انقطاع الكهرباء: ابقَ في الضوء", star1: "افُز", star2: "احتفظ بنصف صحتك", star3: "كومبو", lvClear: "اكتملت المرحلة!", failed: "فشلت المرحلة", lanternOut: "انطفأ الفانوس", joins: "ينضم إلى فريقك!", survivors: "الناجون", left: "الزومبي المتبقون", lantern: "الفانوس", nightmare: "كابوس", firstClear: "أول فوز ×2", freed: "حُرّر!", noGun: "لا أسلحة هنا!", allAboard: "الكل إلى القطار!", twinRage: "التوأم الآخر غاضب!", phase2: "نَل · المرحلة 2", phase2s: "رسم نسخاً من نفسه!", theEnd: "النهاية…؟", nmUnlocked: "فُتح وضع الكابوس!", hero: "البطل", tagline: 'قصة من 40 مرحلة وليلة زومبي لا تنتهي. اضرب، أطلق، انجُ!', choose: 'اختر بطلك', fight: 'قتال!', unlock: 'افتح', needCoins: 'العملات لا تكفي بعد', wave: 'الموجة', bossWave: 'زعيم', cleared: 'انتهت الموجة!', pickPerk: 'اختر قوة', combo: 'كومبو', reloading: 'إعادة التلقيم…', newZ: 'جديد:', block: 'صدّ', broken: 'تحطّم!', broke: 'انكسر!', empty: 'فارغ!', rage: 'وضع الغضب!', overrun: 'غُمِرت!', reached: 'سقطت في الموجة', record: 'رقم قياسي جديد!', infinity: 'الوضع اللانهائي · كل موجة أصعب', bestWave: 'أفضل موجة', eliteT: 'زومبي النخبة!', eliteS: 'التوهج الذهبي = أقوى لكن 3× نقاط وعملات أكثر', threat: 'الخطر', shop: 'المتجر', guns: 'الأسلحة', items: 'الأدوات', back: 'رجوع', buy: 'شراء', equip: 'تجهيز', equipped: 'مُجهَّز', owned: 'مملوك', maxed: 'ممتلئ!', have: 'لديك', dps: 'ضرر/ث', sDmg: 'الضرر', sRate: 'سرعة الإطلاق', sMag: 'الذخيرة', sReload: 'التلقيم', sRange: 'المدى', adCoins: '+60 · إعلان', adWait: 'المكافأة التالية قريباً', reviveQ: 'سقطت! هل تستخدم قلباً؟', revive: 'انهض', giveUp: 'استسلم', revived: 'عدت إلى القتال!', heartSaved: 'القلوب تُنهضك عندما تسقط', fullHp: 'الصحة ممتلئة', airstrike: 'غارة جوية!', tryGun: 'جرّب:', tryGunSub: 'أعجبك؟ اشتره من المتجر', gunLabel: 'السلاح', bAtk: 'ضرب', bJump: 'قفز', bShoot: 'نار', bSpec: 'قوة', sPow: 'القوة', sSpd: 'السرعة', sHp: 'الصحة', keys: '←/→ تحرك · W قفز · J ضرب · K نار · L قوة · R تلقيم' }
+      en: { noCombo: "No combo in slot B — buy one in the shop", story: "STORY", infShort: "INFINITY", storyTitle: "THE INKFALL", chapter: "Chapter", play: "PLAY", next: "NEXT", map: "MAP", skip: "Skip", tapNext: "Tap to continue", locked: "Locked", oC: "Defeat every zombie", oR: "Free the survivors", oS: "Survive", oD: "Protect the Ink Lantern", oB: "Defeat", m_swarm: "SWARM: more zombies", m_nogun: "NO GUNS: fists only", m_elite: "ELITE NIGHT: gold zombies", m_dark: "BLACKOUT: stay in the light", star1: "Win", star2: "Keep half your health", star3: "Combo", lvClear: "LEVEL CLEAR!", failed: "Level failed", lanternOut: "The lantern went out", joins: "joins your team!", survivors: "Survivors", left: "Zombies left", lantern: "Lantern", nightmare: "NIGHTMARE", firstClear: "First clear ×2", freed: "FREED!", noGun: "No guns here!", allAboard: "ALL ABOARD!", twinRage: "THE OTHER TWIN IS ANGRY!", phase2: "NULL · PHASE 2", phase2s: "He drew copies of himself!", theEnd: "THE END…?", nmUnlocked: "NIGHTMARE MODE unlocked!", hero: "Hero", tagline: 'A 40-level story and an endless zombie night. Punch, shoot, survive!', choose: 'Choose your hero', fight: 'FIGHT!', unlock: 'Unlock', needCoins: 'Not enough coins yet', wave: 'Wave', bossWave: 'BOSS', cleared: 'Wave cleared!', pickPerk: 'Pick a power-up', combo: 'COMBO', reloading: 'Reloading…', newZ: 'New:', block: 'BLOCK', broken: 'SMASHED!', broke: 'Broken!', empty: 'Empty!', rage: 'RAGE MODE!', overrun: 'Overrun!', reached: 'Fell at wave', record: 'New record!', infinity: 'INFINITY MODE · every wave is harder', bestWave: 'Best wave', eliteT: 'ELITE ZOMBIES!', eliteS: 'Gold glow = tougher, but 3× points and more coins', threat: 'Threat', shop: 'SHOP', guns: 'GUNS', items: 'ITEMS', back: 'Back', buy: 'BUY', equip: 'EQUIP', equipped: 'EQUIPPED', owned: 'OWNED', maxed: 'Full!', have: 'Have', dps: 'DPS', sDmg: 'Damage', sRate: 'Fire rate', sMag: 'Ammo', sReload: 'Reload', sRange: 'Range', adCoins: '+60 · AD', adWait: 'Next ad reward soon', reviveQ: 'You fell! Use a heart?', revive: 'REVIVE', giveUp: 'Give up', revived: 'BACK IN THE FIGHT!', heartSaved: 'Hearts revive you when you fall', fullHp: 'Health is full', airstrike: 'AIRSTRIKE!', tryGun: 'TRY:', tryGunSub: 'Like it? Buy it in the shop', gunLabel: 'Gun', bAtk: 'HIT', bJump: 'JUMP', bShoot: 'FIRE', bSpec: 'POWER', sPow: 'POWER', sSpd: 'SPEED', sHp: 'HEALTH', keys: '←/→ move · W jump · J hit · K fire · L power · R reload' },
+      fr: { noCombo: "Aucun combo en B — achète-en un", story: "HISTOIRE", infShort: "INFINI", storyTitle: "LA CHUTE D’ENCRE", chapter: "Chapitre", play: "JOUER", next: "SUIVANT", map: "CARTE", skip: "Passer", tapNext: "Touche pour continuer", locked: "Verrouillé", oC: "Élimine tous les zombies", oR: "Libère les survivants", oS: "Survis", oD: "Protège la Lanterne d’encre", oB: "Bats", m_swarm: "ESSAIM : plus de zombies", m_nogun: "SANS ARMES : poings seulement", m_elite: "NUIT D’ÉLITE : zombies dorés", m_dark: "PANNE : reste dans la lumière", star1: "Gagne", star2: "Garde la moitié de ta vie", star3: "Combo", lvClear: "NIVEAU RÉUSSI !", failed: "Niveau raté", lanternOut: "La lanterne s’est éteinte", joins: "rejoint ton équipe !", survivors: "Survivants", left: "Zombies restants", lantern: "Lanterne", nightmare: "CAUCHEMAR", firstClear: "Première victoire ×2", freed: "LIBÉRÉ !", noGun: "Pas d’armes ici !", allAboard: "EN VOITURE !", twinRage: "L’AUTRE JUMEAU EST FURIEUX !", phase2: "NULL · PHASE 2", phase2s: "Il a dessiné des copies de lui !", theEnd: "FIN… ?", nmUnlocked: "MODE CAUCHEMAR débloqué !", hero: "Héros", tagline: 'Une histoire de 40 niveaux et une nuit zombie sans fin. Frappe, tire, survis !', choose: 'Choisis ton héros', fight: 'COMBAT !', unlock: 'Débloquer', needCoins: 'Pas encore assez de pièces', wave: 'Vague', bossWave: 'BOSS', cleared: 'Vague terminée !', pickPerk: 'Choisis un bonus', combo: 'COMBO', reloading: 'Rechargement…', newZ: 'Nouveau :', block: 'BLOQUÉ', broken: 'BRISÉ !', broke: 'Cassé !', empty: 'Vide !', rage: 'MODE FURIE !', overrun: 'Submergé !', reached: 'Tombé à la vague', record: 'Nouveau record !', infinity: 'MODE INFINI · chaque vague est plus dure', bestWave: 'Meilleure vague', eliteT: 'ZOMBIES D\u2019ÉLITE !', eliteS: 'Lueur dorée = plus coriaces, mais 3× points et plus de pièces', threat: 'Menace', shop: 'BOUTIQUE', guns: 'ARMES', items: 'OBJETS', back: 'Retour', buy: 'ACHETER', equip: 'ÉQUIPER', equipped: 'ÉQUIPÉE', owned: 'ACQUISE', maxed: 'Plein !', have: 'Possédé', dps: 'DPS', sDmg: 'Dégâts', sRate: 'Cadence', sMag: 'Munitions', sReload: 'Recharge', sRange: 'Portée', adCoins: '+60 · PUB', adWait: 'Prochaine récompense bientôt', reviveQ: 'Tu es tombé ! Utiliser un cœur ?', revive: 'REVIVRE', giveUp: 'Abandonner', revived: 'DE RETOUR AU COMBAT !', heartSaved: 'Les cœurs te relèvent quand tu tombes', fullHp: 'Vie au maximum', airstrike: 'FRAPPE AÉRIENNE !', tryGun: 'ESSAIE :', tryGunSub: 'Elle te plaît ? Achète-la en boutique', gunLabel: 'Arme', bAtk: 'FRAPPE', bJump: 'SAUT', bShoot: 'TIR', bSpec: 'POUVOIR', sPow: 'PUISSANCE', sSpd: 'VITESSE', sHp: 'VIE', keys: '←/→ bouger · W sauter · J frapper · K tirer · L pouvoir · R recharger' },
+      ar: { noCombo: "لا توجد سلسلة في الخانة B — اشترِ واحدة", story: "القصة", infShort: "لا نهائي", storyTitle: "سقوط الحبر", chapter: "الفصل", play: "العب", next: "التالي", map: "الخريطة", skip: "تخطَّ", tapNext: "المس للمتابعة", locked: "مقفل", oC: "اهزم كل الزومبي", oR: "حرّر الناجين", oS: "انجُ", oD: "احمِ فانوس الحبر", oB: "اهزم", m_swarm: "سرب: زومبي أكثر", m_nogun: "بلا أسلحة: القبضات فقط", m_elite: "ليلة النخبة: زومبي ذهبي", m_dark: "انقطاع الكهرباء: ابقَ في الضوء", star1: "افُز", star2: "احتفظ بنصف صحتك", star3: "كومبو", lvClear: "اكتملت المرحلة!", failed: "فشلت المرحلة", lanternOut: "انطفأ الفانوس", joins: "ينضم إلى فريقك!", survivors: "الناجون", left: "الزومبي المتبقون", lantern: "الفانوس", nightmare: "كابوس", firstClear: "أول فوز ×2", freed: "حُرّر!", noGun: "لا أسلحة هنا!", allAboard: "الكل إلى القطار!", twinRage: "التوأم الآخر غاضب!", phase2: "نَل · المرحلة 2", phase2s: "رسم نسخاً من نفسه!", theEnd: "النهاية…؟", nmUnlocked: "فُتح وضع الكابوس!", hero: "البطل", tagline: 'قصة من 40 مرحلة وليلة زومبي لا تنتهي. اضرب، أطلق، انجُ!', choose: 'اختر بطلك', fight: 'قتال!', unlock: 'افتح', needCoins: 'العملات لا تكفي بعد', wave: 'الموجة', bossWave: 'زعيم', cleared: 'انتهت الموجة!', pickPerk: 'اختر قوة', combo: 'كومبو', reloading: 'إعادة التلقيم…', newZ: 'جديد:', block: 'صدّ', broken: 'تحطّم!', broke: 'انكسر!', empty: 'فارغ!', rage: 'وضع الغضب!', overrun: 'غُمِرت!', reached: 'سقطت في الموجة', record: 'رقم قياسي جديد!', infinity: 'الوضع اللانهائي · كل موجة أصعب', bestWave: 'أفضل موجة', eliteT: 'زومبي النخبة!', eliteS: 'التوهج الذهبي = أقوى لكن 3× نقاط وعملات أكثر', threat: 'الخطر', shop: 'المتجر', guns: 'الأسلحة', items: 'الأدوات', back: 'رجوع', buy: 'شراء', equip: 'تجهيز', equipped: 'مُجهَّز', owned: 'مملوك', maxed: 'ممتلئ!', have: 'لديك', dps: 'ضرر/ث', sDmg: 'الضرر', sRate: 'سرعة الإطلاق', sMag: 'الذخيرة', sReload: 'التلقيم', sRange: 'المدى', adCoins: '+60 · إعلان', adWait: 'المكافأة التالية قريباً', reviveQ: 'سقطت! هل تستخدم قلباً؟', revive: 'انهض', giveUp: 'استسلم', revived: 'عدت إلى القتال!', heartSaved: 'القلوب تُنهضك عندما تسقط', fullHp: 'الصحة ممتلئة', airstrike: 'غارة جوية!', tryGun: 'جرّب:', tryGunSub: 'أعجبك؟ اشتره من المتجر', gunLabel: 'السلاح', bAtk: 'ضرب', bJump: 'قفز', bShoot: 'نار', bSpec: 'قوة', sPow: 'القوة', sSpd: 'السرعة', sHp: 'الصحة', keys: '←/→ تحرك · W قفز · J ضرب · K نار · L قوة · R تلقيم' }
     },
     init: function (K) { K0 = K; if (K.store.get('cur:ink-heroes', null) === null) K.store.set('cur:ink-heroes', K.wallet() || Math.floor(K.store.get('coins', 0) || 0)); /* keep old coins as Ink Drops */ held = {}; keys = {}; ui = []; waves = []; layout(K); picked = K.store.get('ink:hero', 'kai'); bestWave = K.store.get('ink:bestWave', 0) || 0;
       prog = loadProg(); storyMode = K.store.get('ink:mode', 'story') !== 'inf';
@@ -2914,12 +3617,12 @@ var BubziCur = (function () {
       K0 = K; layout(K); held = {}; keys = {}; touchMap = {}; waves = [];
       var own = owned(); picked = K.store.get('ink:hero', 'kai'); if (own.indexOf(picked) < 0) picked = 'kai';
       sel = Math.max(0, HEROES.map(function (h) { return h.id; }).indexOf(picked));
-      hero = newHero(K); zombies = []; bullets = []; spits = []; pickups = []; parts = []; decals = []; allies = []; banners = []; wave = 0; combo = 0; comboT = 0; hs = 0; slow = 0; introT = 0; bossRef = null;
+      hero = newHeroF(K); corpses = []; IF.fx.length = 0; zombies = []; bullets = []; spits = []; pickups = []; parts = []; decals = []; allies = []; banners = []; wave = 0; combo = 0; comboT = 0; hs = 0; slow = 0; introT = 0; bossRef = null;
       mods = { maxHp: 0, melee: 1, rate: 1, mag: 1, vamp: 0, focus: 1, buddy: 0, luck: 1, crit: 0.05 };
       camX = clamp(hero.x - viewW(K) / 2, 0, Math.max(0, AW - viewW(K))); mode = 'pick'; queue = []; curGun = equippedGun(); bag = inv(); turrets = []; bombs = []; nades = []; planeT = 0;
       prog = loadProg(); story = null; cut = null; cages = []; lantern = null; civs = []; theme = 'ruins'; zoomK = 1; curMut = [];
       if (storyRetry !== null) { var rIdx = storyRetry; storyRetry = null; goMap(K, rIdx); }
-      if (K.test) window.__ink = { hurt: function (n) { hurtHero(K, n, 1); }, spawn: function (t) { spawnZombie(K, t); }, use: function (id) { useItem(K, id); }, fire: function () { fire(K); }, clear: function () { zombies = []; queue = []; }, story: { win: function () { storyWin(K); }, prog: function () { return prog; }, set: function (p) { prog = p; saveProg(); }, start: function (i, nm) { nmOn = !!nm; startLevel(K, i); }, play: function (i) { playLevel(K, i); }, map: function (i) { goMap(K, i); }, killBoss: function (frac) { zombies.forEach(function (z) { if (z.d.boss && !z.dead) { z.hidden = false; if (frac) { z.hp -= z.maxHp * frac; } else { z.hp = 1; hitZombie(K, z, 99999, 1, 0, 0, 'boom'); } } }); }, timer: function (t) { if (story) story.timer = t; }, cages: function () { cages.forEach(function (c) { hitCage(K, c, 9999); }); }, lanternHit: function (n) { hurtLantern(K, n); } }, setGun: function (id) { curGun = id; hero.ammo = baseMag(); hero.reloadT = 0; hero.shootCd = 0; } };
+      if (K.test) window.__ink = { hp: function (n) { zombies.forEach(function (z) { z.hp = z.maxHp = n; }); }, combo: function (id) { hero.F.log.length = 0; if (id) { var o = ownedCombos(); if (o.indexOf(id) < 0 && !COMBOS[id].free) { o.push(id); K0.store.set('ink:combos', o); } setSlot(1, id); } attack2(K); }, equip: function (i, id) { var o = ownedCombos(); if (id && o.indexOf(id) < 0) { o.push(id); K0.store.set('ink:combos', o); } setSlot(i, id); }, fight: function () { return { cmb: hero.cmb && hero.cmb.id, busy: hero.F.busy(), x: hero.x, y: hero.y, log: hero.F.log.slice(-30), corpses: corpses.length, zs: zombies.map(function (z) { return { t: z.t, x: Math.round(z.x), y: Math.round(z.y), hp: z.hp, jug: !!z.jug, down: z.downT > 0 }; }) }; }, hurt: function (n) { hurtHero(K, n, 1); }, spawn: function (t) { spawnZombie(K, t); }, use: function (id) { useItem(K, id); }, fire: function () { fire(K); }, clear: function () { zombies = []; queue = []; }, story: { win: function () { storyWin(K); }, prog: function () { return prog; }, set: function (p) { prog = p; saveProg(); }, start: function (i, nm) { nmOn = !!nm; startLevel(K, i); }, play: function (i) { playLevel(K, i); }, map: function (i) { goMap(K, i); }, killBoss: function (frac) { zombies.forEach(function (z) { if (z.d.boss && !z.dead) { z.hidden = false; if (frac) { z.hp -= z.maxHp * frac; } else { z.hp = 1; hitZombie(K, z, 99999, 1, 0, 0, 'boom'); } } }); }, timer: function (t) { if (story) story.timer = t; }, cages: function () { cages.forEach(function (c) { hitCage(K, c, 9999); }); }, lanternHit: function (n) { hurtLantern(K, n); } }, setGun: function (id) { curGun = id; hero.ammo = baseMag(); hero.reloadT = 0; hero.shootCd = 0; } };
       if (K.test) K.dbg = function () { return { mode: mode, wave: wave, bag: bag, gun: curGun, ammo: hero.ammo, muts: curMut, elites: zombies.filter(function (z) { return z.elite; }).length, threat: [1, 2, 3, 5, 10, 15, 20, 30, 40, 60].map(function (n) { var t = threat(n); t.n = n; return t; }), seen: Object.keys(firstTypes || {}), weapon: (hero.melee && hero.melee.id) || (hero.gun2 && hero.gun2.id) || null, boss: !!bossRef, hero: { x: hero.x, y: hero.y, hp: hero.hp, ink: hero.ink, face: hero.face, ground: hero.ground, ammo: hero.ammo }, zombies: zombies.map(function (z) { return { t: z.t, x: z.x, y: z.y, hp: z.hp, maxHp: z.maxHp, shield: z.shield, atkT: z.atkT, ice: z.ice || 0, frozen: z.frozen || 0 }; }), shieldT: hero.shield || 0, rage: hero.rage, turrets: turrets.length, bombs: bombs.length, nades: nades.length, bullets: bullets.length, waves: waves.map(function (w) { return { x: w.x }; }), kills: kills, perkOpts: perkOpts, sel: sel, queue: queue.length, storyMode: storyMode, theme: theme, mapCh: mapCh, mapSel: mapSel, nmOn: nmOn, cut: cut ? { i: cut.i, n: cut.lines.length, who: cut.lines[cut.i][0] } : null,
           story: story ? { idx: story.d.idx, o: story.d.o, m: story.d.m, timer: story.timer, done: story.done, eff: story.eff, maxCombo: story.maxCombo, dmg: story.dmg, bossSpawned: story.bossSpawned } : null, cages: cages.map(function (c) { return c.freed; }), lantern: lantern ? lantern.hp : null,
           win: winInfo && mode === 'win' ? { stars: winInfo.stars, coins: winInfo.coins, unlock: winInfo.unlock, ending: winInfo.ending } : null, zoom: zoomK, bosses: zombies.filter(function (z) { return z.d.boss; }).map(function (z) { return { t: z.t, hp: z.hp, x: z.x, st: z.st || z.bossAct || null, phase2: !!z.phase2, hidden: !!z.hidden }; }) }; };
@@ -2990,19 +3693,22 @@ var BubziCur = (function () {
       if (!down || rep) return;
       if (code === 'ArrowUp' || code === 'KeyW' || code === 'Space') jump(K);
       else if (code === 'KeyJ' || code === 'KeyZ' || code === 'Enter') attack(K);
+      else if (code === 'KeyU' || code === 'KeyV') attack2(K);
       else if (code === 'KeyL' || code === 'KeyC' || code === 'ShiftLeft') special(K);
       else if (code === 'KeyR') reload(K);
       else { var dk = /^(Digit|Numpad)([1-7])$/.exec(code); if (dk) ITEM_ORDER.forEach(function (k) { if (ITEMS[k].key === dk[2]) useItem(K, k); }); }
     },
     update: function (dt, K) {
       if (held.atkFlash) held.atkFlash = Math.max(0, held.atkFlash - dt);
+      if (held.atk2Flash) held.atk2Flash = Math.max(0, held.atk2Flash - dt);
       if (mode === 'down') { downT -= dt; updateParts(dt); if (downT <= 0) endRun(K); return; }
       trainT += dt; zoomK += (1 - zoomK) * Math.min(1, dt * 3.5);
       if (mode === 'cut' && cut) { cut.t += dt * 48; updateParts(dt); return; }
       if (mode === 'win' && winInfo) winInfo.t += dt;
       if (mode !== 'fight') { updateParts(dt); return; }
       if (slow > 0) { slow -= dt; dt *= 0.3; }
-      if (hs > 0) { hs -= dt; updateParts(dt * 0.2); return; }
+      if (hs > 0) { hs -= dt; updateParts(dt * 0.2); IF.updateFx(dt * 0.25); return; }
+      IF.updateFx(dt); updateCorpses(K, dt);
       tutT += dt; introT = Math.max(0, introT - dt);
       if (comboT > 0) { comboT -= dt; if (comboT <= 0) combo = 0; }
       banners.forEach(function (b) { b.t -= dt; }); banners = banners.filter(function (b) { return b.t > 0; });
@@ -3036,6 +3742,7 @@ var BubziCur = (function () {
       if (mode === 'map') { if (zc) c.restore(); drawMap(c, K); return; }
       // depth-sorted actors (2.5D): farther = drawn first, smaller and higher
       var items = [];
+      corpses.forEach(function (z) { items.push([(z.dz || 0) - 0.01, z.x, function () { c.globalAlpha = z.alpha; drawZombie(c, K, z); c.globalAlpha = 1; }, z]); });
       zombies.forEach(function (z) { items.push([z.dz || 0, z.x, function () { drawZombie(c, K, z); }, z]); });
       allies.forEach(function (a) { if (a && !a.dead) items.push([-14, a.x, function () { drawAlly(c, a); }, null]); });
       cages.forEach(function (cg) { items.push([-20, cg.x, function () { drawCage(c, K, cg); }, null]); });
@@ -3045,6 +3752,7 @@ var BubziCur = (function () {
       items.sort(function (a, b) { return a[0] - b[0]; });
       if (mode !== 'cut') items.forEach(function (it) { withDepth(c, it[1], it[0] === 0.5 ? 0 : it[0], it[2], it[3]); });
       drawPickups(c, K);
+      drawFightFx(c, K);
       drawParts(c, K);
       // blackout levels: only the light around the hero (and the lantern) cuts through
       if (story && story.d.m === 'dark' && mode !== 'cut') {
