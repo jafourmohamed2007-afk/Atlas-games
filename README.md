@@ -17,7 +17,7 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `memo-match.html` | Memory cards | Tap cards · arrows + Enter |
 | `wiggle-snake.html` | Snake | Swipe / tap · arrows |
 | `ink-heroes.html` | 2.5D stickman brawler: 40-level story + Infinity | On-screen buttons · arrows, W, J, K, L, R, 1-7 |
-| `ink-heroes-remastered.html` | Same game as Ink Heroes with Blender 3D-rendered art (both built from `src/games/ink-heroes.js`; separate saves) | Same as Ink Heroes · M missions, Z Zombie Book, A buy ammo in the shop |
+| `ink-heroes-remastered.html` | Same game as Ink Heroes with Blender 3D-rendered art (both built from `src/games/ink-heroes.js`; separate saves) | Same as Ink Heroes · M missions, Z Zombie Book, R buys ammo in the shop |
 | `spear-hills.html` | Turn-based spear duel | Pull back and let go · Up/Down angle, Left/Right power, Space |
 | `merge-blasters.html` | Merge blasters, pop goo blobs before your wall | Drag same numbers together · B buys, arrows + Space |
 | `tiny-siege.html` | Lane war: miners, stick army, enemy tower | Tap the unit buttons · 1-4 send units, H Attack/Defend |

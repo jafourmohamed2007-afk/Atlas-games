@@ -2492,7 +2492,7 @@ var InkFight = (function () {
     if (to >= 0) nx.seen = true;
   }
   function exHurtP(K, p, dmg) {
-    if (p.st !== 'follow' && p.st !== 'wait' && p.st !== 'hide') return;
+    if (p.st !== 'follow' && p.st !== 'wait') return;
     K.sfx('cscream');
     p.hp -= Math.round(dmg * 0.6); p.hitT = 0.2; goo(p.x, -60, '#111111', 4, 220); K.sfx('hit');
     if (p.hp <= 0) { p.hp = 0; p.st = 'down'; p.pad = null; ftext(p.x, -150, K.t('help'), '#FF3B4E', 22); }
@@ -3474,6 +3474,9 @@ var InkFight = (function () {
     if (crit) dmg *= 2;
     dmg = Math.round(dmg);
     z.hp -= dmg; z.stun = z.d.boss ? 0.05 : (z.d.heavy ? 0.12 : 0.28); z.atkT = z.d.boss ? z.atkT : 0;
+    if (src !== 'gun' && src !== 'boom') { // combo hits make it flinch: no damage, no grab, no new attack for a moment
+      z.hitAt = K.time; z.stun = Math.max(z.stun, z.d.boss ? 0.12 : z.d.heavy ? 0.3 : 0.4); z.cd = Math.max(z.cd || 0, z.d.boss ? 0.5 : 0.9);
+      if (!z.d.boss || Math.random() < 0.35) { z.atkT = 0; z.atkHit = true; } }
     var res = z.d.boss ? 0.15 : z.d.heavy ? 0.35 : 1;
     z.vx = dir * kb * res; if (ky && !z.d.boss) z.vy = -ky * res;
     combo++; comboT = 2.6; inkGain(dmg, src); comboRank(K);
@@ -4081,7 +4084,7 @@ var InkFight = (function () {
       z.tgtL = !!(lantern && lantern.hp > 0 && !d.boss && !d.ranged && !d.ai && Math.abs(lantern.x - z.x) < Math.abs(hdx) + 160);
       if (z.tgtL) dx = lantern.x - z.x;
       z.tgtP = null;
-      if (ex && !d.boss && !d.ranged && !d.ai) { var bdP = Math.min(Math.abs(hdx) - 70, 300); ex.ppl.forEach(function (p) { if (p.sc !== ex.scene || (p.st !== 'follow' && p.st !== 'wait' && !(p.st === 'hide' && Math.abs(p.x - z.x) < 170))) return; var pd = Math.abs(p.x - z.x); if (pd < bdP) { bdP = pd; z.tgtP = p; } }); if (z.tgtP) { dx = z.tgtP.x - z.x; if (!(z.tgtP.cryT > 0)) { z.tgtP.cryT = 4; z.tgtP.bub = Math.max(z.tgtP.bub || 0, 1.6); K.sfx('chelp'); } } }
+      if (ex && !d.boss && !d.ranged && !d.ai) { var bdP = Math.min(Math.abs(hdx) - 70, 300); ex.ppl.forEach(function (p) { if (p.sc !== ex.scene || (p.st !== 'follow' && p.st !== 'wait')) return; var pd = Math.abs(p.x - z.x); if (pd < bdP) { bdP = pd; z.tgtP = p; } }); if (z.tgtP) { dx = z.tgtP.x - z.x; if (!(z.tgtP.cryT > 0)) { z.tgtP.cryT = 4; z.tgtP.bub = Math.max(z.tgtP.bub || 0, 1.6); K.sfx('chelp'); } } }
       var ad = Math.abs(dx);
       if (z.frozen > 0) z.frozen -= dt;
       if (z.ice > 0) { z.ice -= dt; z.vx *= 0.5; }
@@ -4093,7 +4096,7 @@ var InkFight = (function () {
           if (d.ranged) { var t2 = 0.9, gS = G * 0.55, y0 = -95; spits.push({ x: z.x + z.face * 20, y: y0, vx: (hero.x - z.x) / t2, vy: (-50 - y0 - 0.5 * gS * t2 * t2) / t2, dmg: d.dmg * z.dmgM, life: 2 }); K.sfx('pop'); }
           else if (z.tgtP) { if (ad < d.range + 30 && !tryGrabNpc(K, z, z.tgtP)) exHurtP(K, z.tgtP, d.dmg * z.dmgM); }
           else if (z.tgtL) { if (ad < d.range + 40) hurtLantern(K, d.dmg * z.dmgM); }
-          else if (ad < d.range + 24 && hero.y > -100 * d.size) { if (!tryGrabHero(K, z)) hurtHero(K, d.dmg * z.dmgM, dx > 0 ? 1 : -1); }
+          else if (ad < d.range + 24 && hero.y > -100 * d.size && !(K.time - (z.hitAt || -9) < (d.boss ? 0.3 : 0.6))) { if (!tryGrabHero(K, z)) hurtHero(K, d.dmg * z.dmgM, dx > 0 ? 1 : -1); }
           if (d.boss) { K.shake(8); K.sfx('heavy'); }
         }
         if (z.atkT <= 0) { z.cd = d.ranged ? rnd(1.8, 2.6) : (d.boss ? 1.0 : rnd(0.7, 1.1)); }
@@ -4437,6 +4440,42 @@ var InkFight = (function () {
     else if (h.def.id === 'vex') { c.fillStyle = '#2E2E2E'; c.fillRect(-2 * sc, -5 * sc, 20 * sc, 8 * sc); }
     c.restore();
   }
+  /* movie-zombie look: rotten grey skin, torn clothes, blood, exposed bone; every zombie gets its own mix (z.seed) */
+  var RAGS = ['#4A4038', '#36434E', '#5A3434', '#4E4A36', '#2F3A2F', '#5B5048'];
+  function rotSkin(d) { return d.boss ? mix(d.col, '#6A6E5A', 0.3) : mix(d.col, '#6E7460', 0.5); }
+  function zRand(z, k) { var v = Math.sin((z.seed + k) * 91.7) * 43758.5; return v - Math.floor(v); }
+  function drawRotBody(c, z, J, s, f) {
+    var H = [sx(J.hip[0]), sy(J.hip[1])], N = [sx(J.neck[0]), sy(J.neck[1])], ux = N[0] - H[0], uy = N[1] - H[1], len = Math.hypot(ux, uy) || 1, px = -uy / len, py = ux / len, w = 11 * s * sc;
+    var at = function (t, o) { return [H[0] + ux * t + px * o, H[1] + uy * t + py * o]; };
+    if (!z.d.boss && z.t !== 'popper') { // torn shirt with a ragged hem
+      c.fillStyle = RAGS[Math.floor(zRand(z, 1) * RAGS.length)]; c.beginPath(); var a = at(1, -w), b = at(1, w); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]);
+      for (var i = 0; i <= 6; i++) { var o = w - i * w / 3, tt = 0.22 + (i % 2 ? 0.1 : 0) + zRand(z, 2 + i) * 0.12, q = at(tt, o); c.lineTo(q[0], q[1]); }
+      c.closePath(); c.fill();
+      c.fillStyle = 'rgba(0,0,0,0.35)'; var h1 = at(0.55 + zRand(z, 9) * 0.2, (zRand(z, 10) - 0.5) * w); c.beginPath(); c.ellipse(h1[0], h1[1], w * 0.45, w * 0.3, 0.6, 0, TAU); c.fill(); // a tear
+    }
+    // blood stains (dark, then a wet core)
+    for (var k = 0; k < 2; k++) { var bp = at(0.35 + zRand(z, 20 + k) * 0.5, (zRand(z, 30 + k) - 0.5) * w * 1.2), br = w * (0.35 + zRand(z, 40 + k) * 0.35);
+      c.fillStyle = 'rgba(80,8,12,0.85)'; c.beginPath(); c.ellipse(bp[0], bp[1], br, br * 0.7, zRand(z, 50 + k) * 3, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(150,18,24,0.75)'; c.beginPath(); c.ellipse(bp[0], bp[1], br * 0.45, br * 0.3, 0, 0, TAU); c.fill(); }
+    if (zRand(z, 60) > 0.45 && z.t !== 'popper' && z.t !== 'mother') { // ribs through a torn hole
+      var r0 = at(0.68, 0); c.fillStyle = '#2A0608'; c.beginPath(); c.ellipse(r0[0], r0[1], w * 0.75, w * 0.6, Math.atan2(uy, ux), 0, TAU); c.fill();
+      c.strokeStyle = '#E6D9C2'; c.lineWidth = Math.max(1.2, 2 * s * sc); c.lineCap = 'round';
+      for (var j = 0; j < 3; j++) { var a2 = at(0.58 + j * 0.09, -w * 0.55), b2 = at(0.6 + j * 0.09, w * 0.55); c.beginPath(); c.moveTo(a2[0], a2[1]); c.quadraticCurveTo((a2[0] + b2[0]) / 2 + px * 2, (a2[1] + b2[1]) / 2 - 2 * sc, b2[0], b2[1]); c.stroke(); }
+    }
+    if (zRand(z, 70) < 0.4) { // bone sticking out of a forearm
+      var e = [sx(J.fe[0]), sy(J.fe[1])], hd = [sx(J.fh[0]), sy(J.fh[1])], m = [(e[0] + hd[0]) / 2, (e[1] + hd[1]) / 2];
+      c.strokeStyle = '#E6D9C2'; c.lineWidth = Math.max(1.5, 3 * s * sc); c.beginPath(); c.moveTo(m[0], m[1]); c.lineTo(hd[0], hd[1]); c.stroke();
+      c.fillStyle = '#8E1418'; c.beginPath(); c.arc(m[0], m[1], 3.5 * s * sc, 0, TAU); c.fill();
+    }
+  }
+  function drawRotHead(c, z, hx, hy, r, f) {
+    c.fillStyle = 'rgba(20,6,10,0.75)'; c.beginPath(); c.ellipse(hx + f * r * 0.5, hy - r * 0.08, r * 0.42, r * 0.3, 0, 0, TAU); c.fill(); // sunken sockets
+    if (zRand(z, 80) > 0.35) { c.fillStyle = '#D9CCB4'; c.beginPath(); c.arc(hx - f * r * 0.35, hy - r * 0.45, r * 0.42, 0, TAU); c.fill(); c.strokeStyle = 'rgba(60,20,20,0.8)'; c.lineWidth = 1.2 * sc; c.beginPath(); c.moveTo(hx - f * r * 0.6, hy - r * 0.6); c.lineTo(hx - f * r * 0.3, hy - r * 0.4); c.lineTo(hx - f * r * 0.42, hy - r * 0.2); c.stroke(); } // skull showing
+    c.strokeStyle = 'rgba(70,10,20,0.7)'; c.lineWidth = 1.1 * sc; c.beginPath(); c.moveTo(hx - f * r * 0.1, hy + r * 0.1); c.lineTo(hx + f * r * 0.15, hy - r * 0.35); c.moveTo(hx + f * r * 0.05, hy + r * 0.05); c.lineTo(hx - f * r * 0.3, hy + r * 0.25); c.stroke(); // veins
+    c.fillStyle = '#5A0A10'; c.beginPath(); c.ellipse(hx + f * r * 0.5, hy + r * 0.45, r * 0.38, r * 0.2, f * -0.15, 0, TAU); c.fill(); // bloody open mouth
+    c.fillStyle = '#E8E0C8'; for (var i = 0; i < 3; i++) c.fillRect(hx + f * r * (0.28 + i * 0.16) - r * 0.05, hy + r * 0.33, r * 0.1, r * 0.12);
+    c.fillStyle = 'rgba(140,14,20,0.9)'; c.beginPath(); c.ellipse(hx + f * r * 0.55, hy + r * 0.78 + (zRand(z, 90) * r * 0.3), r * 0.07, r * 0.16, 0, 0, TAU); c.fill(); // drip
+  }
   function drawZombie(c, K, z) {
     if (z.hidden) return;
     var d = z.d, s = d.size, crawl = z.t === 'biter', J = zJ(z);
@@ -4450,18 +4489,21 @@ var InkFight = (function () {
       var ag = c.createRadialGradient(gx, gy, gr * 0.15, gx, gy, gr); ag.addColorStop(0, z.fuse > 0 ? 'rgba(255,59,78,0.5)' : 'rgba(255,212,59,0.42)'); ag.addColorStop(1, 'rgba(255,212,59,0)');
       c.fillStyle = ag; c.fillRect(gx - gr, gy - gr, gr * 2, gr * 2);
     }
-    var zc = z.ice > 0 ? '#CDEFFF' : z.frozen > 0 ? mix(d.col, '#9BE7FF', 0.55) : d.col;
-    drawRig(c, J, flash ? '#FFFFFF' : zc, flash ? '#FFFFFF' : (z.ice > 0 ? '#8FD3FF' : d.dark), lw, z.ice > 0 ? '#38B6FF' : z.elite ? '#FFD43B' : '#1A1020');
+    if (z.seed === undefined) z.seed = Math.random() * 100;
+    var skin = rotSkin(d), zc = z.ice > 0 ? '#CDEFFF' : z.frozen > 0 ? mix(skin, '#9BE7FF', 0.55) : skin;
+    drawRig(c, J, flash ? '#FFFFFF' : zc, flash ? '#FFFFFF' : (z.ice > 0 ? '#8FD3FF' : mix(d.dark, '#2A2620', 0.4)), lw, z.ice > 0 ? '#38B6FF' : z.elite ? '#FFD43B' : '#1A1020');
     c.shadowBlur = 0;
     var hx = sx(J.head[0]), hy = sy(J.head[1]), r = J.R * sc, f = z.face;
+    if (!flash && !(z.ice > 0)) drawRotBody(c, z, J, s, f);
     // type features
-    if (z.t === 'bruiser' || (d.boss && z.t !== 'mother')) { c.fillStyle = flash ? '#FFF' : d.col; c.strokeStyle = '#1A1020'; c.lineWidth = 3 * sc; var bx = sx((J.hip[0] * 0.55 + J.neck[0] * 0.45)) + f * 8 * s * sc, by = sy((J.hip[1] * 0.55 + J.neck[1] * 0.45)); c.beginPath(); c.arc(bx, by, 17 * s * sc, 0, TAU); c.fill(); c.stroke(); }
-    if (z.t === 'popper') { var pb = sy((J.hip[1] + J.neck[1]) / 2), px = sx((J.hip[0] + J.neck[0]) / 2), pr = 26 * s * sc * (1 + (z.fuse > 0 ? 0.15 * Math.sin(K.time * 40) : 0.04 * Math.sin(K.time * 6))); c.fillStyle = flash ? '#FFF' : d.col; c.strokeStyle = '#1A1020'; c.lineWidth = 3 * sc; c.beginPath(); c.arc(px, pb, pr, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#FFD1E8'; [[-0.4, -0.3], [0.3, 0.2], [0.1, -0.55]].forEach(function (q) { c.beginPath(); c.arc(px + q[0] * pr, pb + q[1] * pr, pr * 0.16, 0, TAU); c.fill(); }); }
+    if (z.t === 'bruiser' || (d.boss && z.t !== 'mother')) { c.fillStyle = flash ? '#FFF' : rotSkin(d); c.strokeStyle = '#1A1020'; c.lineWidth = 3 * sc; var bx = sx((J.hip[0] * 0.55 + J.neck[0] * 0.45)) + f * 8 * s * sc, by = sy((J.hip[1] * 0.55 + J.neck[1] * 0.45)); c.beginPath(); c.arc(bx, by, 17 * s * sc, 0, TAU); c.fill(); c.stroke(); }
+    if (z.t === 'popper') { var pb = sy((J.hip[1] + J.neck[1]) / 2), px = sx((J.hip[0] + J.neck[0]) / 2), pr = 26 * s * sc * (1 + (z.fuse > 0 ? 0.15 * Math.sin(K.time * 40) : 0.04 * Math.sin(K.time * 6))); c.fillStyle = flash ? '#FFF' : rotSkin(d); c.strokeStyle = '#1A1020'; c.lineWidth = 3 * sc; c.beginPath(); c.arc(px, pb, pr, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#FFD1E8'; [[-0.4, -0.3], [0.3, 0.2], [0.1, -0.55]].forEach(function (q) { c.beginPath(); c.arc(px + q[0] * pr, pb + q[1] * pr, pr * 0.16, 0, TAU); c.fill(); }); }
     if (z.t === 'gloop') { c.fillStyle = '#F4EC7A'; c.strokeStyle = '#1A1020'; c.lineWidth = 2.5 * sc; c.beginPath(); c.arc(sx(J.neck[0]) + f * 6 * sc, sy(J.neck[1]) + 6 * sc, 11 * sc * (1 + 0.1 * Math.sin(K.time * 5)), 0, TAU); c.fill(); c.stroke(); }
-    if (z.t === 'mother') { var mbx = sx((J.hip[0] + J.neck[0]) / 2) + f * 10 * sc, mby = sy((J.hip[1] + J.neck[1]) / 2), mr = 27 * s * sc * (1 + 0.05 * Math.sin(K.time * 4)); c.fillStyle = flash ? '#FFF' : d.col; c.strokeStyle = '#1A1020'; c.lineWidth = 4 * sc; c.beginPath(); c.arc(mbx, mby, mr, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#F4EC7A'; for (var dr = 0; dr < 4; dr++) { var ddx = mbx + (dr - 1.5) * mr * 0.45, ddy = mby + mr * 0.7 + ((K.time * 40 + dr * 13) % (24 * sc)); c.beginPath(); c.arc(ddx, ddy, 5 * sc, 0, TAU); c.fill(); } }
+    if (z.t === 'mother') { var mbx = sx((J.hip[0] + J.neck[0]) / 2) + f * 10 * sc, mby = sy((J.hip[1] + J.neck[1]) / 2), mr = 27 * s * sc * (1 + 0.05 * Math.sin(K.time * 4)); c.fillStyle = flash ? '#FFF' : rotSkin(d); c.strokeStyle = '#1A1020'; c.lineWidth = 4 * sc; c.beginPath(); c.arc(mbx, mby, mr, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#F4EC7A'; for (var dr = 0; dr < 4; dr++) { var ddx = mbx + (dr - 1.5) * mr * 0.45, ddy = mby + mr * 0.7 + ((K.time * 40 + dr * 13) % (24 * sc)); c.beginPath(); c.arc(ddx, ddy, 5 * sc, 0, TAU); c.fill(); } }
     if (z.t === 'hollow') { c.fillStyle = 'rgba(255,255,255,0.85)'; [[0.3, -0.2], [0.65, 0.15]].forEach(function (q) { var tx = lerp(J.hip[0], J.neck[0], q[0]), ty = lerp(J.hip[1], J.neck[1], q[0]); c.fillRect(sx(tx) + q[1] * 30 * sc, sy(ty) - 6 * sc, 16 * sc, 12 * sc); }); }
     if (z.t === 'conductor') { var chx = sx(J.head[0]), chy = sy(J.head[1]), cr2 = J.R * sc; c.fillStyle = '#0E3A44'; c.fillRect(chx - cr2 * 1.1, chy - cr2 * 1.25, cr2 * 2.2, cr2 * 0.7); c.fillStyle = '#FFD628'; c.fillRect(chx - cr2 * 1.1, chy - cr2 * 0.62, cr2 * 2.2, cr2 * 0.18); c.fillStyle = '#0E3A44'; c.fillRect(chx + (f > 0 ? 0 : -cr2 * 1.6), chy - cr2 * 0.62, cr2 * 1.6, cr2 * 0.2); }
     if (d.boss && !d.ai) { c.fillStyle = '#F2E6D8'; for (var sp = 0; sp < 4; sp++) { var t = sp / 3, bxx = sx(lerp(J.hip[0], J.neck[0], t)) - f * 12 * s * sc, byy = sy(lerp(J.hip[1], J.neck[1], t)); c.beginPath(); c.moveTo(bxx, byy - 6 * sc); c.lineTo(bxx - f * 26 * sc, byy - 18 * sc); c.lineTo(bxx, byy + 6 * sc); c.fill(); } }
+    if (!flash && !(z.ice > 0) && z.t !== 'hollow') drawRotHead(c, z, hx, hy, r, f);
     // glowing eyes
     if (z.corpse) { if (z.rise > 0) c.restore(); return; }
     var eyeCol = z.t === 'hollow' ? '#FFFFFF' : d.boss ? '#FFE15A' : '#F4FFB0';
@@ -4469,7 +4511,7 @@ var InkFight = (function () {
     c.beginPath(); c.arc(hx + f * r * 0.35, hy - r * 0.1, r * (z.t === 'hollow' ? 0.27 : 0.2), 0, TAU); c.arc(hx + f * r * 0.75, hy - r * 0.05, r * (z.t === 'hollow' ? 0.22 : 0.15), 0, TAU); c.fill(); c.shadowBlur = 0;
     z._eye = [hx + f * r * 0.5, hy - r * 0.08, r, eyeCol];
     if (z.grabH || z.grabP) drawGrabMouth(c, K, z, J);
-    else { c.strokeStyle = '#1A1020'; c.lineWidth = 2 * sc; c.beginPath(); c.moveTo(hx + f * r * 0.2, hy + r * 0.45); c.lineTo(hx + f * r * 0.8, hy + r * 0.35); c.stroke(); }
+    else if (z.t === 'hollow' || flash) { c.strokeStyle = '#1A1020'; c.lineWidth = 2 * sc; c.beginPath(); c.moveTo(hx + f * r * 0.2, hy + r * 0.45); c.lineTo(hx + f * r * 0.8, hy + r * 0.35); c.stroke(); }
     // doorman's car door
     if (z.t === 'doorman' && z.shield > 0) {
       var dx2 = sx(J.fh[0]) + f * 6 * sc, dy2 = sy(J.fh[1]);
@@ -4888,7 +4930,7 @@ var InkFight = (function () {
         return;
       }
       if (own.indexOf(id) >= 0) { K.store.set(SP + 'gun', id); curGun = id; fillMag(); K.sfx('reload'); return; }
-      if (K.spend(g.price)) { own.push(id); K.store.set(SP + 'guns', own); K.store.set(SP + 'gun', id); curGun = id; ammoAdd(id, gunDef(id).mag * 3, true); fillMag(); K.sfx('reward'); K.confetti(40); gunSfx(K, gunDef(id)); }
+      if (K.spend(g.price)) { ammoAll(); own.push(id); K.store.set(SP + 'guns', own); K.store.set(SP + 'gun', id); curGun = id; ammoAdd(id, gunDef(id).mag * 3, true); fillMag(); K.sfx('reward'); K.confetti(40); gunSfx(K, gunDef(id)); }
       else { K.sfx('wrong'); K.toast(K.t('needCoins')); }
     } else {
       var k = ITEM_ORDER[shopSel], it = ITEMS[k], b = inv();
@@ -5381,7 +5423,7 @@ var InkFight = (function () {
         else if (code === 'KeyQ' || code === 'KeyE') { var TB = ['guns', 'items', 'combos']; shopTab = TB[(TB.indexOf(shopTab) + (code === 'KeyE' ? 1 : 2)) % 3]; shopSel = 0; shopPage = 0; K.sfx('click'); }
         else if (shopTab === 'combos' && (code === 'Digit1' || code === 'Digit2') && comboOwned(COMBO_ORDER[shopSel])) comboAct(K, COMBO_ORDER[shopSel], code === 'Digit1' ? 0 : 1);
         else if (code === 'Enter' || code === 'Space') shopAct(K);
-        else if (code === 'KeyA') shopAmmo(K);
+        else if (code === 'KeyR') shopAmmo(K);
         else if (code === 'Backspace' || code === 'KeyB') { mode = 'pick'; K.sfx('click'); }
         return;
       }

@@ -24,7 +24,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   if (c0 - c1 !== 1200 || !guns.includes('longshot')) F('buying Longshot failed (' + c0 + '→' + c1 + ')'); else ok.push('bought Longshot for 1200');
   if ((await ev(() => localStorage.getItem('bubzi:ink:gun'))) !== '"longshot"') F('bought gun not equipped');
   { const am = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:ammo') || '{}')); if (am.longshot !== 15) F('a bought Longshot should come with 15 rounds (3 mags), got ' + am.longshot); else ok.push('bought gun comes with 3 mags');
-    const c2 = await ev(() => JSON.parse(localStorage.getItem('bubzi:cur:ink-heroes'))); await p.keyboard.press('KeyA'); await sleep(50);
+    const c2 = await ev(() => JSON.parse(localStorage.getItem('bubzi:cur:ink-heroes'))); await p.keyboard.press('KeyR'); await sleep(50);
     const am2 = await ev(() => JSON.parse(localStorage.getItem('bubzi:ink:ammo') || '{}')), c3 = await ev(() => JSON.parse(localStorage.getItem('bubzi:cur:ink-heroes')));
     if (am2.longshot !== 25 || c2 - c3 !== 85) F('ammo pack should add 2 mags for 85 (got ' + am2.longshot + ', paid ' + (c2 - c3) + ')'); else ok.push('ammo pack: +10 rounds for 85'); }
   await p.keyboard.press('KeyE'); // items tab

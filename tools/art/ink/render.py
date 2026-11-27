@@ -171,6 +171,39 @@ def do_hero(hid):
     bpy.context.scene.render.resolution_x = bpy.context.scene.render.resolution_y = 256
     render('p_' + hid)
 
+
+def rot_mat(name, col):
+    """Movie-zombie skin: the type colour pushed toward rotten grey, mottled with dark rot and wet blood (procedural noise)."""
+    key = ('rot', name, col)
+    if key in MATS: return MATS[key]
+    base = tuple(a * 0.5 + b * 0.5 for a, b in zip(hexcol(col)[:3], hexcol('#6E7460')[:3])) + (1,)
+    m = bpy.data.materials.new(name); m.use_nodes = True; nt = m.node_tree; p = nt.nodes['Principled BSDF']
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    n1 = nt.nodes.new('ShaderNodeTexNoise'); n1.inputs['Scale'].default_value = 9; n1.inputs['Detail'].default_value = 8
+    n2 = nt.nodes.new('ShaderNodeTexNoise'); n2.inputs['Scale'].default_value = 4; n2.inputs['Detail'].default_value = 4
+    nt.links.new(tc.outputs['Object'], n1.inputs['Vector']); nt.links.new(tc.outputs['Object'], n2.inputs['Vector'])
+    r1 = nt.nodes.new('ShaderNodeValToRGB'); r1.color_ramp.elements[0].position = 0.35; r1.color_ramp.elements[0].color = base
+    r1.color_ramp.elements[1].position = 0.75; r1.color_ramp.elements[1].color = hexcol('#2E2A20')
+    nt.links.new(n1.outputs['Fac'], r1.inputs['Fac'])
+    r2 = nt.nodes.new('ShaderNodeValToRGB'); r2.color_ramp.elements[0].position = 0.62; r2.color_ramp.elements[0].color = (0, 0, 0, 1)
+    r2.color_ramp.elements[1].position = 0.68; r2.color_ramp.elements[1].color = (1, 1, 1, 1)
+    nt.links.new(n2.outputs['Fac'], r2.inputs['Fac'])
+    mx = nt.nodes.new('ShaderNodeMixRGB'); mx.inputs['Color2'].default_value = hexcol('#5A070C')
+    nt.links.new(r2.outputs['Color'], mx.inputs['Fac']); nt.links.new(r1.outputs['Color'], mx.inputs['Color1'])
+    nt.links.new(mx.outputs['Color'], p.inputs['Base Color'])
+    nt.links.new(r2.outputs['Color'], p.inputs['Roughness'])  # blood is wet: rough skin, glossy blood (inverted below)
+    inv = nt.nodes.new('ShaderNodeInvert'); nt.links.new(r2.outputs['Color'], inv.inputs['Color']); nt.links.new(inv.outputs['Color'], p.inputs['Roughness'])
+    MATS[key] = m; return m
+
+def bone_bits(P, s=1.0):
+    """Exposed ribs and a torn shirt on a zombie torso."""
+    pel, neck = Vector(P['pel']), Vector(P['neck']); up = neck - pel
+    rag = mat('rag', '#3E3A32', 0.9, 0)
+    for i in range(3):
+        c = pel + up * (0.55 + i * 0.1)
+        box(tuple(c + Vector((0.02, -0.075 * s, 0))), (0.13 * s, 0.02 * s, 0.022 * s), mat('bone', '#E6D9C2', 0.5, 0.1), rot=(0, 0.25, 0))
+    pass
+
 # ---------------------------------------------------------------- zombies & bosses
 ZOMB = {  # id: (col, dark, pose, size, extras)
     'shuffler': ('#8DB34E', '#3F5A1E', 'zombie', 1.0, ''), 'dasher': ('#C3DC3E', '#5C6A12', 'run', 0.92, ''),
@@ -185,9 +218,10 @@ def do_zombie(zid):
     col, dark, pose, size, ex = ZOMB[zid]
     reset(384, 480, 24)
     rig_lights('#9BFF6A' if zid != 'nullk' else '#FFFFFF', '#FF5A7A' if 'bulk' in ex else '#7A9CFF')
-    body = mat('z_' + zid, col, 0.5, 0.2); headm = mat('zh_' + zid, col, 0.45, 0.25)
+    body = rot_mat('z_' + zid, col) if zid != 'nullk' else mat('z_' + zid, col, 0.5, 0.2); headm = rot_mat('zh_' + zid, col) if zid != 'nullk' else mat('zh_' + zid, col, 0.45, 0.25)
     r = 0.07 if 'bulk' in ex else 0.055
     P = figure(pose, body, headm, r=r, size=1.0, head_r=0.16, belly=0.2 if 'belly' in ex else (0.12 if 'bulk' in ex else 0))
+    if zid not in ('nullk', 'popper', 'mother'): bone_bits(P)
     hx, hy, hz = P['head']
     eye = mat('eye_' + zid, '#FFFFFF', 0.2, 0, emit='#FF3B3B' if 'bulk' in ex else '#E8FF6A', estr=10)
     if zid == 'nullk':
@@ -272,7 +306,7 @@ def do_key():
     for x, y, zid, s in zs:
         col = ZOMB[zid][0]; flip = -1 if x > 0 else 1
         Q = {k: (v[0] * flip * s + x, v[1] * s + y, v[2] * s) for k, v in POSES['zombie'].items()}
-        bm = mat('z_' + zid, col, 0.5, 0.2)
+        bm = rot_mat('z_' + zid, col)
         limb(Q['pel'], Q['neck'], 0.07 * s, bm, 0.06 * s)
         for a, b, c in (('sh', 'fe', 'fh'), ('sh', 'be', 'bh'), ('pel', 'fk', 'ff'), ('pel', 'bk', 'bf')):
             limb(Q[a], Q[b], 0.055 * s, bm); limb(Q[b], Q[c], 0.05 * s, bm)
