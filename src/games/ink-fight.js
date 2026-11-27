@@ -82,6 +82,18 @@ var InkFight = (function () {
     wLoad3: D({ px: -2, py: 33, t1: -0.3, t2: -0.2, tw: 0.3, h: -0.1, a1: 3.05, e1: 0.9, a2: 2.6, e2: 0.9, fa2: 0.4 }),
     wSmash: D({ px: 9, py: 29, t1: 0.65, t2: 0.25, tw: -0.3, h: 0.25, a1: 1.05, e1: -0.1, a2: 1.0, e2: 0.2, fa2: 1, p1: 17 }),
     wThrust: D({ px: 10, py: 32, t1: 0.35, t2: 0.1, tw: -0.4, h: 0.12, a1: 1.5, e1: 0.02, a2: 0.2, e2: 1.3, fa2: 1, p1: 18 }),
+    // specials
+    spinLoad: D({ px: -1, py: 31, t1: 0.2, t2: 0.15, tw: 0.9, h: 0.1, a1: 0.9, e1: 1.6, a2: 0.4, e2: 1.9, fa2: 0.8 }),
+    spinKick: D({ px: 2, py: 35, t1: -0.75, t2: -0.15, tw: -1, h: 0.3, fk2: 1, l2: 1.72, k2: -0.05, fa1: 1, a1: 1.2, e1: 1.9, a2: -1.0, e2: 0.4 }),
+    airSpin: D({ px: 0, py: 34, t1: -0.6, t2: -0.1, tw: -0.9, h: 0.3, fk1: 1, fk2: 1, l1: 0.6, k1: -1.6, l2: 1.95, k2: -0.05, a1: 1.3, e1: 1.8, a2: -1.2, e2: 0.4 }),
+    quakeTuck: D({ px: 0, py: 33, t1: -0.25, t2: -0.15, h: 0.1, fk1: 1, fk2: 1, l1: 1.3, k1: -2.0, l2: 0.9, k2: -1.8, a1: 3.1, e1: 0.7, a2: 2.8, e2: 0.8 }),
+    quakeSlam: D({ px: 4, py: 31, t1: 0.7, t2: 0.3, h: 0.25, fk1: 1, fk2: 1, l1: 0.5, k1: -0.9, l2: -0.2, k2: -0.7, a1: 1.0, e1: -0.1, a2: 0.95, e2: 0.2 }),
+    odFront: D({ px: 0, py: 34, t1: 0.08, t2: 0.05, tw: 0.1, h: 0.08, a1: 1.52, e1: 0.05, a2: 1.48, e2: 0.08, p1: 14, p2: -14 }),
+    odSplit: D({ px: 0, py: 33, t1: 0.02, t2: 0, tw: 0, h: 0.05, a1: 1.57, e1: 0.02, a2: -1.57, e2: -0.02, p1: 16, p2: -16 }),
+    odRecoil: D({ px: 0, py: 33.5, t1: -0.04, t2: -0.03, tw: 0, h: 0, a1: 1.9, e1: 0.12, a2: -1.9, e2: -0.12, p1: 16, p2: -16 }),
+    odBlast: D({ px: -3, py: 30, t1: -0.18, t2: -0.12, tw: 0.2, h: -0.05, a1: 1.9, e1: 0.05, a2: 1.85, e2: 0.1, p1: 16, p2: -18 }),
+    wDash: D({ px: 12, py: 27, t1: 0.55, t2: 0.2, tw: -0.5, h: 0.25, a1: 1.55, e1: 0.0, a2: -0.6, e2: 0.5, fa2: 1, p1: 22, p2: -14 }),
+    wRise: D({ px: 3, py: 38, t1: -0.25, t2: -0.15, tw: 0.6, h: 0.3, a1: 2.9, e1: 0.1, a2: -0.5, e2: 0.6, fa2: 1 }),
     // ---- reactions and bodies ----
     tumble: D({ t1: -0.62, t2: -0.2, h: -0.6, a1: -1.85, e1: 0.4, a2: -2.45, e2: 0.6, fk1: 1, fk2: 1, l1: 0.92, k1: -1.15, l2: 0.42, k2: -0.62 }),
     down: D({ t1: 0.0, t2: 0.0, h: 0.15, a1: 0.75, e1: 0.35, a2: 0.95, e2: 0.25, fk1: 1, fk2: 1, l1: 0.1, k1: -0.1, l2: -0.06, k2: -0.22, fa1: -0.5, fa2: -0.5 }),
@@ -193,6 +205,16 @@ var InkFight = (function () {
     airLeadUp: [{ p: 'airLeadUp', d: 0.16, f: 20, sfx: 'whoosh', needs: 'air', plan: 0.1, aim: aim('airLeadUp', 'h1', 'air'), hit: { eff: 'h1', power: 2, kind: 'air' } }, { p: 'tuck', d: 0.05, f: 14, needs: 'air' }],
     airRearUp: [{ p: 'airRearUp', d: 0.16, f: 20, sfx: 'whoosh', needs: 'air', plan: 0.1, aim: aim('airRearUp', 'h2', 'air'), hit: { eff: 'h2', power: 2, kind: 'air', lift: 1 } }, { p: 'tuck', d: 0.04, f: 14, needs: 'air' }],
     axe: [{ p: 'axeUp', d: 0.14, f: 15, needs: 'air', plan: 0.22, aim: aim('axeDown', 'an1', 'above') }, { p: 'axeDown', d: 0.2, f: 23, z: 0.5, sfx: 'whooshBig', needs: 'air', hit: { eff: 'foot1', power: 4, kind: 'slam' } }],
+    // specials: face:1 = turn to the target first; turn:1 = spin round; dash = burst along the ground; act/landAct = game hooks
+    cycSpin: [{ p: 'spinLoad', d: 0.07, f: 16, act: 'vortex' }, { p: 'spinKick', d: 0.14, f: 21, sfx: 'whoosh', hit: { eff: 'shin2', power: 3 } }, { p: 'spinKick', d: 0.03, f: 21, turn: 1 }],
+    cycFinish: [{ p: 'juDip', d: 0.16, f: 11, face: 1 }, { p: 'airSpin', d: 0.2, f: 22, jump: 560, dash: 520, sfx: 'whooshBig', quake: 1, hit: { eff: 'shin2', power: 4, ko: 1 } }, { p: 'airSpin', d: 0.07, f: 22, turn: 1 }, { p: 'airSpin', d: 0.07, f: 22, turn: 1 }, { p: 'tuck', d: 0.1, f: 12, untilLand: true, landAct: 'cycLand' }, { p: 'land', d: 0.18, f: 12 }, { p: 'stance', d: 0.2, f: 8 }],
+    quakeLeap: [{ p: 'wLoad3', d: 0.24, f: 10, face: 1 }, { p: 'quakeTuck', d: 0.26, f: 14, jump: 800, sfx: 'whooshBig', quake: 1 }, { p: 'quakeSlam', d: 0.05, f: 18, vAir: -1500, untilLand: true, landAct: 'quake', sfx: 'whooshBig', hit: { eff: 'wpn', power: 4, kind: 'slam' } }, { p: 'wSmash', d: 0.34, f: 16 }, { p: 'wGuard', d: 0.24, f: 8 }],
+    odDraw: [{ p: 'odFront', d: 0.14, f: 14, face: 1, sfx: 'reload' }],
+    odVolley: [{ p: 'odSplit', d: 0.06, f: 24, act: 'shoot2' }, { p: 'odRecoil', d: 0.06, f: 20 }, { p: 'odSplit', d: 0.06, f: 24, act: 'shoot2' }, { p: 'odRecoil', d: 0.06, f: 20 }],
+    odFront: [{ p: 'odFront', d: 0.06, f: 24, face: 1, act: 'shootF' }, { p: 'odBlast', d: 0.06, f: 20 }, { p: 'odFront', d: 0.06, f: 24, act: 'shootF' }, { p: 'odBlast', d: 0.06, f: 20 }],
+    odBlast: [{ p: 'odFront', d: 0.2, f: 12, face: 1, sfx: 'reload' }, { p: 'odBlast', d: 0.34, f: 22, act: 'blast' }, { p: 'stance', d: 0.22, f: 8 }],
+    bladeDash: [{ p: 'wLoad2', d: 0.12, f: 14, face: 1 }, { p: 'wDash', d: 0.24, f: 22, dash: 1150, sfx: 'whooshBig', hit: { eff: 'wpn', power: 3 } }, { p: 'wGuard', d: 0.1, f: 12 }],
+    bladeRise: [{ p: 'wLoad2', d: 0.16, f: 12, face: 1, aim: aim('wSwing1', 'wpn') }, { p: 'wRise', d: 0.2, f: 21, sfx: 'whooshBig', aim: aim('wSwing1', 'wpn'), hit: { eff: 'wpn', power: 4, kind: 'launch' } }, { p: 'wGuard', d: 0.3, f: 8 }],
     breakAway: [{ p: 'release', d: 0.16, f: 11, act: 'release' }, { p: 'stance', d: 0.12, f: 11 }],
     landing: [{ p: 'tuck', d: 0.1, f: 10, untilLand: true }, { p: 'land', d: 0.18, f: 12 }, { p: 'stance', d: 0.2, f: 8 }],
     // weapon basics (hammer, katana, axe pick-up): the weapon line is the striking part
@@ -269,14 +291,21 @@ var InkFight = (function () {
   function startStep(F, s, ctx) {
     var vic = ctx.vic;
     if (s.needs === 'air' && (!vic || vic.state !== 'juggled')) { F.cur = null; F.queue = F.queue.filter(function (q) { return q.needs !== 'air'; }); if (!F.grounded && !F.queue.length) F.play(MOVES.landing); return; }
-    if (s.hit && vic && vic.state === 'down' && !F.grounded) { F.cur = null; F.queue = []; F.play(MOVES.landing); return; }
+    if (s.hit && vic && vic.state === 'down' && !F.grounded && !ctx.spec) { F.cur = null; F.queue = []; F.play(MOVES.landing); return; }
     F.cur = s; F.curT = 0; F.setPose(s.p, s.f, s.z); s._hit = false; F.hitSet = [];
     if (s.jump) { F.vAir = s.jump; F.grounded = false; F.gS = 1; F.vx = F.face * 70; F.xSpring = false; if (s.quake && ctx.quake) ctx.quake((F.feet[0].x + F.feet[1].x) / 2, 1); }
     if (s.plan && !F.grounded && vic && vic.state === 'juggled') planAir(F, vic, s);
+    if (s.turn) turnAround(F);
+    if (s.face && vic && (vic.x - F.x) * F.face < 0) turnAround(F);
+    if (s.dash) { F.vx = F.face * s.dash; F.xSpring = false; F.burst = s.d; }
+    if (s.vAir && !F.grounded) { F.vAir = s.vAir; F.burst = 0.3; }
+    if (s.act && s.act !== 'clinch' && s.act !== 'release' && ctx.act) ctx.act(F, s.act, s);
     if (s.act === 'clinch' && vic && vic.canClinch) { F.clinch = vic; vic.clinched(true); }
     if (s.act === 'release') { if (F.clinch) F.clinch.clinched(false); F.clinch = null; F.grab = null; }
     if (s.sfx && ctx.snd) ctx.snd(s.sfx);
   }
+  // spin round on the spot: mirror the feet about the body
+  function turnAround(F) { F.face = -F.face; for (var i = 0; i < 2; i++) { F.feet[i].x = 2 * F.x - F.feet[i].x; F.feet[i].sw = null; } for (var e in F.trails) F.trails[e].length = 0; }
   function updateGrab(F) {
     var vic = F.clinch;
     if (!vic || !F.target.grab) {
@@ -318,7 +347,7 @@ var InkFight = (function () {
             land(F, victims, hit, tc, vel), snd(name), quake(x, s), onLand(F, hard) } */
   function update(F, dt, ctx) {
     var vic = ctx.vic; F.t += dt;
-    if (F.cur) { F.curT += dt; var s = F.cur, done = s.untilLand ? (F.grounded && F.curT > 0.02) : F.curT >= s.d; if (done) { if (s.hit && !s._hit) F.log.push('miss ' + s.p); F.cur = null; } }
+    if (F.cur) { F.curT += dt; var s = F.cur, done = s.untilLand ? (F.grounded && F.curT > 0.02) : F.curT >= s.d; if (done) { if (s.hit && !s._hit) F.log.push('miss ' + s.p); F.cur = null; if (s.landAct && ctx.act) ctx.act(F, s.landAct, s); } }
     if (!F.cur && !F.queue.length && ctx.next) ctx.next(F);
     if (!F.cur && F.queue.length) { var nx = F.queue.shift(); startStep(F, nx, ctx); if (!F.cur && F.queue.length) { nx = F.queue.shift(); startStep(F, nx, ctx); } }
     vic = ctx.vic; // ctx.next may have picked a new target
@@ -473,6 +502,6 @@ var InkFight = (function () {
   return {
     LEN: LEN, KEYS: KEYS, POSE: POSE, D: D, MOVES: MOVES, G: G, Fighter: Fighter, aim: aim, runPose: runPose, capsules: capsules, effPts: effPts, touch: touch,
     update: update, plantFeet: plantFeet, setLegMode: setLegMode, fx: fx, star: star, ring: ring, sparksDir: sparksDir, dust: dust, quake: quake, updateFx: updateFx,
-    drawFx: drawFx, drawBody: drawBody, drawTrails: drawTrails, GHOST: GHOST, poseOff: poseOff, clamp: clamp, poseL: poseL
+    drawFx: drawFx, drawBody: drawBody, drawTrails: drawTrails, GHOST: GHOST, poseOff: poseOff, clamp: clamp, poseL: poseL, turnAround: turnAround
   };
 })();

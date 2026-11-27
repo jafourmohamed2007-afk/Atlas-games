@@ -12,7 +12,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const F = (m) => fails.push(m), d = () => p.evaluate(() => window.__bubzi.K.dbg()), ev = (f, a) => p.evaluate(f, a);
   const shot = async (n) => { if (SHOTS) await p.screenshot({ path: path.join(SHOTS, n + '.png') }); };
   const waitMode = async (m, ms) => { const t0 = Date.now(); while (Date.now() - t0 < (ms || 8000)) { const s = await d(); if (s.mode === m) return s; await sleep(60); } return d(); };
-  // a small fighting bot (god mode on) used to play real levels
+  // a small fighting bot (no damage) used to play real levels
   const fight = async (ms, until) => {
     const t0 = Date.now(); let held = null; const hold = async (k) => { if (held === k) return; if (held) await p.keyboard.up(held); held = k; if (k) await p.keyboard.down(k); };
     while (Date.now() - t0 < ms) {
@@ -43,7 +43,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   s = await d(); if (!s.cut || s.cut.i < 2) F('cutscene did not advance'); await sleep(600); await shot('04-cut-speaker');
   await p.keyboard.press('Backspace'); s = await d();
   if (s.mode !== 'fight' || !s.story || s.story.idx !== 0 || s.story.o !== 'c') F('level 1-1 did not start after the cutscene'); else ok.push('Skip → level 1-1 starts');
-  await ev(() => { window.__inkGod = true; });
+  await ev(() => { window.__inkNoHurt = true; });
   await sleep(2500); await shot('05-fight-ruins');
   await fight(60000);
   s = await waitMode('win', 4000);
@@ -63,7 +63,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await sleep(1500); s = await d(); if (!(s.story.timer < 39)) F('survive timer is not counting down');
   await ev(() => window.__ink.story.timer(0.2)); s = await waitMode('win', 4000); if (s.mode !== 'win') F('survive timer end did not win'); else ok.push('surviving the timer wins');
   // ---- 1-5 defend: lose the lantern → game over → retry from the map ----
-  await ev(() => { window.__inkGod = false; window.__ink.story.start(4); }); await sleep(2600); s = await d();
+  await ev(() => { window.__inkNoHurt = false; window.__ink.story.start(4); }); await sleep(2600); s = await d();
   if (s.story.o !== 'd' || !s.lantern) F('defend level has no lantern'); else ok.push('1-5 defend: Ink Lantern ' + s.lantern + ' HP');
   await shot('08-defend');
   await ev(() => window.__ink.story.lanternHit(99999)); await sleep(1600);
@@ -77,7 +77,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await ev(() => window.__ink.story.start(9)); await sleep(2400); s = await d(); if (s.story.m !== 'dark' || s.theme !== 'metro') F('2-2 should be a dark metro level'); else ok.push('2-2 BLACKOUT in the metro');
   await shot('10-dark-metro');
   // ---- every boss ----
-  await ev(() => { window.__inkGod = true; });
+  await ev(() => { window.__inkNoHurt = true; });
   const BOSSES = [[7, ['gravemaw'], 'rook'], [15, ['conductor'], 'vex'], [23, ['hollow', 'hollow'], 'juno'], [31, ['mother'], null], [39, ['nullk'], null]];
   for (const [idx, types, unlock] of BOSSES) {
     await ev((i) => window.__ink.story.start(i), idx);

@@ -256,7 +256,7 @@
     desert: { sky: ['#2A0E1E', '#B8461E', '#FFB35A'], L: ['#7A3A1E', '#4A1E12'], prop: '#2A120C', g: ['#C98A4A', '#8A5226', '#3A1E10'], edge: 'rgba(255,230,170,0.45)', grid: 'rgba(60,20,0,0.16)', win: '', bar: '#1A0A06' },
     margin: { sky: ['#F1EDE2', '#F6F3EA', '#FBF9F3'], L: ['#DAD4C6', '#C9C2B2'], prop: '#A89E8A', g: ['#ECE7DA', '#E0D9C9', '#CBC2AE'], edge: 'rgba(225,60,60,0.75)', grid: 'rgba(70,110,220,0.2)', win: '', bar: '#E13C3C' }
   };
-  var K0, curMut = [], bestWave = 0, storyMode = false, story = null, prog = null, mapCh = 0, mapSel = 0, nmOn = false, cut = null, winInfo = null, storyRetry = null, cages = [], lantern = null, civs = [], theme = 'ruins', zoomK = 1, bkY = 0, trainT = 0, curGun = 'sig', bag = {}, turrets = [], bombs = [], nades = [], shopTab = 'guns', shopPage = 0, shopSel = 0, downT = 0, itemUI = [], adReadyAt = 0, planeT = 0, sc, gyS, camX, hero, zombies, bullets, spits, waves, pickups, parts, decals, allies, banners, mode, wave, queue, spawnT, alive, picked, sel,
+  var K0, curMut = [], bestWave = 0, storyMode = false, story = null, prog = null, mapCh = 0, mapSel = 0, nmOn = false, cut = null, winInfo = null, storyRetry = null, cages = [], lantern = null, civs = [], theme = 'ruins', zoomK = 1, camY = 0, bkY = 0, trainT = 0, curGun = 'sig', bag = {}, turrets = [], bombs = [], nades = [], shopTab = 'guns', shopPage = 0, shopSel = 0, downT = 0, itemUI = [], adReadyAt = 0, planeT = 0, sc, gyS, camX, hero, zombies, bullets, spits, waves, pickups, parts, decals, allies, banners, mode, wave, queue, spawnT, alive, picked, sel,
     perkOpts, perkSel, hs, slow, combo, comboT, mods, kills, bossRef, tutT, ui, touchUI, held, keys, firstTypes, introT, clearT, seed;
 
   /* ---------------- helpers ---------------- */
@@ -494,7 +494,7 @@
   }
   function hurtLantern(K, dmg) {
     if (!lantern || lantern.hp <= 0) return;
-    if (K.test && window.__inkGod) return;
+    if (K.test && window.__inkNoHurt) return;
     lantern.hp -= dmg; lantern.hitT = 0.15; sparks(lantern.x, -120, 4, '#FFE58A');
     if (lantern.hp <= 0) { lantern.hp = 0; K.sfx('over'); explode(K, lantern.x, -100, 60, 0, null); storyFail(K, K.t('lanternOut')); }
   }
@@ -635,9 +635,9 @@
   }
   function hurtHero(K, dmg, dir) {
     if (hero.inv > 0 || hero.hp <= 0 || mode !== 'fight') return;
-    if (K.test && window.__inkGod) return;
+    if (K.test && window.__inkNoHurt) return;
     if (hero.shield > 0) { sparks(hero.x, -80, 6, '#3EE0FF'); K.sfx('block'); return; }
-    if (hero.specialT > 0 && (hero.specialKind === 'overdrive' || hero.specialKind === 'bladedash')) return;
+    if (hero.specialT > 0) return; // specials are invulnerable
     if ((hero.cmb || hero.F.busy()) && dmg < hero.maxHp * 0.2) { hero.hp -= Math.round(dmg); if (story) story.dmg += Math.round(dmg); hero.inv = 0.45; K.sfx('hit'); K.flash('#FF3B4E', 0.12); goo(hero.x, -70, '#111111', 4, 220); if (hero.hp > 0) return; hero.hp = 1; }
     if (hero.cmb || hero.F.busy()) { endCombo(); hero.F.stop(); }
     hero.hp -= Math.round(dmg); if (story) story.dmg += Math.round(dmg); hero.inv = 0.7; hero.hurtT = 0.28; hero.vx = dir * 340; hero.vy = -260; hero.ground = false;
@@ -720,10 +720,12 @@
     if (hero.cmb || hero.F.busy()) { endCombo(); hero.F.stop(); }
     hero.ink = 0; var k = hero.def.special; hero.specialKind = k; hero.atkT = 0; hero.dive = false;
     K.sfx('flip'); K.flash('#FFFFFF', 0.25); ring(hero.x, -60, 120, hero.def.acc);
-    if (k === 'cyclone') { hero.specialT = 1.5; hero.specTick = 0; }
-    else if (k === 'quake') { hero.specialT = 1.4; hero.vy = -1050; hero.ground = false; hero.quakeArmed = true; }
-    else if (k === 'overdrive') { hero.specialT = 2.4; hero.specTick = 0; }
-    else if (k === 'bladedash') { hero.specialT = 1.2; hero.dashes = 3; hero.specTick = 0; hero.dashHit = []; }
+    // every special is a scripted engine sequence: real poses, contact hits on both sides, a big finish
+    var sp = SPECIALS[k], F = hero.F, moves = sp.moves.slice(), fin = -1; moves.forEach(function (m, i) { if (isStrike(m)) fin = i; });
+    hero.specialT = 99; hero.cmb = { id: 'sp:' + k, spec: k, moves: moves, i: 0, cur: -1, fin: fin, end: sp.end, mult: sp.mult, tgt: null, hits: 0 };
+    hero.cmbBuf = null; F.xSpring = false;
+    var wk = hero.def.melee.kind; F.weapon = WPN_LEN[wk] ? { len: WPN_LEN[wk][0] / heroS(), r: WPN_LEN[wk][1] } : null;
+    IF.update(F, 0, ctxFor(K));
   }
   function jump(K) {
     if (mode !== 'fight' || hero.hp <= 0) return;
@@ -749,9 +751,16 @@
     meteor: { moves: ['lowKick', 'lowKick', 'bodyKick', 'jab', 'jab', 'cross', 'hook', 'cross', 'clinchIn', 'knee', 'knee', 'headbutt', 'breakAway', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'airLeadUp', 'axe', 'landing'], end: 3.2, name: { en: 'Meteor Fall', fr: 'Chute de météore', ar: 'سقوط النيزك' } },
     thunderChain: { moves: ['jab', 'cross', 'hook', 'lowKick', 'teep', 'jab', 'cross', 'bodyKick', 'clinchIn', 'knee', 'knee', 'knee', 'headbutt', 'knee', 'headbutt', 'breakAway', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'axe', 'landing'], end: 3.4, name: { en: 'Thunder Chain', fr: 'Chaîne du tonnerre', ar: 'سلسلة الرعد' } },
     dragon: { moves: ['jab', 'jab', 'cross', 'hook', 'cross', 'lowKick', 'lowKick', 'bodyKick', 'jab', 'cross', 'hook', 'clinchIn', 'knee', 'knee', 'knee', 'headbutt', 'knee', 'knee', 'headbutt', 'breakAway', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'airLeadUp', 'axe', 'landing'], end: 3.7, name: { en: 'Dragon Hundred', fr: 'Cent coups du dragon', ar: 'ضربات التنين' } },
-    inkGod: { moves: ['jab', 'jab', 'jab', 'cross', 'hook', 'cross', 'lowKick', 'lowKick', 'bodyKick', 'jab', 'cross', 'hook', 'cross', 'jab', 'cross', 'bodyKick', 'clinchIn', 'knee', 'knee', 'knee', 'headbutt', 'knee', 'knee', 'headbutt', 'breakAway', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'airLeadUp', 'axe', 'landing'], end: 4, name: { en: 'Ink God Rampage', fr: 'Furie du dieu d\'encre', ar: 'غضب إله الحبر' } }
+    inkTitan: { moves: ['jab', 'jab', 'jab', 'cross', 'hook', 'cross', 'lowKick', 'lowKick', 'bodyKick', 'jab', 'cross', 'hook', 'cross', 'jab', 'cross', 'bodyKick', 'clinchIn', 'knee', 'knee', 'knee', 'headbutt', 'knee', 'knee', 'headbutt', 'breakAway', 'leadUpper', 'rearUpper', 'jumpUpper', 'airLeadUp', 'airRearUp', 'airLeadUp', 'axe', 'landing'], end: 4, name: { en: 'Ink Titan Rampage', fr: 'Furie du titan d\'encre', ar: 'غضب عملاق الحبر' } }
   };
-  var COMBO_ORDER = ['basic', 'punch', 'kick', 'head', 'upper', 'jabStorm', 'legBreaker', 'twinRocket', 'kneeMill', 'tornado', 'ironCage', 'meteor', 'thunderChain', 'dragon', 'inkGod'];
+  var COMBO_ORDER = ['basic', 'punch', 'kick', 'head', 'upper', 'jabStorm', 'legBreaker', 'twinRocket', 'kneeMill', 'tornado', 'ironCage', 'meteor', 'thunderChain', 'dragon', 'inkTitan'];
+  // hero specials (ink bar): engine move lists; mult = damage boost on every hit, end = extra on the final blow
+  var SPECIALS = {
+    cyclone: { moves: ['cycSpin', 'cycSpin', 'cycSpin', 'cycSpin', 'cycSpin', 'cycSpin', 'cycFinish'], mult: 1.6, end: 2 },
+    quake: { moves: ['quakeLeap'], mult: 1.5, end: 1.5 },
+    overdrive: { moves: ['odDraw', 'odVolley', 'odFront', 'odVolley', 'odFront', 'odVolley', 'teep', 'odBlast'], mult: 1.4, end: 1.5 },
+    bladedash: { moves: ['bladeDash', 'bladeDash', 'bladeDash', 'bladeRise', 'landing'], mult: 1.6, end: 2 }
+  };
   function comboPrice(id) { return COMBOS[id].free ? 0 : 60 * comboHits(id); }
   function comboOwned(id) { return !!COMBOS[id].free || ownedCombos().indexOf(id) >= 0; }
   function finPose(id) { if (id === 'basic') return 'bodyKick'; var p = 'stance'; COMBOS[id].moves.forEach(function (m) { IF.MOVES[m].forEach(function (st) { if (st.hit) p = st.p; }); }); return p; }
@@ -854,7 +863,7 @@
     var wk = heldKind(); F.weapon = id === 'basic' && wk !== 'fists' && WPN_LEN[wk] ? { len: WPN_LEN[wk][0] / heroS(), r: WPN_LEN[wk][1] } : null;
     IF.update(F, 0, ctxFor(K)); // starts the first move now
   }
-  function endCombo() { var F = hero.F; hero.cmb = null; if (F.clinch) { F.clinch.clinched(false); F.clinch = null; } F.grab = null; }
+  function endCombo() { var F = hero.F; if (hero.cmb && hero.cmb.spec) { hero.specialT = 0; hero.specialKind = null; F.ghostOn = false; } hero.cmb = null; if (F.clinch) { F.clinch.clinched(false); F.clinch = null; } F.grab = null; }
   function comboNext(K, ctx) {
     var cm = hero.cmb, F = hero.F; if (!cm) return;
     if (cm.i >= cm.moves.length) { endCombo(); if (!F.grounded) F.play(IF.MOVES.landing); ctx.vic = null; return; }
@@ -862,9 +871,9 @@
     if (name === 'landing') { cm.i++; if (!F.grounded) F.play(mv); else comboNext(K, ctx); return; }
     if (!F.grounded && !air) { F.play(IF.MOVES.landing); return; } // ground move after an air move: land first
     var t = pickTarget(cm.tgt, F);
-    if (!t && cm.i > 0) { endCombo(); if (!F.grounded) F.play(IF.MOVES.landing); ctx.vic = null; return; }
+    if (!t && cm.i > 0 && !cm.spec) { endCombo(); if (!F.grounded) F.play(IF.MOVES.landing); ctx.vic = null; return; }
     cm.tgt = t; ctx.vic = t ? zV(t) : null;
-    if (t && F.grounded) { var nf = t.x > hero.x ? 1 : -1; flipFace(F, nf); }
+    if (t && F.grounded && !cm.spec) { var nf = t.x > hero.x ? 1 : -1; flipFace(F, nf); }
     cm.cur = cm.i; cm.i++; cm.cageHit = false;
     F.play(mv);
   }
@@ -875,16 +884,44 @@
       quake: function (x, s) { IF.quake(x, s, K0.reduceMotion); K0.shake(6 + 6 * s); K0.sfx('boom'); }, next: function () { comboNext(K0, fightCtx); },
       onLand: function (F, hard) { K0.sfx('land'); IF.dust(F.x, hard ? 1.2 : 0.6, K0.reduceMotion); }
     };
-    fightCtx.vic = t ? zV(t) : null; fightCtx.reduce = K.reduceMotion;
+    fightCtx.vic = t ? zV(t) : null; fightCtx.reduce = K.reduceMotion; fightCtx.spec = !!(cm && cm.spec);
+    fightCtx.act = function (F, a) { specAct(K0, F, a); };
     fightCtx.others = zombies.filter(function (z) { return z !== t && zLive(z) && Math.abs(z.x - hero.x) < 260; }).map(zV);
     return fightCtx;
+  }
+  // game side of the specials: guns, shockwaves
+  function specAct(K, F, a) {
+    var S = heroS(), f = F.face, def = hero.def;
+    function shot(hand, dir, dmg, spread) {
+      var p = F.w(hand), x = p[0] * S + dir * 18, y = p[1] * S;
+      bullets.push({ x: x, y: y, vx: dir * 1900, vy: rnd(-spread, spread), dmg: dmg, life: 0.6, hit: [] });
+      P({ k: 'flash', x: x, y: y, vx: 0, vy: 0, g: 0, max: 0.06, col: '#FFF2A8', size: 16 }); P({ k: 'casing', x: x - dir * 14, y: y, vx: -dir * rnd(80, 180), vy: rnd(-380, -220), g: G, max: 0.8, col: '#FFC93C', size: 3, ang: 0, va: 20 });
+    }
+    if (a === 'vortex') { zombies.forEach(function (z) { if (zLive(z) && !z.d.boss && Math.abs(z.x - hero.x) < 240 && z.y > -40) z.x += (hero.x + (z.x < hero.x ? -50 : 50) - z.x) * 0.3; }); return; }
+    if (a === 'shoot2') { shot('h1', f, 11, 50); shot('h2', -f, 11, 50); K.sfx('shot'); }
+    else if (a === 'shootF') { shot('h1', f, 12, 40); shot('h2', f, 12, 40); K.sfx('shot'); }
+    else if (a === 'blast') {
+      for (var i = 0; i < 7; i++) shot(i % 2 ? 'h1' : 'h2', f, 24, 260);
+      F.vx = -f * 260; K.sfx('boom'); K.shake(10); K.flash('#FFFFFF', 0.18); ring(hero.x + f * 70, -80, 110, def.acc); hs = Math.max(hs, 0.08);
+    }
+    else if (a === 'quake' || a === 'cycLand') {
+      var big = a === 'quake', R0 = big ? 360 : 130, dm = big ? 75 : 18, x0 = hero.x + (big ? f * 40 : 0);
+      if (big) { IF.quake(x0 / S, 1.6, K.reduceMotion); K.shake(18); zoomK = Math.max(zoomK, 1.08); K.sfx('boom'); ring(x0, 0, R0, def.acc); ring(x0, 0, R0 * 0.6, '#FFFFFF'); hs = Math.max(hs, 0.12); }
+      else { IF.dust(F.x, 1.2, K.reduceMotion); K.shake(5); ring(x0, 0, R0, def.acc); }
+      zombies.slice().forEach(function (z) {
+        if (z.dead || z.hidden || Math.abs(z.x - x0) > R0 || z.y < -160) return;
+        var d = z.x < x0 ? -1 : 1, hp0 = z.hp;
+        meleeKO = { kind: big ? 'launch' : 'strike', f: d }; hitZombie(K, z, dm * mods.melee, d, 0, 0, 'special'); meleeKO = null;
+        if (z.hp !== hp0 && !z.dead) zReact(K, z, big ? 'launch' : 'strike', { power: big ? 3 : 2, kind: big ? 'launch' : 'strike' }, { part: 'leg', pt: zV(z).w('pel') }, d, 0, -1, F);
+      });
+    }
   }
   // a strike touched one or more zombies
   function fightLand(K, F, list, hit, vel) {
     var cm = hero.cmb, pw = hit.power, f = F.face, sp = Math.hypot(vel[0], vel[1]) || 1, dx = vel[0] / sp, dy = vel[1] / sp, kind = hit.kind || 'strike';
-    var fin = cm && cm.cur === cm.fin, m = meleeSpec(), base = m.dmg[0] * mods.melee * (F.weapon ? 1 : (hero.melee ? 1 / WEAPONS[hero.melee.id].mult : 1));
+    var fin = cm && cm.cur === cm.fin, m = meleeSpec(), base = m.dmg[0] * mods.melee * (cm && cm.spec ? cm.mult * hero.def.melee.dmg[0] / m.dmg[0] : F.weapon ? 1 : (hero.melee ? 1 / WEAPONS[hero.melee.id].mult : 1));
     F.log.push('hit ' + (cm ? cm.moves[cm.cur] : '?') + ':' + hit.eff + '>' + list.map(function (e) { return e.tc.part; }).join(','));
-    var src = pw >= 4 || fin ? 'finisher' : F.weapon && hero.melee && hero.melee.id === 'axe' ? 'axe' : 'melee', any = false;
+    var src = cm && cm.spec ? 'special' : pw >= 4 || fin ? 'finisher' : F.weapon && hero.melee && hero.melee.id === 'axe' ? 'axe' : 'melee', any = false;
     list.forEach(function (e, i) {
       var z = e.v.z, tc = e.tc, hp0 = z.hp, dmg = base * POW[pw] * (fin ? cm.end : 1) * (i && e.v !== fightCtx.vic ? 0.7 : 1);
       meleeKO = { kind: kind, f: f }; hitZombie(K, z, dmg, f, 0, 0, src); meleeKO = null;
@@ -897,7 +934,7 @@
     hs = Math.max(hs, HSP[pw]); K.shake(TRA[pw] * 16); K.haptic(pw >= 4 ? 35 : 12);
     if (pw >= 4 || fin) { zoomK = Math.max(zoomK, 1.06); if (!K.reduceMotion) slow = Math.max(slow, 0.2); K.sfx('heavy'); K.sfx('boom'); }
     else K.sfx(pw >= 3 || F.weapon ? 'heavy' : 'punch');
-    if (F.weapon && hero.melee) { hero.melee.uses--; if (hero.melee.uses <= 0) { hero.melee = null; F.weapon = null; ftext(hero.x, -150, K.t('broke'), '#FFFFFF', 18); } }
+    if (F.weapon && hero.melee && !(cm && cm.spec)) { hero.melee.uses--; if (hero.melee.uses <= 0) { hero.melee = null; F.weapon = null; ftext(hero.x, -150, K.t('broke'), '#FFFFFF', 18); } }
   }
   // the zombie's body answers the blow: flinch by the part touched, or fly (launch / air / slam), or fall like a plank (ko)
   function zReact(K, z, kind, hit, tc, f, dx, dy, F) {
@@ -975,6 +1012,7 @@
     var h = hero, F = h.F, S = heroS(), def = h.def;
     F.weaponShown = !!F.weapon;
     if (h.cmb || F.busy()) {
+      F.ghostOn = !!(h.cmb && (h.cmb.spec === 'cyclone' || h.cmb.spec === 'bladedash'));
       IF.update(F, dt, ctxFor(K));
       var nx = clamp(F.x * S, 30, AW - 30); if (nx !== F.x * S) { F.x = nx / S; F.vx = 0; }
       h.x = nx; h.y = -F.air * S; h.vx = F.vx * S; h.vy = -F.vAir * S; h.ground = F.grounded; h.face = F.face;
@@ -987,18 +1025,14 @@
     // mirror the game's movement
     F.weapon = null; F.x = h.x / S; F.vx = h.vx / S; F.air = Math.max(0, -h.y / S); F.vAir = -h.vy / S; flipFace(F, h.face);
     var wasG = F.grounded; F.grounded = h.ground; if (h.ground && !wasG) { IF.plantFeet(F); IF.dust(F.x, 0.6, K.reduceMotion); }
-    var sk = h.specialT > 0 ? h.specialKind : null, run = Math.abs(h.vx) > 40 && h.ground;
+    var run = Math.abs(h.vx) > 40 && h.ground;
     if (h.hurtT > 0) F.setPose('hurt', 9, 0.45);
-    else if (sk === 'cyclone') F.setPose(Math.floor(h.specialT * 18) % 2 ? 'highKick' : 'hkChamb', 16, 0.6);
-    else if (sk === 'overdrive') F.setPose('aim', 16, 0.7);
-    else if (sk === 'bladedash') F.setPose('wThrust', 16, 0.7);
-    else if (sk === 'quake' || (h.quakeArmed && !h.ground)) F.setPose(h.vy < 0 ? 'axeUp' : 'axeDown', 12, 0.6);
     else if (h.dive) F.setPose('diveKick', 16, 0.6);
     else if (!h.ground) F.setPose(h.vy < 0 ? 'jumpUp' : 'fall', 10, 0.6);
     else if (h.shootPose > 0) F.setPose(run ? Object.assign(IF.runPose(h.animT, Math.min(1, Math.abs(h.vx) / def.spd), false), { a1: 1.52, e1: 0.06 }) : 'aim', 18, 0.7);
     else if (run) F.setPose(IF.runPose(h.animT, Math.min(1, Math.abs(h.vx) / def.spd), heldKind() !== 'fists'), 16, 0.7);
     else F.setPose(heldKind() !== 'fists' ? 'wGuard' : 'stance', 9, 0.6);
-    F.ghostOn = sk === 'bladedash' || sk === 'cyclone';
+    F.ghostOn = false;
     IF.update(F, dt, { drive: false, vic: null, others: [], reduce: K.reduceMotion });
     return false;
   }
@@ -1024,30 +1058,11 @@
     h.rage = Math.max(0, h.rage - dt); h.noGunT = Math.max(0, (h.noGunT || 0) - dt); h.shootPose = Math.max(0, (h.shootPose || 0) - dt);
     if (h.reloadT > 0) { h.reloadT -= dt; if (h.reloadT <= 0) h.ammo = Math.round(def.gun.mag * mods.mag); }
     if ((keys.shoot || held.shoot) && !h.atkT) fire(K);
-    var spd = def.spd * (h.atkT > 0 ? 0.25 : 1) * (h.specialKind === 'cyclone' && h.specialT > 0 ? 0.6 : 1);
+    var spd = def.spd * (h.atkT > 0 ? 0.25 : 1);
     var eng = !!(h.cmb || h.F.busy());
-    if (h.hurtT <= 0 && !h.dive && !eng && !(h.specialT > 0 && h.specialKind === 'bladedash')) {
+    if (h.hurtT <= 0 && !h.dive && !eng) {
       var tvx = mv * spd; h.vx += (tvx - h.vx) * Math.min(1, dt * (h.ground ? 14 : 5));
       if (mv && h.atkT <= 0 && !h.shootPose) h.face = mv;
-    }
-    // specials
-    if (h.specialT > 0) {
-      h.specialT -= dt; h.specTick -= dt;
-      if (h.specialKind === 'cyclone' && h.specTick <= 0) {
-        h.specTick = 0.11; h.face = -h.face; K.sfx('whoosh');
-        zombies.forEach(function (z) { if (!z.dead && Math.abs(z.x - h.x) < 150 && z.y > -200) { z.x += (h.x - z.x) * 0.08; hitZombie(K, z, 9 * mods.melee, z.x < h.x ? -1 : 1, 120, 120, 'special'); } });
-      } else if (h.specialKind === 'overdrive' && h.specTick <= 0) {
-        h.specTick = 0.05; var side = Math.random() < 0.5 ? 1 : -1;
-        bullets.push({ x: h.x + side * 40, y: -80 + rnd(-12, 12), vx: side * 1800, vy: rnd(-60, 60), dmg: 11, life: 0.6, hit: [] }); K.sfx('shot');
-      } else if (h.specialKind === 'bladedash' && h.specTick <= 0 && h.dashes > 0) {
-        h.dashes--; h.specTick = 0.38; h.dashHit = []; var tgt = nearestZombie(h.x, 700); if (tgt) h.face = tgt.x > h.x ? 1 : -1;
-        h.vx = h.face * 1500; K.sfx('whoosh'); ring(h.x, -70, 60, def.acc);
-      }
-      if (h.specialKind === 'bladedash') {
-        h.vx *= Math.pow(0.02, dt);
-        zombies.forEach(function (z) { if (!z.dead && h.dashHit.indexOf(z) < 0 && Math.abs(z.x - h.x) < 60) { h.dashHit.push(z); hitZombie(K, z, 38 * mods.melee, h.face, 300, 300, 'special'); P({ k: 'slash', x: z.x, y: -70, vx: 0, vy: 0, g: 0, max: 0.2, col: def.acc, size: 70, ang: rnd(-0.6, 0.6) }); } });
-      }
-      if (h.specialT <= 0) h.specialKind = h.specialKind === 'quake' && h.quakeArmed ? 'quake' : null;
     }
     // physics (the fight engine owns the body during a combo)
     if (!eng) {
@@ -1056,11 +1071,6 @@
     if (h.y >= 0) {
       if (!h.ground) {
         if (h.dive) { ring(h.x, 0, 60, '#FFFFFF'); K.shake(3); }
-        if (h.specialKind === 'quake' && h.quakeArmed) {
-          h.quakeArmed = false; h.specialKind = null; K.shake(18); zoomK = Math.max(zoomK, 1.06); K.sfx('boom'); ring(h.x, 0, 340, def.acc); ring(h.x, 0, 200, '#FFFFFF');
-          for (var i = 0; i < 20; i++) P({ k: 'smoke', x: h.x + rnd(-300, 300), y: -10, vx: rnd(-80, 80), vy: rnd(-300, -100), g: 200, max: 0.7, col: '#C9A27A', size: rnd(10, 20) });
-          zombies.forEach(function (z) { if (!z.dead && Math.abs(z.x - h.x) < 340) hitZombie(K, z, 75 * mods.melee, z.x < h.x ? -1 : 1, 420, 650, 'special'); });
-        }
         K.sfx('land');
       }
       h.y = 0; h.vy = 0; h.ground = true; h.dive = false;
@@ -1412,6 +1422,10 @@
     drawHeroBody(c, K);
     c.shadowBlur = 0;
     if (!slung) drawWeapon(c, J, h, false);
+    if (!slung && h.cmb && h.cmb.spec === 'overdrive') { // Overdrive: a second pistol in the back hand
+      var bdx = (J.bh[0] - J.be[0]) * h.face, bdy = J.bh[1] - J.be[1];
+      c.save(); c.translate(sx(J.bh[0]), sy(J.bh[1])); c.scale(h.face, 1); c.rotate(Math.PI / 2 - Math.atan2(bdx, bdy)); drawGun(c, gunDef(curGun).look, sc * 1.05); c.restore();
+    }
     if (h.shield > 0) { var bub = sy(-62 * def.size); c.strokeStyle = 'rgba(62,224,255,' + (h.shield < 2 && Math.floor(h.shield * 8) % 2 ? 0.2 : 0.85) + ')'; c.lineWidth = 4 * sc; c.fillStyle = 'rgba(62,224,255,0.12)'; c.beginPath(); c.arc(sx(h.x), bub, 78 * sc * def.size, 0, TAU); c.fill(); c.stroke(); }
     drawAccessory(c, J, def, h.face);
     c.globalAlpha = 1;
@@ -1425,7 +1439,7 @@
   }
   function drawWeapon(c, J, h, slung) {
     var hx = sx(J.fh[0]), hy = sy(J.fh[1]), ang = Math.PI / 2 - J.handAng, f = h.face, kind = h.melee ? h.melee.id : h.def.melee.kind;
-    var gunOut = !slung && (h.shootPose > 0 || (h.specialKind === 'overdrive' && h.specialT > 0));
+    var gunOut = !slung && (h.shootPose > 0 || (h.cmb && h.cmb.spec === 'overdrive'));
     if (slung && kind === 'fists') return;
     if (slung) { hx = sx(J.neck[0] - f * 14 * h.def.size); hy = sy(J.neck[1] + 6); ang = Math.PI / 2 - (Math.PI + 0.75); }
     else if (!h.F.weapon && kind !== 'fists' && !gunOut) { ang = Math.PI / 2 - 2.6; }
@@ -2083,7 +2097,7 @@
       camX = clamp(hero.x - viewW(K) / 2, 0, Math.max(0, AW - viewW(K))); mode = 'pick'; queue = []; curGun = equippedGun(); bag = inv(); turrets = []; bombs = []; nades = []; planeT = 0;
       prog = loadProg(); story = null; cut = null; cages = []; lantern = null; civs = []; theme = 'ruins'; zoomK = 1; curMut = [];
       if (storyRetry !== null) { var rIdx = storyRetry; storyRetry = null; goMap(K, rIdx); }
-      if (K.test) window.__ink = { hp: function (n) { zombies.forEach(function (z) { z.hp = z.maxHp = n; }); }, combo: function (id) { hero.F.log.length = 0; if (id) { var o = ownedCombos(); if (o.indexOf(id) < 0 && !COMBOS[id].free) { o.push(id); K0.store.set('ink:combos', o); } setSlot(1, id); } attack2(K); }, equip: function (i, id) { var o = ownedCombos(); if (id && o.indexOf(id) < 0) { o.push(id); K0.store.set('ink:combos', o); } setSlot(i, id); }, fight: function () { return { cmb: hero.cmb && hero.cmb.id, busy: hero.F.busy(), x: hero.x, y: hero.y, log: hero.F.log.slice(-30), corpses: corpses.length, zs: zombies.map(function (z) { return { t: z.t, x: Math.round(z.x), y: Math.round(z.y), hp: z.hp, jug: !!z.jug, down: z.downT > 0 }; }) }; }, hurt: function (n) { hurtHero(K, n, 1); }, spawn: function (t) { spawnZombie(K, t); }, use: function (id) { useItem(K, id); }, fire: function () { fire(K); }, clear: function () { zombies = []; queue = []; }, story: { win: function () { storyWin(K); }, prog: function () { return prog; }, set: function (p) { prog = p; saveProg(); }, start: function (i, nm) { nmOn = !!nm; startLevel(K, i); }, play: function (i) { playLevel(K, i); }, map: function (i) { goMap(K, i); }, killBoss: function (frac) { zombies.forEach(function (z) { if (z.d.boss && !z.dead) { z.hidden = false; if (frac) { z.hp -= z.maxHp * frac; } else { z.hp = 1; hitZombie(K, z, 99999, 1, 0, 0, 'boom'); } } }); }, timer: function (t) { if (story) story.timer = t; }, cages: function () { cages.forEach(function (c) { hitCage(K, c, 9999); }); }, lanternHit: function (n) { hurtLantern(K, n); } }, setGun: function (id) { curGun = id; hero.ammo = baseMag(); hero.reloadT = 0; hero.shootCd = 0; } };
+      if (K.test) window.__ink = { hp: function (n) { zombies.forEach(function (z) { z.hp = z.maxHp = n; }); }, combo: function (id) { hero.F.log.length = 0; if (id) { var o = ownedCombos(); if (o.indexOf(id) < 0 && !COMBOS[id].free) { o.push(id); K0.store.set('ink:combos', o); } setSlot(1, id); } attack2(K); }, equip: function (i, id) { var o = ownedCombos(); if (id && o.indexOf(id) < 0) { o.push(id); K0.store.set('ink:combos', o); } setSlot(i, id); }, fight: function () { return { cmb: hero.cmb && hero.cmb.id, busy: hero.F.busy(), x: hero.x, y: hero.y, log: hero.F.log.slice(-30), corpses: corpses.length, zs: zombies.map(function (z) { return { t: z.t, x: Math.round(z.x), y: Math.round(z.y), hp: z.hp, jug: !!z.jug, down: z.downT > 0 }; }) }; }, hurt: function (n) { hurtHero(K, n, 1); }, special: function () { hero.ink = 100; special(K); }, spawn: function (t) { spawnZombie(K, t); }, use: function (id) { useItem(K, id); }, fire: function () { fire(K); }, clear: function () { zombies = []; queue = []; }, story: { win: function () { storyWin(K); }, prog: function () { return prog; }, set: function (p) { prog = p; saveProg(); }, start: function (i, nm) { nmOn = !!nm; startLevel(K, i); }, play: function (i) { playLevel(K, i); }, map: function (i) { goMap(K, i); }, killBoss: function (frac) { zombies.forEach(function (z) { if (z.d.boss && !z.dead) { z.hidden = false; if (frac) { z.hp -= z.maxHp * frac; } else { z.hp = 1; hitZombie(K, z, 99999, 1, 0, 0, 'boom'); } } }); }, timer: function (t) { if (story) story.timer = t; }, cages: function () { cages.forEach(function (c) { hitCage(K, c, 9999); }); }, lanternHit: function (n) { hurtLantern(K, n); } }, setGun: function (id) { curGun = id; hero.ammo = baseMag(); hero.reloadT = 0; hero.shootCd = 0; } };
       if (K.test) K.dbg = function () { return { mode: mode, wave: wave, bag: bag, gun: curGun, ammo: hero.ammo, muts: curMut, elites: zombies.filter(function (z) { return z.elite; }).length, threat: [1, 2, 3, 5, 10, 15, 20, 30, 40, 60].map(function (n) { var t = threat(n); t.n = n; return t; }), seen: Object.keys(firstTypes || {}), weapon: (hero.melee && hero.melee.id) || (hero.gun2 && hero.gun2.id) || null, boss: !!bossRef, hero: { x: hero.x, y: hero.y, hp: hero.hp, ink: hero.ink, face: hero.face, ground: hero.ground, ammo: hero.ammo }, zombies: zombies.map(function (z) { return { t: z.t, x: z.x, y: z.y, hp: z.hp, maxHp: z.maxHp, shield: z.shield, atkT: z.atkT, ice: z.ice || 0, frozen: z.frozen || 0 }; }), shieldT: hero.shield || 0, rage: hero.rage, turrets: turrets.length, bombs: bombs.length, nades: nades.length, bullets: bullets.length, waves: waves.map(function (w) { return { x: w.x }; }), kills: kills, perkOpts: perkOpts, sel: sel, queue: queue.length, storyMode: storyMode, theme: theme, mapCh: mapCh, mapSel: mapSel, nmOn: nmOn, cut: cut ? { i: cut.i, n: cut.lines.length, who: cut.lines[cut.i][0] } : null,
           story: story ? { idx: story.d.idx, o: story.d.o, m: story.d.m, timer: story.timer, done: story.done, eff: story.eff, maxCombo: story.maxCombo, dmg: story.dmg, bossSpawned: story.bossSpawned } : null, cages: cages.map(function (c) { return c.freed; }), lantern: lantern ? lantern.hp : null,
           win: winInfo && mode === 'win' ? { stars: winInfo.stars, coins: winInfo.coins, unlock: winInfo.unlock, ending: winInfo.ending } : null, zoom: zoomK, bosses: zombies.filter(function (z) { return z.d.boss; }).map(function (z) { return { t: z.t, hp: z.hp, x: z.x, st: z.st || z.bossAct || null, phase2: !!z.phase2, hidden: !!z.hidden }; }) }; };
@@ -2167,7 +2181,7 @@
       trainT += dt; zoomK += (1 - zoomK) * Math.min(1, dt * 3.5);
       if (mode === 'cut' && cut) { cut.t += dt * 48; updateParts(dt); return; }
       if (mode === 'win' && winInfo) winInfo.t += dt;
-      if (mode !== 'fight') { updateParts(dt); return; }
+      if (mode !== 'fight') { camY += (0 - camY) * Math.min(1, dt * 4); updateParts(dt); return; }
       if (slow > 0) { slow -= dt; dt *= 0.3; }
       if (hs > 0) { hs -= dt; updateParts(dt * 0.2); IF.updateFx(dt * 0.25); return; }
       IF.updateFx(dt); updateCorpses(K, dt);
@@ -2191,11 +2205,15 @@
       // camera
       var vw = viewW(K), tx = clamp(hero.x - vw / 2 + hero.face * vw * 0.08, 0, Math.max(0, AW - vw));
       camX += (tx - camX) * Math.min(1, dt * 5);
+      // vertical: when the hero flies high (launchers, air juggles, specials) the view rises with him, then settles back
+      var headS = gyS - (Math.max(0, -hero.y) + 150 * hero.def.size) * sc, tY = Math.max(0, K.hudH + 70 - headS);
+      camY += (tY - camY) * Math.min(1, dt * (tY > camY ? 9 : 4));
     },
     idle: function (dt) { if (parts) updateParts(dt); },
     draw: function (c, K, state) {
       if (!hero) return;
       if (mode === 'map') theme = CHAPTERS[mapCh].theme;
+      var gy0 = gyS, cy = mode === 'pick' || mode === 'shop' || mode === 'map' ? 0 : camY; gyS += cy; // camera rise: the whole world moves down
       var W = K.W, H = K.H, zc = zoomK > 1.002 && !K.reduceMotion, hxS = sx(hero.x), hyS = gyS - 70 * sc;
       if (zc) { c.save(); c.translate(hxS, hyS); c.scale(zoomK, zoomK); c.translate(-hxS, -hyS); }
       drawWorld(c, K);
@@ -2223,6 +2241,7 @@
         zombies.forEach(function (z) { var e = z._eye; if (!e || z.hidden || z.dead) return; var X = e[0], Y = e[1], tf = z._tf; if (tf) { X = tf[0] + (X - tf[0]) * tf[3]; Y = tf[1] + tf[2] + (Y - tf[1]) * tf[3]; } c.fillStyle = e[3]; c.shadowColor = e[3]; c.shadowBlur = 10; c.beginPath(); c.arc(X - e[2] * 0.18, Y, Math.max(2, e[2] * 0.16), 0, TAU); c.arc(X + e[2] * 0.22, Y + 1, Math.max(1.6, e[2] * 0.12), 0, TAU); c.fill(); c.shadowBlur = 0; });
       }
       if (zc) c.restore();
+      gyS = gy0;
       // vignette + nightmare tint
       var vg = c.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.35, W / 2, H * 0.45, Math.max(W, H) * 0.78); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, theme === 'margin' ? 'rgba(60,40,20,0.22)' : 'rgba(0,0,0,0.42)'); c.fillStyle = vg; c.fillRect(0, 0, W, H);
       if (story && story.nm) { c.fillStyle = 'rgba(120,0,20,0.16)'; c.fillRect(0, 0, W, H); }

@@ -43,7 +43,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   if (s.gun !== 'longshot' || s.ammo !== 5) F('equipped gun not used (gun ' + s.gun + ', ammo ' + s.ammo + ')'); else ok.push('run uses Longshot, 5 rounds');
   // ---- every gun fires and hurts ----
   const GUN_IDS = ['sig', 'vipers', 'buzz', 'boom', 'ranger', 'longshot', 'thunder', 'inkjet', 'frost', 'hornet', 'tesla'];
-  await ev(() => { window.__inkGod = true; });
+  await ev(() => { window.__inkNoHurt = true; });
   for (const g of GUN_IDS) {
     await ev(() => { const K = window.__bubzi.K; window.__ink.spawn('bruiser'); });
     await sleep(50);
@@ -59,7 +59,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await ev(() => window.__ink.clear()); await sleep(100);
     if ((await ev(() => window.__bubzi.state())) !== 'playing') { F('game ended during gun test'); break; }
   }
-  await ev(() => { window.__inkGod = false; window.__ink.clear(); });
+  await ev(() => { window.__inkNoHurt = false; window.__ink.clear(); });
   // ---- items ----
   await ev(() => { for (let i = 0; i < 4; i++) window.__ink.spawn('shuffler'); }); await sleep(300);
   await ev(() => window.__ink.use('freeze')); await sleep(80); s = await d();
