@@ -228,7 +228,7 @@ Fighter.prototype.solve = function (V) {
     var r0 = F.rot.v, c = Math.cos(r0), sn = Math.sin(r0);
     for (var k in L) { var p = L[k]; if (p && p.length === 2 && typeof p[0] === 'number' && k.indexOf('ikA') < 0) L[k] = [p[0] * c - p[1] * sn, p[0] * sn + p[1] * c]; }
   }
-  var low = -1e9; for (k in L) { if (k.indexOf('ikA') === 0) continue; var lo = L[k][1] + (k === 'head' ? LEN.head : 1.5); if (lo > low) low = lo; }
+  var low = -1e9; for (k in L) { if (k.indexOf('ikA') === 0) continue; var lo = L[k][1] + (k === 'head' ? LEN.head : 2.1); if (lo > low) low = lo; }
   L.low = low; return L;
 };
 Fighter.prototype.w = function (n) { var p = this.L[n]; return [this.x + this.face * p[0], GROUND + p[1] + this.yo]; };
@@ -398,6 +398,7 @@ function setLegMode(F, i, ik) {
 function updateFighter(F, dt) {
   var vic = F === A ? B : A;
   if (F.cur) { F.curT += dt; var s = F.cur, done = s.untilLand ? (F.grounded && F.curT > 0.02) : F.curT >= s.d; if (done) { if (s.hit && !s._hit && F === A) LOG.push('miss ' + s.p); F.cur = null; } }
+  if (F.alpha != null && !F.dead && F.alpha < 1) F.alpha = Math.min(1, F.alpha + dt * 4);
   if (!F.cur && F.queue.length) { var nx = F.queue.shift(); if (typeof nx === 'function') nx(); else startStep(F, nx); }
   if (!F.cur && !F.queue.length && (F.state === 'idle' || F.state === 'hurt')) { F.state = 'idle'; var ip = POSE[F.idlePose]; if (F.target !== ip && F.target !== POSE.victory && F.grounded) F.setPose(ip, 7); }
   var cur = F.cur, strike = cur && cur.hit && !cur._hit ? cur.hit : null;
@@ -461,11 +462,12 @@ function updateFighter(F, dt) {
     F.refresh(); var ax0 = F.w('an1')[0];
     if (F.pivot == null) F.pivot = ax0;
     if (Math.abs(F.rot.v) < 1.2) F.x += F.pivot - ax0;
-    if (Math.abs(F.rot.v) > 1.38) { F.state = 'down'; F.downT = 0; F.rotT = F.rotT; F.setPose('down', 6, 0.4); dust(F, 1.6); snd('land'); addTrauma(0.4); whip(F, 0.5); F.rot.w *= -0.25; F.pivot = null; }
+    if (Math.abs(F.rot.v) > 1.38) { F.state = 'down'; F.downT = 0; lieDown(F); dust(F, 1.6); snd('land'); addTrauma(0.4); if (!F.dead) whip(F, 0.5); F.rot.w *= -0.25; F.pivot = null; }
   }
   if (F.state === 'down') {
     F.downT += dt;
-    if (F.downT > 1.1 && F.downT - dt <= 1.1) { F.state = 'rising'; F.rotT = 0; F.setPose('getUp', 4.2, 0.75); }
+    if (F.dead) { F.deadT += dt; if (F.deadT > 2.2) F.alpha = Math.max(0, 1 - (F.deadT - 2.2) / 0.7); }
+    else if (F.downT > 1.1 && F.downT - dt <= 1.1) { F.state = 'rising'; F.rotT = 0; F.setPose('getUp', 4.2, 0.75); }
   }
   if (F.state === 'rising' && Math.abs(F.rot.v) < 0.18) {
     F.refresh(); var keep = [F.w('an1'), F.w('an2')]; F.state = 'idle'; F.yo = 0; F.x -= F.face * F.j.px.v;
@@ -518,7 +520,7 @@ function landHit(att, vic, hit, tc, vel) {
     var pel0 = vic.grounded && !vic.ragdoll() ? toRagdoll(vic) : null;
     if (kind === 'launch') { vic.state = 'juggled'; vic.grounded = false; vic.air = Math.max(vic.air, 2); vic.vAir = 760; vic.gS = 1; vic.bounces = 1; vic.vx = f * 45; vic.rotLock = false; vic.rot.w -= 2.5; J.t1.w -= 10; J.h.w -= 25; whip(vic, 1); }
     else if (kind === 'air') { vic.state = 'juggled'; vic.grounded = false; vic.gS = 1; vic.vAir = Math.max(Math.min(vic.vAir, 200), 430 + (hit.lift ? 90 : 0)) - dy * 60; vic.vx = f * 80 + dx * 50; att.vAir = Math.max(att.vAir * 0.4, vic.vAir * 0.82); att.vx = vic.vx * 0.85; att.gS = 1; vic.rotLock = false; var hp = vic.w('pel'), arm = [at[0] - hp[0], at[1] - hp[1]]; vic.rot.w += f * (arm[0] * dy - arm[1] * dx) / 30 * (4 + pw * 2) + (RNG() - 0.5) * 3; J.h.w -= 14; whip(vic, 0.8 + pw * 0.2); }
-    else { vic.state = 'juggled'; vic.grounded = false; vic.gS = 1.6; vic.vAir = -1250; vic.vx = f * 120; vic.bounces = 1; vic.slam = true; vic.rotT = -1.57; vic.rotLock = true; vic.rot.w -= 3; J.t1.w -= 16; whip(vic, 1.2); att.vAir = 260; att.vx *= 0.3; att.gS = 1; }
+    else { vic.state = 'juggled'; vic.grounded = false; vic.gS = 1.6; vic.vAir = -1250; vic.vx = f * 120; vic.bounces = 1; vic.slam = true; vic.dead = true; vic.rotT = -1.57; vic.rotLock = true; vic.rot.w -= 3; J.t1.w -= 16; whip(vic, 1.2); att.vAir = 260; att.vx *= 0.3; att.gS = 1; }
     vic.queue = []; vic.cur = null;
   } else {
     // standing reactions: the touched body part and the direction of the blow drive every joint
@@ -536,7 +538,7 @@ function landHit(att, vic, hit, tc, vel) {
       J.t1.w += 12 + pw * 3; J.t2.w += 8; J.h.w += 10; J.py.w -= 30; vic.vx += f * (hit.push ? 230 : 90 + pw * 30); dust(vic, 0.5);
     }
     if (kind === 'knee') { J.t1.w += 6; J.h.w += 12; J.py.w += 50; }
-    if (hit.ko) { vic.koT = 0.06; vic.koDir = back; }
+    if (hit.ko) { vic.koT = 0.06; vic.koDir = back; vic.dead = true; }
   }
   var big = pw >= 4;
   stopT = Math.max(stopT, [0, 0.05, 0.07, 0.1, 0.16][pw]);
@@ -553,7 +555,15 @@ function koFall(F) {
   F.rot.v = 0; F.rotT = -1.52; F.rot.w = -2.2; F.pivot = null; F.vx = F.face * -60; F.grounded = true; F.air = 0;
   combo.t = Math.min(combo.t, 1.0);
 }
-function knockDown(F) { F.rotLock = false; F.whip = 0; F.state = 'down'; F.downT = 0; F.rotT = -1.57; F.setPose('down', 6, 0.45); F.gS = 1; F.queue = []; F.cur = null; combo.t = Math.min(combo.t, 0.9); }
+function deadPose() {
+  return D({ t1: rand(-0.04, 0.06), t2: rand(-0.04, 0.05), h: 0.5, tw: 0.2, a1: rand(0.08, 0.3), e1: rand(0.05, 0.4), a2: rand(-0.02, 0.15), e2: rand(0.0, 0.3), fk1: 1, fk2: 1, l1: rand(0.1, 0.32), k1: rand(-0.45, -0.15), l2: rand(-0.05, 0.08), k2: rand(-0.12, 0), fa1: rand(-0.9, -0.5), fa2: rand(-0.9, -0.5) });
+}
+function lieDown(F) {
+  // the body hits the floor; a dead one goes limp: slow, heavily damped joints so the limbs slump and stay down
+  if (F.dead) { F.setPose(deadPose(), 3.2, 0.95); F.deadT = 0; whip(F, 0.3); }
+  else F.setPose('down', 6, 0.45);
+}
+function knockDown(F) { F.rotLock = false; F.whip = 0; F.state = 'down'; F.downT = 0; F.rotT = -1.57; lieDown(F); F.gS = 1; F.queue = []; F.cur = null; combo.t = Math.min(combo.t, 0.9); }
 function addTrauma(a) { if (!RM()) trauma = Math.min(1, trauma + a); }
 /* ---------------- fx ---------------- */
 function star(x, y, r, big) { fx.push({ k: 'star', x: x, y: y, r: r, t: 0, life: big ? 0.3 : 0.2, rot: rand(0, TAU), pts: big ? 12 : 9, big: big }); }
@@ -598,6 +608,10 @@ document.getElementById('ui').addEventListener('click', function (e) { var b = e
 addEventListener('keydown', function (e) { var m = { KeyJ: 'punch', KeyK: 'kick', KeyH: 'head', KeyU: 'upper', KeyD: 'demo', Space: 'demo' }[e.code]; if (m) { e.preventDefault(); doMove(m); } });
 addEventListener('pointerdown', unlock, { once: true });
 
+function spawnEnemy() {
+  // the next opponent walks in from the side, feet stepping
+  B = new Fighter(A.x + A.face * 150, -A.face, 'p2'); B.alpha = 0; B.enter = true; B.refresh();
+}
 /* ---------------- loop ---------------- */
 function step(dt) {
   if (stopT > 0) { stopT -= dt; impactT = Math.max(0, impactT - dt); updateFx(dt * 0.3); decayCam(dt); return; }
@@ -605,6 +619,8 @@ function step(dt) {
   simT += sdt;
   control(sdt);
   updateFighter(A, sdt); updateFighter(B, sdt);
+  if (B.dead && B.alpha === 0) spawnEnemy();
+  if (B.enter) { if ((B.x - A.x) * A.face > 72) B.vx = -A.face * 140; else B.enter = false; }
   // bodies never pass through each other on the ground
   if (A.standing() && B.standing()) { var minGap = A.clinch ? 34 : A.cur && A.cur.hit ? 24 : 30, gap = (B.x - A.x) * A.face; if (gap < minGap) { var push = Math.min(3, (minGap - gap) / 2); A.x -= A.face * push; B.x += A.face * push; } }
   updateFx(sdt);
@@ -660,7 +676,7 @@ function drawFighter(F, alpha) {
   ctx.globalAlpha = 1;
 }
 function drawShadow(F) {
-  var k = clamp(1 - F.air / 160, 0.25, 1), lying = Math.abs(F.rot.v) > 1;
+  var k = clamp(1 - F.air / 160, 0.25, 1) * (F.alpha == null ? 1 : F.alpha), lying = Math.abs(F.rot.v) > 1;
   ctx.fillStyle = COL.ink; ctx.globalAlpha = 0.12 * k; ctx.beginPath(); ctx.ellipse(F.x + (lying ? -F.face * 22 : 0), GROUND + 1.5, (lying ? 36 : 22) * k, 3.6 * k, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
 }
 function drawFx() {
@@ -715,7 +731,7 @@ function render() {
   ctx.strokeStyle = inv ? COL.bg : COL.ground; ctx.globalAlpha = 0.9; ctx.lineWidth = 2.2 / s * 1.4; ctx.beginPath(); ctx.moveTo(cam.x - W / s, GROUND + 2); ctx.lineTo(cam.x + W / s, GROUND + 2); ctx.stroke(); ctx.globalAlpha = 1;
   drawShadow(A); drawShadow(B);
   var saved = COL.p1, saved2 = COL.p2; if (inv) { COL.p1 = COL.bg; COL.p2 = COL.bg; }
-  drawFighter(B, 1); drawFighter(A, 1);
+  drawFighter(B, B.alpha == null ? 1 : B.alpha); drawFighter(A, 1);
   COL.p1 = saved; COL.p2 = saved2;
   if (!Q.has('nofx')) drawFx();
   ctx.restore();
