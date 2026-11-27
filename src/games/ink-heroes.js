@@ -756,7 +756,7 @@
   var COMBO_ORDER = ['basic', 'punch', 'kick', 'head', 'upper', 'jabStorm', 'legBreaker', 'twinRocket', 'kneeMill', 'tornado', 'ironCage', 'meteor', 'thunderChain', 'dragon', 'inkTitan'];
   // hero specials (ink bar): engine move lists; mult = damage boost on every hit, end = extra on the final blow
   var SPECIALS = {
-    cyclone: { moves: ['cycSpin', 'cycSpin', 'cycSpin', 'cycSpin', 'cycSpin', 'cycSpin', 'cycFinish'], mult: 1.6, end: 2 },
+    cyclone: { moves: ['cycSpin', 'cycSpin', 'cycSpin', 'cycSpin', 'cycSpin', 'cycSpin', 'cycFinish'], mult: 2, end: 2 },
     quake: { moves: ['quakeLeap'], mult: 1.5, end: 1.5 },
     overdrive: { moves: ['odDraw', 'odVolley', 'odFront', 'odVolley', 'odFront', 'odVolley', 'teep', 'odBlast'], mult: 1.4, end: 1.5 },
     bladedash: { moves: ['bladeDash', 'bladeDash', 'bladeDash', 'bladeRise', 'landing'], mult: 1.6, end: 2 }
@@ -905,7 +905,7 @@
       F.vx = -f * 260; K.sfx('boom'); K.shake(10); K.flash('#FFFFFF', 0.18); ring(hero.x + f * 70, -80, 110, def.acc); hs = Math.max(hs, 0.08);
     }
     else if (a === 'quake' || a === 'cycLand') {
-      var big = a === 'quake', R0 = big ? 360 : 130, dm = big ? 75 : 18, x0 = hero.x + (big ? f * 40 : 0);
+      var big = a === 'quake', R0 = big ? 360 : 170, dm = big ? 75 : 30, x0 = hero.x + (big ? f * 40 : 0);
       if (big) { IF.quake(x0 / S, 1.6, K.reduceMotion); K.shake(18); zoomK = Math.max(zoomK, 1.08); K.sfx('boom'); ring(x0, 0, R0, def.acc); ring(x0, 0, R0 * 0.6, '#FFFFFF'); hs = Math.max(hs, 0.12); }
       else { IF.dust(F.x, 1.2, K.reduceMotion); K.shake(5); ring(x0, 0, R0, def.acc); }
       zombies.slice().forEach(function (z) {
