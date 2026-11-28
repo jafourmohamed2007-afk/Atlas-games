@@ -23,8 +23,11 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `bubble-bastion.html` | Tower defense: pop bubbles drifting down a stream | Pick a tower, tap the grass · arrows + Space, 1-4 pick, U/S/N |
 | `arrow-rampart.html` | Wall defense archery with upgrade cards | Pull back and let go · Up/Down aim, hold Space, 1-3 cards |
 | `pocket-grove.html` | 3D idle garden (three.js) | Tap plots · arrows + Enter, S shop, A album, H pets, B boost |
+| `ashen-vigil.html` | Pixel-art survivor roguelite: 15-minute run, auto-attack, evolutions, ElevenLabs narrator (100% canvas, own file, not on the kit) | WASD / arrows · touch joystick (left half) · P/Esc pause |
 
-Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
+Ashen Vigil is the exception to what follows: it is a standalone 100%-canvas game (`"standalone": true` in `src/games.json`) with its own menus, music, shop and voice. See `docs/GAME-ANALYSIS.md`.
+
+Every kit game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
 coins, 8 unlockable skins (shared across all games), a daily bonus streak, a "show, don't tell" tutorial, and ad placeholders.
 
 ## Ads: where to plug in your network
@@ -52,6 +55,9 @@ node tests/ink-features.js                # Ink Heroes: shop, all 11 guns, all 8
 node tests/ink-story.js                   # Ink Heroes story: 40 levels, cutscenes, 5 bosses, stars, unlocks, Nightmare
 node tests/goals.js                       # daily goal + beat-your-best on every game
 node tests/grove.js                       # Pocket Grove (3D): grow, harvest, shop, events, pets, offline growth
+node tools/build-ashen-vigil.js           # Ashen Vigil only (also run by tools/build.js); modules in src/ashen-vigil/
+node tools/capture-ashen-vigil.js         # Ashen Vigil thumbnails (thumbs/ashen-vigil*.webp/jpg)
+node tests/ashen-vigil.js                 # Ashen Vigil: canvas-only DOM, controls, 500+ enemies, evolution, voices + fallback, win run
 ```
 ### Website layout ("Bubzi Bright")
 - Bright and colourful by default; the moon button switches to dark mode (remembered).

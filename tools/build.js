@@ -19,10 +19,12 @@ const ICON = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.
 fs.mkdirSync(path.join(ROOT, 'games'), { recursive: true });
 let built = 0;
 for (const g of games) {
+  if (g.standalone) { require('./build-' + g.id + '.js')(); built++; continue; }   // 100%-canvas single-file games (no kit)
   // 3D games are ES modules under src/<dir>/main.js, bundled (three.js + models) by esbuild into one script
   const BUNDLED = { 'pocket-grove': 'src/grove/main.js' };
   const src = path.join(ROOT, BUNDLED[g.id] || path.join('src/games', g.id + '.js'));
   if (!fs.existsSync(src)) { console.log('skip (no source yet):', g.id); continue; }
+  if (BUNDLED[g.id]) { try { require.resolve('esbuild'); } catch (e) { console.log('skip (run npm install for esbuild):', g.id); continue; } }
   const code = BUNDLED[g.id] ? require('esbuild').buildSync({ entryPoints: [src], bundle: true, format: 'iife', minify: true, write: false, target: 'es2019', loader: { '.glb': 'binary' }, legalComments: 'none' }).outputFiles[0].text : (fs.existsSync(path.join(ROOT, 'src/games', g.id.split('-')[0] + '-fight.js')) ? fs.readFileSync(path.join(ROOT, 'src/games', g.id.split('-')[0] + '-fight.js'), 'utf8') + '\n' : '') + fs.readFileSync(src, 'utf8');
   const url = `${SITE}/play/${g.id}.html`;
   const title = `${g.title.en} – Play Free Online | Bubzi`;

@@ -24,8 +24,10 @@
     var pool = ICONS.slice().sort(function () { return Math.random() - 0.5; }).slice(0, pairs), deck = pool.concat(pool);
     for (var i = deck.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = deck[i]; deck[i] = deck[j]; deck[j] = t; }
     cards = deck.map(function (ic) { return { icon: ic, up: true, done: false, flip: 1, pop: 0 }; });
-    open = []; preview = Math.min(3, 1 + pairs * 0.18); pendingT = 0; clearT = 0;
-    timeMax = Math.round(pairs * 5.5 + 8 - Math.min(10, (level - 1) * 1.5)); timeLeft = timeMax;
+    // after the biggest board (level 6) the boards stay the same size but get tighter: shorter peek, less time per pair
+    var deep = Math.max(0, level - LEVELS.length);
+    open = []; preview = Math.max(1, Math.min(3, 1 + pairs * 0.18) - Math.min(1, deep * 0.15)); pendingT = 0; clearT = 0;
+    timeMax = Math.round(pairs * 5.5 + 8 - Math.min(10, (level - 1) * 1.5) - Math.min(pairs * 1.4, deep * 2)); timeLeft = timeMax;
     cursor = 0; layout(K);
   }
   function cardAt(x, y) {

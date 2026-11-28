@@ -1,5 +1,32 @@
 [
   {
+    "id": "ashen-vigil",
+    "category": "action",
+    "color": "#C23A3A",
+    "isNew": true,
+    "standalone": true,
+    "title": {
+      "en": "Ashen Vigil",
+      "fr": "Veillée de Cendre",
+      "ar": "سهرة الرماد"
+    },
+    "desc": {
+      "en": "Survive 15 minutes of endless undead swarms in this free pixel-art survivor roguelite. Auto-attack, level up, evolve your weapons and defeat the Pale Reaper.",
+      "fr": "Survis 15 minutes face à des hordes de morts-vivants dans ce roguelite survivor en pixel art gratuit. Attaque automatique, niveaux, armes évolutives et combat contre la Faucheuse Pâle.",
+      "ar": "انجُ لمدة 15 دقيقة أمام أسراب الموتى الأحياء في لعبة بقاء بكسلية مجانية. هجوم تلقائي، ترقيات، تطوير الأسلحة، ثم واجه الحاصد الشاحب."
+    },
+    "keywords": {
+      "en": "survivor game, bullet heaven, pixel art game, roguelite, horde survival, free action game",
+      "fr": "jeu survivor, bullet heaven, jeu pixel art, roguelite, survie contre des hordes, jeu d'action gratuit",
+      "ar": "لعبة بقاء, بوليت هيفن, لعبة بكسل, روغ لايت, البقاء أمام الأسراب, ألعاب أكشن مجانية"
+    },
+    "howto": {
+      "en": "Move with WASD or the arrow keys (touch: drag on the left half of the screen). Your weapons fire by themselves. Collect blue, green and red gems to level up and pick one of 3 upgrade cards (reroll or skip if you like). Break lanterns for items, open the boss chest to evolve a max-level weapon with its paired passive, and survive until the Pale Reaper arrives at 15:00. P or Esc pauses. Spend your gold at the Ember Shrine between runs.",
+      "fr": "Déplace-toi avec WASD ou les flèches (tactile : glisse sur la moitié gauche de l'écran). Tes armes tirent toutes seules. Ramasse les gemmes bleues, vertes et rouges pour monter de niveau et choisis une des 3 cartes d'amélioration (relance ou passe si tu veux). Brise les lanternes pour des objets, ouvre le coffre du boss pour faire évoluer une arme niveau max avec son passif associé et survis jusqu'à l'arrivée de la Faucheuse Pâle à 15:00. P ou Échap met en pause. Dépense ton or au Sanctuaire de Braise entre deux parties.",
+      "ar": "تحرّك بمفاتيح WASD أو الأسهم (باللمس: اسحب على النصف الأيسر من الشاشة). أسلحتك تطلق النار وحدها. اجمع الجواهر الزرقاء والخضراء والحمراء لترتقي واختر واحدة من 3 بطاقات تطوير (يمكنك إعادة السحب أو التخطي). حطّم الفوانيس للحصول على أغراض، وافتح صندوق الزعيم لتطوير سلاح بلغ المستوى الأعلى مع قدرته المرافقة، وانجُ حتى يصل الحاصد الشاحب عند 15:00. زر P أو Esc للإيقاف المؤقت. أنفق ذهبك في ضريح الجمر بين الجولات."
+    }
+  },
+  {
     "id": "spear-hills",
     "category": "action",
     "color": "#FF5E5B",
