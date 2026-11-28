@@ -29,7 +29,7 @@ print('wave  DPS   x    enemyHPx   bossHP  fight(s)')
 for n in [1,5,10,15,20,25,30,35,40,45,50,55,60]:
     hp=(D[n-1]/D[0])*0.7+0.3
     print(f'{n:4d} {D[n-1]:6.1f} {D[n-1]/D[0]:5.2f}  {hp:6.2f}   {D[n-1]*ACC*boss_time(n)*(0.65+0.35*min(1,n/25)):7.0f}  {boss_time(n):5.0f}')
-spawn=sum(50+1.8*n for n in range(1,61) if n%5)
+spawn=sum(35+2.1*n for n in range(1,61) if n%5)  # normal waves: fixed quota round(10+1.4n), at most min(30,5+0.45n) alive
 boss=sum(boss_time(n) for n in range(5,61,5))
 extra=60*8  # intros, clean-up, cards
 print('spawn time %.0f min, boss %.0f min, extra %.0f min -> total %.0f min'%(spawn/60,boss/60,extra/60,(spawn+boss+extra)/60))

@@ -417,14 +417,19 @@
     45.8, 48.2, 50.7, 53.5, 56.4, 59.4, 62.1, 65.4, 69.0, 72.5, 76.2, 80.2, 84.0, 87.6, 91.2, 95.2, 98.9, 102.8, 107.1, 111.5, 115.6, 119.2, 122.7, 125.9, 129.0, 131.8, 134.2, 136.2, 138.2, 139.1];
   function dref(n) { return DREF[clamp(n, 1, LAST) - 1]; }
   function hpMul(n) { return dref(n) / DREF[0] * 0.7 + 0.3; }     // enemies grow slower than the player: power feels earned
-  function dmgMul(n) { return 1 + 0.012 * (n - 1); }               // …but they hit harder every wave
+  function dmgMul(n) { return (1 + 0.012 * (n - 1)) * Math.min(1, 0.6 + 0.08 * (n - 1)); } // …but they hit harder every wave (gentle first waves)
   var BOSS_ACC = 0.42; // share of the reference DPS that really lands on a moving boss with adds around (measured with a bot)
   function bossTime(n) { return n >= LAST ? 330 : 80 + 1.6 * n; }  // target fight length (s) at 60% accuracy
-  function spawnTime(n) { return 50 + 1.8 * n; }                   // seconds of spawning per normal wave
+  function spawnTime(n) { return 35 + 2.1 * n; }                   // target length (s) of a normal wave
+  function quota(n) { return Math.round(10 + 1.4 * n); }            // a normal wave has a fixed number of hostiles (11 at wave 1, 93 at wave 59)
+  function aliveCap(n) { return Math.min(30, Math.round(5 + 0.45 * n)); } // most hostiles on the field at once: 5 at wave 1, 30 from wave 56
+  function hostiles() { // what the HUD counts: still to come + alive (a splitter counts its 3 shards, so the number only goes down)
+    var c = G.spawnLeft; G.en.forEach(function (e) { if (!e.dead && e.type !== 'node') c += e.type === 'splitter' ? 4 : 1; }); return c;
+  }
   var ET = {
     swarmer: { r: 12, hp: 1, spd: 255, col: C.mag, score: 100, dmg: 12, sides: 3, from: 1, w: 5 },
-    sniper: { r: 17, hp: 3, spd: 150, col: C.amb, score: 250, dmg: 10, sides: 6, from: 2, w: 2.2 },
-    splitter: { r: 32, hp: 8, spd: 80, col: C.lime, score: 400, dmg: 18, sides: 8, from: 3, w: 1.3 },
+    sniper: { r: 17, hp: 3, spd: 150, col: C.amb, score: 250, dmg: 10, sides: 6, from: 3, w: 2.2 },
+    splitter: { r: 32, hp: 8, spd: 80, col: C.lime, score: 400, dmg: 18, sides: 8, from: 2, w: 1.3 },
     shard: { r: 16, hp: 2, spd: 185, col: C.lime, score: 120, dmg: 10, sides: 8 },
     dasher: { r: 15, hp: 4, spd: 130, col: C.red, score: 300, dmg: 16, sides: 4, from: 4, w: 1.8 },
     spinner: { r: 20, hp: 6, spd: 90, col: '#4d9dff', score: 350, dmg: 12, sides: 4, from: 7, w: 1.3 },
@@ -470,7 +475,7 @@
     startWave();
   }
   function startWave() {
-    var n = ++G.wave, B = BOSSES[n]; G.phase = 'intro'; G.pt = 0; G.boss = !!B; G.spawnLeft = B ? 0 : spawnTime(n); G.spawnT = 0.5; G.bossUp = false; G.escortT = 7;
+    var n = ++G.wave, B = BOSSES[n]; G.phase = 'intro'; G.pt = 0; G.boss = !!B; G.spawnLeft = B ? 0 : quota(n); G.spawnT = 0.5; G.bossUp = false; G.escortT = 7;
     G.banner = { s: B ? '⚠ ' + T.bn[B[0]] + (B[1] > 1 ? ' MK II' : '') + ' ⚠' : T.wave + ' ' + n + ' / ' + LAST, col: B ? C.red : C.cyan, t: 0 };
     if (B) { Voice.say('boss', { pr: 4, ttl: 6 }); SFX.alarm(); } else Voice.say(n === 1 || n === G.fromCp + 1 ? 'start' : 'wave', { pr: 2, ttl: 4 });
     SFX.wave(); shock(G.p.x, G.p.y, 0.8, 900, 1.2);
@@ -493,14 +498,17 @@
       state: 'move', cd: rnd(1.4, 2.6), tel: 0, aim: 0, strafe: Math.random() < 0.5 ? 1 : -1, sT: rnd(1.5, 3), a1: 2, a2: 4, a3: 6, a4: 3, dashId: -1, ghost: 0, kids: 0, spin: rnd(0, TAU) };
     e.max = e.hp; G.en.push(e); return e;
   }
-  function spawnStep(dt) {
-    G.spawnT -= dt; if (G.spawnT > 0) return;
-    var n = G.wave, cap = Math.min(50, 14 + 0.6 * n);
-    if (G.en.length >= cap) { G.spawnT = 0.35; return; }
+  function spawnStep(dt) { // releases the wave's fixed quota a few at a time, never more than aliveCap(n) on the field
+    G.spawnT -= dt; if (G.spawnT > 0 || G.spawnLeft <= 0) return;
+    var n = G.wave, cap = aliveCap(n), alive = G.en.length;
+    if (alive >= cap) { G.spawnT = 0.4; return; }
     var t = pickType(n), sp = spawnPoint(), eliteP = n >= 22 ? Math.min(0.2, 0.04 + 0.004 * (n - 22)) : 0;
-    var count = t === 'swarmer' ? Math.min(6, 2 + Math.floor(n / 8)) : (n > 30 && Math.random() < 0.3 ? 2 : 1);
+    var count = t === 'swarmer' ? Math.min(5, 2 + Math.floor(n / 12)) : (n > 30 && Math.random() < 0.3 ? 2 : 1);
+    if (t === 'splitter' && alive + 4 > cap) { G.spawnT = 0.4; return; } // room for its shards
+    count = Math.max(1, Math.min(count, G.spawnLeft, cap - alive));
     for (var i = 0; i < count; i++) makeEnemy(t, sp.x + (i ? rnd(-60, 60) : 0), sp.y + (i ? rnd(-60, 60) : 0), true, { elite: t !== 'swarmer' && Math.random() < eliteP });
-    G.spawnT = Math.max(0.45, 1.25 - 0.013 * n) * rnd(0.7, 1.3) * (t === 'swarmer' ? 1 : 0.8 + 0.12 * ET[t].w);
+    G.spawnLeft -= count;
+    G.spawnT = spawnTime(n) * 0.8 / quota(n) * count * rnd(0.7, 1.3);
   }
   function makeBoss(kind, mk, x, y, hp, col) {
     var e = makeEnemy('boss', x, y, true, { hp: hp }); e.kind = kind; e.mk = mk; e.col = col || BCOL[kind]; e.sides = BSIDES[kind];
@@ -674,7 +682,7 @@
     if (k === 'overmind' || e.kind === 'null') {
       e.a1 -= dt * f; if (e.a1 <= 0) { var rage = e.hp < e.max * 0.5 || e.kind === 'null'; e.a1 = rage ? 1.8 : 2.6; ringShot(e, (rage ? 20 : 14) + (e.mk > 1 ? 6 : 0), 250, 14, e.kind === 'null' ? C.vio : e.col, rnd(0, TAU)); }
       if (e.hp < e.max * (e.mk > 1 ? 0.7 : 0.5) || (e.kind === 'null' && ph === 3)) { e.a2 -= dt; if (e.a2 <= 0) { e.a2 = 0.11 / f; e.spin += 0.32; for (var arm = 0; arm < 3; arm++) shoot(e.x, e.y, e.spin + arm * TAU / 3, 300, 6, 12, C.mag); } }
-      if (e.kind !== 'null') { e.a3 -= dt; if (e.a3 <= 0) { e.a3 = (e.mk > 1 ? 7 : 10) / f; for (var m = 0; m < (e.mk > 1 ? 4 : 3); m++) { var ma = rnd(0, TAU); makeEnemy('swarmer', e.x + Math.cos(ma) * 110, e.y + Math.sin(ma) * 110, true); } } }
+      if (e.kind !== 'null') { e.a3 -= dt; if (e.a3 <= 0) { e.a3 = (e.mk > 1 ? 7 : 10) / f; for (var m = 0; m < (e.mk > 1 ? 4 : 3) && G.en.length < 30; m++) { var ma = rnd(0, TAU); makeEnemy('swarmer', e.x + Math.cos(ma) * 110, e.y + Math.sin(ma) * 110, true); } } }
     }
     if (k === 'warden' || (e.kind === 'null' && ph !== 2)) { // rotating laser beams: thin telegraph, then lethal
       e.btT -= dt;
@@ -684,7 +692,7 @@
       if (k === 'warden') { mv = orbit(300, 0.18); e.a4 -= dt * f; if (e.a4 <= 0) { e.a4 = 1.7; fan(e, aimA, 3, 0.3, 420, 12, e.col); } }
     }
     if (k === 'queen') { // brood + homing missiles you can shoot down
-      e.a1 -= dt * f; if (e.a1 <= 0) { e.a1 = 5; for (var q = 0; q < 3; q++) { var qa = rnd(0, TAU); makeEnemy('swarmer', e.x + Math.cos(qa) * 120, e.y + Math.sin(qa) * 120, true); } if (e.mk > 1 || e.kind === 'null') makeEnemy('dasher', e.x, e.y + 130, true); }
+      e.a1 -= dt * f; if (e.a1 <= 0) { e.a1 = 5; for (var q = 0; q < 3 && G.en.length < 30; q++) { var qa = rnd(0, TAU); makeEnemy('swarmer', e.x + Math.cos(qa) * 120, e.y + Math.sin(qa) * 120, true); } if (e.mk > 1 || e.kind === 'null') makeEnemy('dasher', e.x, e.y + 130, true); }
       e.a2 -= dt * f; if (e.a2 <= 0) { e.a2 = 2.8; for (var mI = 0; mI < (e.mk > 1 ? 3 : 2); mI++) shoot(e.x, e.y, aimA + (mI - 0.5) * 1.2, 330, 9, 16, '#ff4fa0', { homing: 2.2, shootable: 1, life: 4.5, missile: true }); SFX.snipe(); }
     }
     if (k === 'lancer' || (e.kind === 'null' && ph === 2)) { // telegraphed charges that leave mines
@@ -765,7 +773,7 @@
         else { e.ghost = Math.max(0, e.ghost - dt * 2.5); e.tel -= dt; if (e.tel <= 0) { e.state = 'move'; e.cd = rnd(2, 2.8); fan(e, aimA, 3, 0.25, 420, 11, e.col); } }
       } else if (t === 'hive') { // slow mother that keeps hatching swarmers
         tx = ux * e.spd; ty = uy * e.spd; steer = 1;
-        e.cd -= dt; if (e.cd <= 0) { e.cd = 4; e.kids = G.en.filter(function (o) { return o.mother === e && !o.dead; }).length; if (e.kids < 6) for (var h = 0; h < 2; h++) { var kid = makeEnemy('swarmer', e.x + rnd(-30, 30), e.y + rnd(-30, 30), false); kid.mother = e; } ring(e.x, e.y, e.r, e.r * 2, e.col, 0.3); }
+        e.cd -= dt; if (e.cd <= 0) { e.cd = 4; e.kids = G.en.filter(function (o) { return o.mother === e && !o.dead; }).length; if (e.kids < 6 && G.en.length < 30) for (var h = 0; h < 2; h++) { var kid = makeEnemy('swarmer', e.x + rnd(-30, 30), e.y + rnd(-30, 30), false); kid.mother = e; } ring(e.x, e.y, e.r, e.r * 2, e.col, 0.3); }
       } else if (t === 'node') { // Prism shield node: orbits its boss
         var ow = e.owner; if (!ow || ow.dead) { kill(e, 0, true); continue; }
         var na = G.t * 0.9 + e.slot * TAU / 4; e.x = ow.x + Math.cos(na) * 175; e.y = ow.y + Math.sin(na) * 175; e.vx = e.vy = 0;
@@ -873,8 +881,8 @@
     else if (G.phase === 'fight') {
       if (G.boss) {
         if (!G.bossUp) spawnBoss();
-        else { G.escortT -= dt; if (G.escortT <= 0) { G.escortT = Math.max(5, 11 - G.wave * 0.1); if (G.en.length < 18) { var et = pickType(G.wave), esp = spawnPoint(); makeEnemy(et === 'hive' ? 'swarmer' : et, esp.x, esp.y, true); } } }
-      } else { G.spawnLeft -= dt; if (G.spawnLeft > 0) spawnStep(dt); }
+        else { G.escortT -= dt; if (G.escortT <= 0) { G.escortT = Math.max(5, 11 - G.wave * 0.1); if (G.en.length < Math.min(18, aliveCap(G.wave))) { var et = pickType(G.wave), esp = spawnPoint(); makeEnemy(et === 'hive' ? 'swarmer' : et, esp.x, esp.y, true); } } }
+      } else spawnStep(dt);
       if (waveDone()) {
         if (G.boss) G.en.slice().forEach(function (e) { kill(e, 0, true); }); // the boss falls: its army falls with it
         G.en.length = 0; G.eb.length = 0; G.mines.length = 0; G.beams.length = 0; G.pt = 0;
@@ -1416,7 +1424,7 @@
     var rx = W - pad - 50;
     text(fmt(G.score), rx, pad + 18, 30 * s, C.white, 'right', { glow: 12, gc: C.cyan, mono: true, w: 800 });
     if (G.mult > 1) text('x' + G.mult.toFixed(1), rx, pad + 46 * s, 16 * s, C.mag, 'right', { glow: 10, mono: true });
-    text(T.wave + ' ' + G.wave + '/' + LAST + '  ·  ' + T.left + ' ' + G.en.length + '  ·  ' + clockStr(G.time), rx, pad + 66 * s, 11 * s, rgba(C.cyan, 0.75), 'right', { mono: true, sp: 1 });
+    text(T.wave + ' ' + G.wave + '/' + LAST + '  ·  ' + T.left + ' ' + hostiles() + '  ·  ' + clockStr(G.time), rx, pad + 66 * s, 11 * s, rgba(C.cyan, 0.75), 'right', { mono: true, sp: 1 });
     UI.btn('pause', W - pad - 40, pad, 40, 40, 'II', { col: C.cyan, size: 15, noNav: true, on: function () { go('pause'); } });
     // announcer visualizer (top center; below the bars on narrow screens)
     var vw = Math.min(340, W - 32), vy = W >= 820 ? 10 : 112 * s, vh = 54;
@@ -1718,7 +1726,7 @@
       s: function () {
         return { screen: screen, mode: Voice.label(), voice: Voice.cur && Voice.cur.text, vq: Voice.q.map(function (q) { return q.id; }), fireTouch: fireTouch,
           wave: G && G.wave, phase: G && G.phase, hp: G && G.p.hp, max: G && G.p.max, alive: G && G.p.alive, px: G && Math.round(G.p.x), py: G && Math.round(G.p.y), vx: G && Math.round(G.p.vx), cd: G && G.p.cd, inv: G && G.p.inv,
-          score: G && G.score, kills: G && G.kills, enemies: G ? G.en.length : 0, types: G ? G.en.map(function (e) { return e.type; }) : [], spawnLeft: G ? G.spawnLeft : 0, time: G && G.time, cp: checkpoint(), boss: G ? G.en.filter(function (e) { return e.type === 'boss'; }).map(function (e) { return { k: e.kind, hp: Math.round(e.hp), max: Math.round(e.max), sh: !!e.shielded, ph: e.bphase }; }) : [], bullets: G ? G.bullets.length : 0, eb: G ? G.eb.length : 0,
+          score: G && G.score, kills: G && G.kills, enemies: G ? G.en.length : 0, types: G ? G.en.map(function (e) { return e.type; }) : [], spawnLeft: G ? G.spawnLeft : 0, hostiles: G ? hostiles() : 0, time: G && G.time, cp: checkpoint(), boss: G ? G.en.filter(function (e) { return e.type === 'boss'; }).map(function (e) { return { k: e.kind, hp: Math.round(e.hp), max: Math.round(e.max), sh: !!e.shielded, ph: e.bphase }; }) : [], bullets: G ? G.bullets.length : 0, eb: G ? G.eb.length : 0,
           cards: G && G.cards, lv: G && G.lv, st: G && G.st, parts: parts.length, waves: waves.length, trauma: trauma, ui: UI.list.map(function (it) { return { id: it.id, x: it.x + it.w / 2, y: it.y + it.h / 2, dis: !!it.o.disabled }; }),
           heavy: Heavy.count(), pack: Object.keys(Voice.pack).length, ac: !!AC, qual: Qual };
       },
