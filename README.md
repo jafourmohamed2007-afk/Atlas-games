@@ -24,6 +24,7 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `bubble-bastion.html` | Tower defense: pop bubbles drifting down a stream | Pick a tower, tap the grass · arrows + Space, 1-4 pick, U/S/N |
 | `arrow-rampart.html` | 2D wall defense archery: 5 modes, shop with feathers + gems, Rampart Pass, daily missions, special arrows |
 | `arrow-rampart-3d.html` | The same game in 3D (three.js, `src/arrow/`, Blender icons), built from the same source; separate saves | Same as Arrow Rampart | Pull back and let go · Up/Down aim, hold Space, 1-3 cards / special arrows · hub: arrows + Enter, S shop, T pass, M missions |
+| `stick-dominion.html` | 2D stickman army strategy: mine gold, train 6 unit types, command or control one soldier, 12-level campaign + Survival | Tap units / 1-6 · C/X/Z commands · T take command, A/D move, J attack, K kick |
 | `pocket-grove.html` | 3D idle garden (three.js) | Tap plots · arrows + Enter, S shop, A album, H pets, B boost |
 
 Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
@@ -56,9 +57,11 @@ node tests/ink-remastered.js              # all Ink tests again, against the Rem
 blender -b -P tools/art/ink/render.py     # Remastered 3D art → games/art/ink-heroes/
 tools/art/ink/gen-audio.sh && tools/art/ink/gen-audio2.sh && tools/art/ink/process-audio.sh   # Ink music, SFX and voices (ElevenLabs) → games/audio/ink-heroes/
 node tests/arrow-meta.js                  # Arrow Rampart: hub, 5 modes, shop, pass, special arrows, Headhunter, Time Attack
+node tests/dominion.js                    # Stick Dominion: map, mining, training, commands, contact combat, command a soldier, win/lose, upgrades, Survival
 node tests/arrow-3d.js                    # the same checks on Arrow Rampart 3D, plus a 3D view smoke test
 blender -b -P tools/art/arrow/icons.py    # Arrow Rampart 3D item icons → games/art/arrow-rampart/
-tools/art/arrow/gen-audio.sh && tools/art/arrow/process-audio.sh   # Arrow Rampart music/SFX (ElevenLabs) → games/audio/arrow-rampart/
+tools/art/arrow/gen-audio.sh && tools/art/arrow/process-audio.sh
+tools/art/dominion/gen-audio.sh && tools/art/dominion/process-audio.sh   # Stick Dominion music/SFX (ElevenLabs)   # Arrow Rampart music/SFX (ElevenLabs) → games/audio/arrow-rampart/
 node tests/goals.js                       # daily goal + beat-your-best on every game
 node tests/grove.js                       # Pocket Grove (3D): grow, harvest, shop, events, pets, offline growth
 ```

@@ -52,6 +52,32 @@
     }
   },
   {
+    "id": "stick-dominion",
+    "category": "action",
+    "color": "#C0392B",
+    "isNew": true,
+    "title": {
+      "en": "Stick Dominion",
+      "fr": "Stick Dominion",
+      "ar": "ستيك دومينيون"
+    },
+    "desc": {
+      "en": "Lead the Quill Order against the Smudge Horde in a 2D stickman army strategy game. Mine gold, train Blades, Slingers, Pikemen, Hexers and Giants, command your army or take control of one soldier and fight with real combos, then topple the enemy Monument. 12-level campaign, Survival mode and upgrades. Free online, no download.",
+      "fr": "Mène l’Ordre de la Plume contre la Horde Tachée dans un jeu de stratégie d’armée de bâtons en 2D. Mine de l’or, forme des Lames, Frondeurs, Piquiers, Ensorceleurs et Géants, commande ton armée ou prends le contrôle d’un soldat pour combattre avec de vrais combos, puis renverse le Monument ennemi. Campagne de 12 niveaux, mode Survie et améliorations. Gratuit, sans téléchargement.",
+      "ar": "قُد نظام الريشة ضد جحافل اللطخة في لعبة استراتيجية لجيش من رجال العصي ثنائية الأبعاد. انقب الذهب ودرّب السيافين والرماة والرماحين والسحرة والعمالقة، وقُد جيشك أو تحكم بجندي واحد وقاتل بسلاسل ضربات حقيقية، ثم أسقط نُصب العدو. حملة من 12 مرحلة ووضع النجاة وتحسينات. مجاناً وبدون تحميل."
+    },
+    "keywords": {
+      "en": "stickman army game, stick strategy, army battle game, stickman war, strategy games",
+      "fr": "jeu d’armée stickman, stratégie stickman, jeu de bataille, jeux de stratégie",
+      "ar": "لعبة جيش ستيكمان, استراتيجية ستيكمان, لعبة معارك, ألعاب استراتيجية"
+    },
+    "howto": {
+      "en": "Tap the unit buttons to train (Diggers mine gold). Use Attack, Hold and Defend to command the army, or the crown to take control of a soldier: arrows to move, sword to attack, boot to kick. Keys: 1-6 train, C/X/Z commands, T take control, A/D move, J attack, K kick.",
+      "fr": "Touche les boutons d’unités pour former (les Mineurs ramènent l’or). Attaque, Tenir et Défense commandent l’armée, la couronne te donne un soldat : flèches pour bouger, épée pour frapper, botte pour le coup de pied. Touches : 1-6 former, C/X/Z ordres, T commander, A/D bouger, J frapper, K pied.",
+      "ar": "انقر أزرار الوحدات للتدريب (المنقبون يجلبون الذهب). استخدم هجوم وثبات ودفاع لقيادة الجيش، أو التاج للتحكم بجندي: الأسهم للحركة والسيف للضرب والحذاء للركل. المفاتيح: 1-6 تدريب، C/X/Z أوامر، T قيادة، A/D حركة، J ضرب، K ركلة."
+    }
+  },
+  {
     "id": "tiny-siege",
     "category": "action",
     "color": "#FF7F45",

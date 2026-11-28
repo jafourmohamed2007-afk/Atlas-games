@@ -31,6 +31,8 @@ var BubziCur = (function () {
       x: [{ f: '#2FBF71', d: 'M12 7.5c0-2 1-4 3.5-4.5c0 2.3-1.3 4-3.5 4.5z' }] },
     'spear-hills': { n: { en: 'Spearheads', fr: 'Pointes', ar: 'رؤوس الرماح' }, c: '#C9D3E0', d: '#55657A', rate: 1,
       p: 'M12 2.5L17.5 12L12 21.5L6.5 12z', x: [{ s: '#FFFFFF', d: 'M12 5.5v13' }] },
+    'stick-dominion': { n: { en: 'Crowns', fr: 'Couronnes', ar: 'تيجان' }, c: '#E0A82E', d: '#8A5A12', rate: 1,
+      p: 'M3 18l2-11 5 5 2-8 2 8 5-5 2 11z', x: [{ f: '#FFF1B8', d: 'M5 16h14v2H5z' }] },
     'arrow-rampart': { n: { en: 'Feathers', fr: 'Plumes', ar: 'ريش' }, c: '#E8364F', d: '#8E1B2E', rate: 1,
       p: 'M19 3C11 4 6 9 5 17l-2 4 1 1 4-2c8-1 13-6 14-14z', x: [{ f: '#FFD9DE', d: 'M8 16L17 7l1 1-9 9z' }] },
     'arrow-rampart-3d': { n: { en: 'Feathers', fr: 'Plumes', ar: 'ريش' }, c: '#E8364F', d: '#8E1B2E', rate: 1,
