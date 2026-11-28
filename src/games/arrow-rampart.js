@@ -41,7 +41,7 @@
     for (var i = 0; i < n; i++) {
       var r = Math.random(), k = 'grunt';
       if (mode === 'night' && r < 0.35) k = 'flyer';
-      else if (mode === 'boss' && r < 0.4) k = 'brute';
+      else if (mode === 'boss' && r < Math.min(0.4, 0.12 + 0.05 * wave)) k = 'brute';
       else if (wave >= 2 && r < 0.25) k = 'runner';
       else if (wave >= 3 && r < 0.42) k = 'brute';
       else if (wave >= 4 && r < 0.58) k = 'flyer';
@@ -55,8 +55,10 @@
     K.sfx(wave % 5 === 0 || mode === 'boss' ? 'chief' : 'horn');
   }
   function spawn(K, k) {
-    var d = KINDS[k], sc = Math.pow(1.19, wave - 1);
-    foes.push({ k: k, x: fieldR + K.rand(0, u), y: d.fly ? wallTop - K.rand(1.2, 3.2) * u : gy, fly: !!d.fly, hp: d.hp * sc, max: d.hp * sc,
+    var d = KINDS[k], sc = Math.pow(1.19, wave - 1), hp0 = d.hp * sc, dpsM = 1;
+    if (k === 'chief') { hp0 = Math.min(d.hp * sc, 10 + 6 * wave * Math.pow(1.08, wave)); dpsM = Math.min(1, 0.3 + 0.07 * wave); } // a wave-1 chief is a mini chief
+    else if (k === 'brute' && wave <= 3) dpsM = 0.6;
+    foes.push({ k: k, x: fieldR + K.rand(0, u), y: d.fly ? wallTop - K.rand(1.2, 3.2) * u : gy, fly: !!d.fly, hp: hp0, max: hp0, dpsM: dpsM,
       spd: d.spd * K.rand(0.9, 1.1), walk: K.rand(0, 6), hit: 0, burn: 0, atk: 0, bob: K.rand(0, 6), dead: 0, frozen: 0 });
   }
   function fire(K, ang, pow) {
@@ -85,7 +87,7 @@
       if (Math.random() < 0.08) addC(K, 1, f.x, gy - 2 * u);
       K.addScore(pts); K.floatText(Math.min(f.x, K.W - 40), (f.fly ? f.y : gy) - KINDS[f.k].sz * u * 2.1, '+' + pts, '#241B4D', 18);
       K.sfx(f.k === 'chief' ? 'boom' : 'die');
-      if (f.k === 'chief') { K.shake(8); K.confetti(40); addC(K, 5, f.x, gy - 2 * u); passAdd(K, 10); }
+      if (f.k === 'chief') { K.shake(8); K.confetti(40); addC(K, 5, f.x, gy - 2 * u); addGems(K, 1, f.x, gy - 3 * u); passAdd(K, 10); }
     } else K.sfx(head ? 'headshot' : 'thunk');
   }
   function dealCards(K) {
@@ -148,6 +150,7 @@
     ctx.restore();
     if (!f.dead && f.hp < f.max) { var w = s * 1.1; ctx.fillStyle = 'rgba(36,27,77,0.3)'; ctx.fillRect(x - w / 2, y - s * 2.05, w, 4); ctx.fillStyle = '#FF5FA2'; ctx.fillRect(x - w / 2, y - s * 2.05, w * Math.max(0, f.hp / f.max), 4); }
   }
+  function foeBar(ctx, K, f) { var s = KINDS[f.k].sz * u, x = f.x, y = f.fly ? f.y + Math.sin(K.time * 4 + f.bob) * u * 0.15 : gy; if (f.dead || f.hp >= f.max) return; var w = s * 1.1; ctx.fillStyle = 'rgba(36,27,77,0.45)'; K.roundRect(ctx, x - w / 2 - 1, y - s * 2.15 - 1, w + 2, 7, 3); ctx.fill(); ctx.fillStyle = f.k === 'chief' ? '#FFD23F' : '#FF5FA2'; K.roundRect(ctx, x - w / 2, y - s * 2.15, w * Math.max(0, f.hp / f.max), 5, 2.5); ctx.fill(); }
   function drawArcher(ctx, K, ang, pull) {
     var x = archer.x, y = archer.y, s = u;
     ctx.save(); ctx.translate(x, y);
@@ -186,7 +189,7 @@
   var BOWS = { // dmg / reload / arrow speed multipliers
     oak: { price: 0, dmg: 1, rel: 1, spd: 1, wood: '#8A5A2B' }, recurve: { price: 300, dmg: 1.25, rel: 1, spd: 1.05, wood: '#6B3F1F' },
     longbow: { price: 700, dmg: 1.4, rel: 1.05, spd: 1.15, wood: '#A8733E' }, crossbow: { price: 1200, dmg: 2, rel: 1.6, spd: 1.2, wood: '#4A4A5A' },
-    elven: { price: 2000, dmg: 1.5, rel: 0.75, spd: 1.1, wood: '#C9B458', pass: 15 }, dragon: { price: 3500, dmg: 1.8, rel: 0.9, spd: 1.1, wood: '#C0392B', fire: 1, pass: 30 }
+    elven: { price: 2000, gem: 60, dmg: 1.5, rel: 0.75, spd: 1.1, wood: '#C9B458', pass: 15 }, dragon: { price: 3500, gem: 120, dmg: 1.8, rel: 0.9, spd: 1.1, wood: '#C0392B', fire: 1, pass: 30 }
   };
   var BOW_ORDER = ['oak', 'recurve', 'longbow', 'crossbow', 'elven', 'dragon'];
   var SPECIALS = { bomb: { price: 60, icon: '💣', col: '#FF7F45' }, ice: { price: 50, icon: '❄️', col: '#5CC8F2' }, zap: { price: 80, icon: '⚡', col: '#FFD23F' } };
@@ -194,8 +197,8 @@
   var UPGS = { wall: { icon: '🧱', base: 100 }, power: { icon: '💪', base: 120 }, reload: { icon: '⏩', base: 120 }, gold: { icon: '🪙', base: 150 } }, UPG_ORDER = ['wall', 'power', 'reload', 'gold'], UPG_MAX = 5;
   var OUTFITS = {
     ranger: { price: 0, hood: '#3FA34D', body: '#6A55E0', dark: '#4B3BA8', cape: '#E8364F' }, crimson: { price: 150, hood: '#C0392B', body: '#E8364F', dark: '#A12436', cape: '#FFD23F' },
-    frost: { price: 250, hood: '#5CC8F2', body: '#E6F7FF', dark: '#9FC9E0', cape: '#2E86C1' }, royal: { price: 0, hood: '#8E44AD', body: '#FFD23F', dark: '#C9A21B', cape: '#8E44AD', pass: 5 },
-    shadow: { price: 0, hood: '#222233', body: '#3A3A4E', dark: '#22222E', cape: '#7A6CFF', pass: 10 }, golden: { price: 0, hood: '#FFD23F', body: '#FFF1B8', dark: '#E0B828', cape: '#E8364F', pass: 20 }
+    frost: { price: 250, hood: '#5CC8F2', body: '#E6F7FF', dark: '#9FC9E0', cape: '#2E86C1' }, royal: { price: 0, gem: 25, hood: '#8E44AD', body: '#FFD23F', dark: '#C9A21B', cape: '#8E44AD', pass: 5 },
+    shadow: { price: 0, gem: 40, hood: '#222233', body: '#3A3A4E', dark: '#22222E', cape: '#7A6CFF', pass: 10 }, golden: { price: 0, gem: 60, hood: '#FFD23F', body: '#FFF1B8', dark: '#E0B828', cape: '#E8364F', pass: 20 }
   };
   var OUTFIT_ORDER = ['ranger', 'crimson', 'frost', 'royal', 'shadow', 'golden'];
   // Rampart Pass: 30 tiers, 100 XP each; XP from kills, headshots, waves and missions
@@ -203,11 +206,17 @@
   function passReward(t) { // t = 1..30
     var fixed = { 5: ['outfit', 'royal'], 10: ['outfit', 'shadow'], 15: ['bow', 'elven'], 20: ['outfit', 'golden'], 25: ['coins', 400], 30: ['bow', 'dragon'] };
     if (fixed[t]) return fixed[t];
+    if (t % 3 === 0) return ['gems', 5 + Math.floor(t / 6) * 2];
     var cyc = [['coins', 40 + t * 4], ['spec', 'bomb', 2], ['spec', 'ice', 2], ['coins', 60 + t * 5], ['spec', 'zap', 2]];
     return cyc[t % cyc.length];
   }
   var MIS = { kill: [60, 'mKill'], head: [15, 'mHead'], wave: [6, 'mWave'], spec: [3, 'mSpec'], combo: [6, 'mCombo'], modes: [2, 'mModes'] }, MIS_PAY = [60, 90, 120];
   var K1, metaSel = 0, shopTab = 'bows', shopSel = 0, passScroll = 0, mode = 'siege', armed = null, bag = {}, timeLeft = 0, quiver = 0, rank = null, fx = [], ui = [], music = null, musicOn = false;
+  /* 3D item icons (Blender: tools/art/arrow/icons.py → games/art/arrow-rampart/i_*.webp); emoji until they load */
+  var iconCache = {};
+  function iconImg(id) { var o = iconCache[id]; if (!o) { o = iconCache[id] = new Image(); o.src = 'art/arrow-rampart/i_' + id + '.webp'; } return o.complete && o.naturalWidth ? o : null; }
+  function icon(ctx, id, x, y, size, fallback) { var im = iconImg(id); if (im) { ctx.drawImage(im, x - size / 2, y - size / 2, size, size); return; } if (fallback) { ctx.font = Math.round(size * 0.7) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fallback, x, y); } }
+  var view = null, viewTried = false;
   function S(k, d) { var v = K1.store.get('ar:' + k, d); return v === null || v === undefined ? d : v; }
   function SS(k, v) { K1.store.set('ar:' + k, v); }
   function owned(kind, id) { var o = S(kind, []); return (kind === 'bows' && id === 'oak') || (kind === 'outfits' && id === 'ranger') || (Array.isArray(o) && o.indexOf(id) >= 0); }
@@ -219,6 +228,9 @@
   function upgPrice(k) { var lv = upg(k); return lv >= UPG_MAX ? 0 : UPGS[k].base * (lv + 1); }
   function loadBag() { var o = S('bag', null); if (!o || typeof o !== 'object') o = { bomb: 2, ice: 2, zap: 1 }; SPEC_ORDER.forEach(function (k) { o[k] = Math.max(0, Math.min(9, o[k] || 0)); }); return o; }
   function saveBag() { SS('bag', bag); }
+  function gems() { return Math.max(0, Math.floor(S('gems', 0))); }
+  function addGems(K, n, x, y) { SS('gems', gems() + n); if (x !== undefined) K.floatText(x, y, '+' + n + ' 💎', '#3EC6FF', 20); }
+  function spendGems(n) { if (gems() < n) return false; SS('gems', gems() - n); return true; }
   function addC(K, n, x, y) { K.addCoins(Math.max(1, Math.round(n * (1 + 0.15 * upg('gold')))), x, y); }
   // pass
   function passXp() { return Math.max(0, S('xp', 0)); }
@@ -228,11 +240,11 @@
   function passClaim(K, t) {
     var got = S('claimed', []); if (!Array.isArray(got)) got = []; if (t > passTier() || got.indexOf(t) >= 0) { K.sfx('wrong'); return; }
     var r = passReward(t); got.push(t); SS('claimed', got);
-    if (r[0] === 'coins') addC(K, r[1]); else if (r[0] === 'spec') { bag[r[1]] = Math.min(9, (bag[r[1]] || 0) + r[2]); saveBag(); }
+    if (r[0] === 'coins') addC(K, r[1]); else if (r[0] === 'gems') addGems(K, r[1]); else if (r[0] === 'spec') { bag[r[1]] = Math.min(9, (bag[r[1]] || 0) + r[2]); saveBag(); }
     else if (r[0] === 'bow') own('bows', r[1]); else if (r[0] === 'outfit') own('outfits', r[1]);
     K.sfx('reward'); K.confetti(40); K.toast(rewardText(K, r));
   }
-  function rewardText(K, r) { return r[0] === 'coins' ? '+' + r[1] + ' 🪙' : r[0] === 'spec' ? '+' + r[2] + ' ' + SPECIALS[r[1]].icon : r[0] === 'bow' ? '🏹 ' + K.t('b_' + r[1]) : '👕 ' + K.t('o_' + r[1]); }
+  function rewardText(K, r) { return r[0] === 'gems' ? '+' + r[1] + ' 💎' : r[0] === 'coins' ? '+' + r[1] + ' 🪙' : r[0] === 'spec' ? '+' + r[2] + ' ' + SPECIALS[r[1]].icon : r[0] === 'bow' ? '🏹 ' + K.t('b_' + r[1]) : '👕 ' + K.t('o_' + r[1]); }
   // missions
   function misDay() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
   function missions() {
@@ -242,7 +254,7 @@
   }
   function misSet(K, k, v, max) { var o = missions(); if (o.ids.indexOf(k) < 0 || o.got[k]) return; var cur = o.p[k] || 0, nv = max ? Math.max(cur, v) : cur + v; if (nv === cur) return; var was = cur >= MIS[k][0]; o.p[k] = nv; SS('mis', o); if (!was && nv >= MIS[k][0]) { K.toast(K.t('misDone')); K.sfx('star'); } }
   function misReady() { var o = missions(); return o.ids.some(function (k) { return !o.got[k] && (o.p[k] || 0) >= MIS[k][0]; }); }
-  function misClaim(K, k) { var o = missions(), i = o.ids.indexOf(k); if (i < 0 || o.got[k] || (o.p[k] || 0) < MIS[k][0]) { K.sfx('wrong'); return; } o.got[k] = true; SS('mis', o); addC(K, MIS_PAY[i]); passAdd(K, 50); K.sfx('reward'); K.confetti(40); }
+  function misClaim(K, k) { var o = missions(), i = o.ids.indexOf(k); if (i < 0 || o.got[k] || (o.p[k] || 0) < MIS[k][0]) { K.sfx('wrong'); return; } o.got[k] = true; SS('mis', o); addC(K, MIS_PAY[i]); addGems(K, 3); passAdd(K, 50); K.sfx('reward'); K.confetti(40); }
   function playedMode(K) { var o = missions(); if (!Array.isArray(o.modes)) o.modes = []; if (o.modes.indexOf(mode) < 0) { o.modes.push(mode); SS('mis', o); } misSet(K, 'modes', o.modes.length, true); }
   // combo ranks
   var RANKS = [[5, 'rk1', '#FFFFFF'], [10, 'rk2', '#FFD23F'], [15, 'rk3', '#FF7F45'], [25, 'rk4', '#FF5FA2']];
@@ -278,6 +290,7 @@
     var W = K.W, H = K.H; ctx.fillStyle = 'rgba(30,22,64,0.9)'; ctx.fillRect(0, 0, W, H);
     ctx.font = K.font(Math.min(28, W / 14)); ctx.fillStyle = '#FFFFFF'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(title, W / 2, K.hudH + 18);
     if (phase !== 'hub') btn(ctx, K, 12, K.hudH + 2, 76, 34, 'rgba(255,255,255,0.18)', K.t('back'), 'back');
+    [['gem', gems(), '#3EC6FF']].forEach(function (c, i) { ctx.font = K.font(15); var tw = ctx.measureText(String(c[1])).width + 46, x = W - tw - 12, y = K.hudH + 2 + i * 38; ctx.fillStyle = 'rgba(255,255,255,0.14)'; K.roundRect(ctx, x, y, tw, 32, 16); ctx.fill(); icon(ctx, c[0], x + 16, y + 16, 28, '💎'); ctx.fillStyle = c[2]; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(String(c[1]), x + 32, y + 17); });
   }
   function drawHub(ctx, K) {
     var W = K.W, H = K.H; ui = []; panel(ctx, K, K.t('chooseMode'));
@@ -287,16 +300,16 @@
       if (!land && i === n - 1 && n % 2) x = (W - cw) / 2;
       ctx.fillStyle = sel ? '#FFFFFF' : 'rgba(255,255,255,0.12)'; K.roundRect(ctx, x, y, cw, ch, 16); ctx.fill();
       if (sel) { ctx.strokeStyle = M.col; ctx.lineWidth = 4; ctx.stroke(); }
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = Math.min(40, ch * 0.3) + 'px sans-serif'; ctx.fillText(M.icon, x + cw / 2, y + ch * 0.28);
-      ctx.fillStyle = sel ? '#241B4D' : '#FFFFFF'; ctx.font = K.font(Math.min(17, cw / 8)); ctx.fillText(K.t('m_' + m), x + cw / 2, y + ch * 0.58);
-      ctx.fillStyle = sel ? '#6E6890' : 'rgba(255,255,255,0.7)'; ctx.font = K.font(Math.min(11, cw / 13), 700); wrap(ctx, K.t('d_' + m), cw - 12).slice(0, 3).forEach(function (l, j) { ctx.fillText(l, x + cw / 2, y + ch * 0.7 + j * 12); });
+      var shortC = ch < 115; icon(ctx, 'm_' + m, x + cw / 2, y + ch * (shortC ? 0.2 : 0.27), Math.min(70, ch * (shortC ? 0.3 : 0.42), cw * 0.55), M.icon); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = sel ? '#241B4D' : '#FFFFFF'; ctx.font = K.font(Math.min(17, cw / 8, ch / 6)); ctx.fillText(K.t('m_' + m), x + cw / 2, y + ch * (shortC ? 0.45 : 0.58));
+      ctx.fillStyle = sel ? '#6E6890' : 'rgba(255,255,255,0.7)'; ctx.font = K.font(Math.min(11, cw / 13), 700); wrap(ctx, K.t('d_' + m), cw - 12).slice(0, shortC ? 2 : 3).forEach(function (l, j) { ctx.fillText(l, x + cw / 2, y + ch * (shortC ? 0.62 : 0.7) + j * 12); });
       var bst = S('best:' + m, 0); if (bst) { ctx.fillStyle = sel ? '#B8860B' : '#FFD23F'; ctx.font = K.font(10, 800); ctx.fillText('★ ' + bst, x + cw / 2, y + ch - 10); }
       ui.push({ x: x, y: y, w: cw, h: ch, act: 'mode', m: m });
     });
     var bh = Math.min(52, H * 0.1), by = H - bh - 14, tw = Math.min(560, W - 24), sw = (tw - 30) / 4, bx = (W - tw) / 2;
-    btn(ctx, K, bx, by, sw, bh, '#3B82F6', '🛒 ' + K.t('shop'), 'shop');
-    btn(ctx, K, bx + sw + 10, by, sw, bh, '#A855F7', '🎟️ ' + K.t('pass'), 'pass', passClaimable());
-    btn(ctx, K, bx + (sw + 10) * 2, by, sw, bh, '#F59E0B', '📜 ' + K.t('missions'), 'mis', misReady());
+    btn(ctx, K, bx, by, sw, bh, '#3B82F6', '   ' + K.t('shop'), 'shop'); icon(ctx, 'shop', bx + bh * 0.55, by + bh / 2, bh * 0.8);
+    btn(ctx, K, bx + sw + 10, by, sw, bh, '#A855F7', '   ' + K.t('pass'), 'pass', passClaimable()); icon(ctx, 'pass', bx + sw + 10 + bh * 0.55, by + bh / 2, bh * 0.8);
+    btn(ctx, K, bx + (sw + 10) * 2, by, sw, bh, '#F59E0B', '   ' + K.t('missions'), 'mis', misReady()); icon(ctx, 'mis', bx + (sw + 10) * 2 + bh * 0.55, by + bh / 2, bh * 0.8);
     btn(ctx, K, bx + (sw + 10) * 3, by, sw, bh, '#E8364F', '▶ ' + K.t('play'), 'go');
     // pass progress strip
     var px = (W - tw) / 2, py = by - 22, xp = passXp(), tier = passTier(), fr = tier >= PASS_N ? 1 : (xp % PASS_XP) / PASS_XP;
@@ -304,7 +317,8 @@
     ctx.fillStyle = '#FFFFFF'; ctx.font = K.font(11, 800); ctx.textAlign = 'left'; ctx.fillText(K.t('pass') + ' ' + K.t('tier') + ' ' + tier + '/' + PASS_N, px, py - 9); ctx.textAlign = 'center';
   }
   function wrap(ctx, txt, maxW) { var ws = String(txt).split(' '), ls = [], c = ''; ws.forEach(function (w) { var t = c ? c + ' ' + w : w; if (ctx.measureText(t).width > maxW && c) { ls.push(c); c = w; } else c = t; }); if (c) ls.push(c); return ls; }
-  function shopList() { return shopTab === 'bows' ? BOW_ORDER : shopTab === 'arrows' ? SPEC_ORDER : shopTab === 'upg' ? UPG_ORDER : OUTFIT_ORDER; }
+  var BUNDLE_GEMS = 15;
+  function shopList() { return shopTab === 'bows' ? BOW_ORDER : shopTab === 'arrows' ? SPEC_ORDER.concat(['bundle']) : shopTab === 'upg' ? UPG_ORDER : OUTFIT_ORDER; }
   function drawShop(ctx, K) {
     var W = K.W, H = K.H; ui = []; panel(ctx, K, K.t('shop'));
     var tabs = ['bows', 'arrows', 'upg', 'outfits'], tw = Math.min(480, W - 110), t4 = tw / 4, tx = (W - tw) / 2 + 40, ty = K.hudH + 42;
@@ -316,9 +330,11 @@
       var x = x0 + (i % cols) * (cw + gap), y = y0 + Math.floor(i / cols) * (ch + gap), sel = i === shopSel, st = itemState(K, id);
       ctx.fillStyle = sel ? '#FFFFFF' : 'rgba(255,255,255,0.1)'; K.roundRect(ctx, x, y, cw, ch, 14); ctx.fill(); if (sel) { ctx.strokeStyle = '#FFD23F'; ctx.lineWidth = 3; ctx.stroke(); }
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      if (shopTab === 'bows') { ctx.save(); ctx.translate(x + cw / 2, y + ch * 0.34); ctx.rotate(-0.6); ctx.strokeStyle = BOWS[id].wood; ctx.lineWidth = Math.max(3, ch * 0.05); ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(-ch * 0.05, 0, ch * 0.24, -1.15, 1.15); ctx.stroke(); ctx.strokeStyle = sel ? '#6E6890' : '#F4EFE4'; ctx.lineWidth = 1.5; var ex = -ch * 0.05 + Math.cos(1.15) * ch * 0.24, ey = Math.sin(1.15) * ch * 0.24; ctx.beginPath(); ctx.moveTo(ex, -ey); ctx.lineTo(ex, ey); ctx.stroke(); if (BOWS[id].fire) { ctx.fillStyle = '#FF7F45'; ctx.beginPath(); ctx.arc(ch * 0.2, 0, ch * 0.05, 0, K.TAU); ctx.fill(); } ctx.restore(); }
+      var ic = (shopTab === 'bows' ? 'b_' : shopTab === 'arrows' ? 's_' : shopTab === 'upg' ? 'u_' : 'o_') + id;
+      if (iconImg(ic)) icon(ctx, ic, x + cw / 2, y + ch * 0.33, Math.min(cw * 0.7, ch * 0.5));
+      else if (shopTab === 'bows') { ctx.save(); ctx.translate(x + cw / 2, y + ch * 0.34); ctx.rotate(-0.6); ctx.strokeStyle = BOWS[id].wood; ctx.lineWidth = Math.max(3, ch * 0.05); ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(-ch * 0.05, 0, ch * 0.24, -1.15, 1.15); ctx.stroke(); ctx.strokeStyle = sel ? '#6E6890' : '#F4EFE4'; ctx.lineWidth = 1.5; var ex = -ch * 0.05 + Math.cos(1.15) * ch * 0.24, ey = Math.sin(1.15) * ch * 0.24; ctx.beginPath(); ctx.moveTo(ex, -ey); ctx.lineTo(ex, ey); ctx.stroke(); if (BOWS[id].fire) { ctx.fillStyle = '#FF7F45'; ctx.beginPath(); ctx.arc(ch * 0.2, 0, ch * 0.05, 0, K.TAU); ctx.fill(); } ctx.restore(); }
       else if (shopTab === 'outfits') { var o = OUTFITS[id], s2 = ch * 0.17, cx = x + cw / 2, cy = y + ch * 0.4; ctx.fillStyle = o.body; K.roundRect(ctx, cx - s2, cy, s2 * 2, s2 * 1.6, s2 * 0.5); ctx.fill(); ctx.fillStyle = '#FFD9B8'; ctx.beginPath(); ctx.arc(cx, cy - s2 * 0.4, s2 * 0.8, 0, K.TAU); ctx.fill(); ctx.fillStyle = o.hood; ctx.beginPath(); ctx.arc(cx, cy - s2 * 0.5, s2 * 0.92, Math.PI * 0.95, Math.PI * 2.05); ctx.fill(); ctx.fillStyle = o.cape; ctx.beginPath(); ctx.moveTo(cx - s2 * 0.2, cy - s2 * 1.4); ctx.lineTo(cx - s2 * 1.3, cy - s2 * 1.9); ctx.lineTo(cx - s2 * 0.5, cy - s2 * 1.1); ctx.fill(); }
-      else { ctx.font = Math.min(38, ch * 0.3) + 'px sans-serif'; ctx.fillText(shopTab === 'arrows' ? SPECIALS[id].icon : UPGS[id].icon, x + cw / 2, y + ch * 0.32); }
+      else { ctx.font = Math.min(38, ch * 0.3) + 'px sans-serif'; ctx.fillText(shopTab === 'arrows' ? (SPECIALS[id] ? SPECIALS[id].icon : '🏹') : UPGS[id].icon, x + cw / 2, y + ch * 0.32); }
       ctx.fillStyle = sel ? '#241B4D' : '#FFFFFF'; ctx.font = K.font(Math.min(14, cw / 9)); ctx.fillText(K.t((shopTab === 'bows' ? 'b_' : shopTab === 'arrows' ? 's_' : shopTab === 'upg' ? 'u_' : 'o_') + id), x + cw / 2, y + ch * 0.66);
       ctx.fillStyle = st.col; ctx.font = K.font(Math.min(12, cw / 11), 800); ctx.fillText(st.txt, x + cw / 2, y + ch * 0.84);
       ui.push({ x: x, y: y, w: cw, h: ch, act: 'item', i: i });
@@ -329,23 +345,25 @@
   }
   function itemDesc(K, id) {
     if (shopTab === 'bows') { var b = BOWS[id]; return K.t('dmg') + ' ×' + b.dmg + ' · ' + K.t('speed') + ' ×' + b.spd + ' · ' + K.t('reload') + ' ×' + b.rel + (b.fire ? ' · 🔥' : '') + (b.pass ? ' · ' + K.t('passOnly').replace('%n', b.pass) : ''); }
-    if (shopTab === 'arrows') return K.t('s_' + id + 'D');
+    if (shopTab === 'arrows') return id === 'bundle' ? K.t('s_bundleD') : K.t('s_' + id + 'D');
     if (shopTab === 'upg') return K.t('u_' + id + 'D') + ' · Lv ' + upg(id) + '/' + UPG_MAX;
     return OUTFITS[id].pass ? K.t('passOnly').replace('%n', OUTFITS[id].pass) : '';
   }
   function itemState(K, id) {
-    if (shopTab === 'bows') { var b = BOWS[id], ow = owned('bows', id); return ow ? (bowId() === id ? { txt: '✓ ' + K.t('equipped'), col: '#22C55E', btn: K.t('equipped'), btnCol: '#22C55E' } : { txt: K.t('owned'), col: '#9AA7B8', btn: K.t('equip'), btnCol: '#3B82F6' }) : b.pass ? { txt: '🎟️ ' + b.pass, col: '#A855F7', btn: K.t('passOnly').replace('%n', b.pass), btnCol: '#6E6890' } : { txt: '🪙 ' + b.price, col: '#FFB020', btn: K.t('buy') + ' · ' + b.price, btnCol: '#FFB020' }; }
+    if (shopTab === 'bows') { var b = BOWS[id], ow = owned('bows', id); return ow ? (bowId() === id ? { txt: '✓ ' + K.t('equipped'), col: '#22C55E', btn: K.t('equipped'), btnCol: '#22C55E' } : { txt: K.t('owned'), col: '#9AA7B8', btn: K.t('equip'), btnCol: '#3B82F6' }) : b.gem ? { txt: '💎 ' + b.gem + ' · 🎟️ ' + b.pass, col: '#3EC6FF', btn: K.t('buy') + ' · 💎 ' + b.gem, btnCol: '#0EA5E9' } : { txt: '🪙 ' + b.price, col: '#FFB020', btn: K.t('buy') + ' · ' + b.price, btnCol: '#FFB020' }; }
+    if (shopTab === 'arrows' && id === 'bundle') return { txt: '💎 ' + BUNDLE_GEMS, col: '#3EC6FF', btn: K.t('buy') + ' · 💎 ' + BUNDLE_GEMS, btnCol: '#0EA5E9' };
     if (shopTab === 'arrows') { var sp = SPECIALS[id]; return { txt: '×' + (bag[id] || 0) + ' · 🪙 ' + sp.price, col: '#FFB020', btn: (bag[id] || 0) >= 9 ? K.t('maxed') : K.t('buy') + ' · ' + sp.price, btnCol: '#FFB020' }; }
     if (shopTab === 'upg') { var p = upgPrice(id); return { txt: 'Lv ' + upg(id) + '/' + UPG_MAX, col: '#FFD23F', btn: p ? K.t('upgrade') + ' · ' + p : K.t('maxed'), btnCol: p ? '#A855F7' : '#6E6890' }; }
     var o = OUTFITS[id], ow2 = owned('outfits', id), eqd = S('outfit', 'ranger') === id && ow2;
-    return ow2 ? (eqd ? { txt: '✓ ' + K.t('equipped'), col: '#22C55E', btn: K.t('equipped'), btnCol: '#22C55E' } : { txt: K.t('owned'), col: '#9AA7B8', btn: K.t('equip'), btnCol: '#3B82F6' }) : o.pass ? { txt: '🎟️ ' + o.pass, col: '#A855F7', btn: K.t('passOnly').replace('%n', o.pass), btnCol: '#6E6890' } : { txt: '🪙 ' + o.price, col: '#FFB020', btn: K.t('buy') + ' · ' + o.price, btnCol: '#FFB020' };
+    return ow2 ? (eqd ? { txt: '✓ ' + K.t('equipped'), col: '#22C55E', btn: K.t('equipped'), btnCol: '#22C55E' } : { txt: K.t('owned'), col: '#9AA7B8', btn: K.t('equip'), btnCol: '#3B82F6' }) : o.gem ? { txt: '💎 ' + o.gem + ' · 🎟️ ' + o.pass, col: '#3EC6FF', btn: K.t('buy') + ' · 💎 ' + o.gem, btnCol: '#0EA5E9' } : { txt: '🪙 ' + o.price, col: '#FFB020', btn: K.t('buy') + ' · ' + o.price, btnCol: '#FFB020' };
   }
   function shopBuy(K) {
     var id = shopList()[shopSel];
-    if (shopTab === 'bows') { var b = BOWS[id]; if (owned('bows', id)) { SS('bow', id); K.sfx('click'); return; } if (b.pass) { K.sfx('wrong'); return; } if (K.spend(b.price)) { own('bows', id); SS('bow', id); K.sfx('reward'); K.confetti(30); } else { K.sfx('wrong'); K.toast(K.t('needCoins')); } return; }
+    if (shopTab === 'bows') { var b = BOWS[id]; if (owned('bows', id)) { SS('bow', id); K.sfx('click'); return; } if (b.gem) { if (spendGems(b.gem)) { own('bows', id); SS('bow', id); K.sfx('reward'); K.confetti(30); } else { K.sfx('wrong'); K.toast(K.t('needGems')); } return; } if (K.spend(b.price)) { own('bows', id); SS('bow', id); K.sfx('reward'); K.confetti(30); } else { K.sfx('wrong'); K.toast(K.t('needCoins')); } return; }
+    if (shopTab === 'arrows' && id === 'bundle') { if (spendGems(BUNDLE_GEMS)) { SPEC_ORDER.forEach(function (k) { bag[k] = Math.min(9, (bag[k] || 0) + 3); }); saveBag(); K.sfx('reward'); K.confetti(20); } else { K.sfx('wrong'); K.toast(K.t('needGems')); } return; }
     if (shopTab === 'arrows') { if ((bag[id] || 0) >= 9) { K.sfx('wrong'); return; } if (K.spend(SPECIALS[id].price)) { bag[id] = (bag[id] || 0) + 1; saveBag(); K.sfx('coin'); } else { K.sfx('wrong'); K.toast(K.t('needCoins')); } return; }
     if (shopTab === 'upg') { var p = upgPrice(id); if (!p) { K.sfx('wrong'); return; } if (K.spend(p)) { var o = S('upg', {}); if (!o || typeof o !== 'object') o = {}; o[id] = upg(id) + 1; SS('upg', o); K.sfx('reward'); } else { K.sfx('wrong'); K.toast(K.t('needCoins')); } return; }
-    var of = OUTFITS[id]; if (owned('outfits', id)) { SS('outfit', id); K.sfx('click'); return; } if (of.pass) { K.sfx('wrong'); return; } if (K.spend(of.price)) { own('outfits', id); SS('outfit', id); K.sfx('reward'); K.confetti(30); } else { K.sfx('wrong'); K.toast(K.t('needCoins')); }
+    var of = OUTFITS[id]; if (owned('outfits', id)) { SS('outfit', id); K.sfx('click'); return; } if (of.gem) { if (spendGems(of.gem)) { own('outfits', id); SS('outfit', id); K.sfx('reward'); K.confetti(30); } else { K.sfx('wrong'); K.toast(K.t('needGems')); } return; } if (K.spend(of.price)) { own('outfits', id); SS('outfit', id); K.sfx('reward'); K.confetti(30); } else { K.sfx('wrong'); K.toast(K.t('needCoins')); }
   }
   function drawPass(ctx, K) {
     var W = K.W, H = K.H; ui = []; panel(ctx, K, '🎟️ ' + K.t('passTitle'));
@@ -359,8 +377,8 @@
       ctx.fillStyle = cl ? 'rgba(74,222,128,0.18)' : unl ? '#FFFFFF' : 'rgba(255,255,255,0.08)'; K.roundRect(ctx, x, y, cw, ch, 12); ctx.fill();
       if (big) { ctx.strokeStyle = '#FFD23F'; ctx.lineWidth = 3; ctx.stroke(); }
       ctx.fillStyle = unl && !cl ? '#241B4D' : '#FFFFFF'; ctx.font = K.font(11, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(K.t('tier') + ' ' + t, x + cw / 2, y + 14);
-      ctx.font = Math.min(30, cw * 0.32) + 'px sans-serif'; ctx.fillText(r[0] === 'coins' ? '🪙' : r[0] === 'spec' ? SPECIALS[r[1]].icon : r[0] === 'bow' ? '🏹' : '👕', x + cw / 2, y + ch * 0.4);
-      ctx.font = K.font(Math.min(11, cw / 8), 800); ctx.fillStyle = unl && !cl ? '#6E6890' : 'rgba(255,255,255,0.8)'; wrap(ctx, r[0] === 'coins' ? '+' + r[1] : r[0] === 'spec' ? '×' + r[2] + ' ' + K.t('s_' + r[1]) : K.t((r[0] === 'bow' ? 'b_' : 'o_') + r[1]), cw - 8).slice(0, 2).forEach(function (l, j) { ctx.fillText(l, x + cw / 2, y + ch * 0.62 + j * 13); });
+      icon(ctx, r[0] === 'coins' ? 'feather' : r[0] === 'gems' ? 'gem' : r[0] === 'spec' ? 's_' + r[1] : (r[0] === 'bow' ? 'b_' : 'o_') + r[1], x + cw / 2, y + ch * 0.4, Math.min(cw * 0.62, ch * 0.42), '🎁'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = K.font(Math.min(11, cw / 8), 800); ctx.fillStyle = unl && !cl ? '#6E6890' : 'rgba(255,255,255,0.8)'; wrap(ctx, r[0] === 'coins' || r[0] === 'gems' ? '+' + r[1] : r[0] === 'spec' ? '×' + r[2] + ' ' + K.t('s_' + r[1]) : K.t((r[0] === 'bow' ? 'b_' : 'o_') + r[1]), cw - 8).slice(0, 2).forEach(function (l, j) { ctx.fillText(l, x + cw / 2, y + ch * 0.62 + j * 13); });
       if (unl && !cl) { ctx.fillStyle = '#22C55E'; K.roundRect(ctx, x + 8, y + ch - 30, cw - 16, 24, 12); ctx.fill(); ctx.fillStyle = '#FFFFFF'; ctx.font = K.font(11); ctx.fillText(K.t('claim'), x + cw / 2, y + ch - 18); ui.push({ x: x, y: y, w: cw, h: ch, act: 'claim', t: t }); }
       else if (cl) { ctx.fillStyle = '#4ADE80'; ctx.font = K.font(16); ctx.fillText('✔', x + cw / 2, y + ch - 18); }
       else { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = K.font(13); ctx.fillText('🔒', x + cw / 2, y + ch - 18); }
@@ -427,7 +445,7 @@
       ctx.globalAlpha = n ? 1 : 0.45; ctx.fillStyle = 'rgba(36,27,77,0.3)'; ctx.beginPath(); ctx.arc(b.x, b.y + 3, b.r, 0, K.TAU); ctx.fill();
       ctx.fillStyle = on ? SPECIALS[b.k].col : '#FFFFFF'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, K.TAU); ctx.fill();
       if (on) { ctx.strokeStyle = '#241B4D'; ctx.lineWidth = 3; ctx.stroke(); }
-      ctx.font = (b.r * 0.9) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(SPECIALS[b.k].icon, b.x, b.y + 1);
+      icon(ctx, 's_' + b.k, b.x, b.y + 1, b.r * 1.7, SPECIALS[b.k].icon); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = '#241B4D'; ctx.beginPath(); ctx.arc(b.x + b.r * 0.72, b.y - b.r * 0.72, 9, 0, K.TAU); ctx.fill(); ctx.fillStyle = '#FFFFFF'; ctx.font = K.font(11); ctx.fillText(n, b.x + b.r * 0.72, b.y - b.r * 0.7);
       ctx.globalAlpha = 1;
     });
@@ -439,17 +457,17 @@
     id: 'arrow-rampart', coinRate: 0.02,
     title: { en: 'Arrow Rampart', fr: 'Rempart des Flèches', ar: 'سور السهام' },
     strings: {
-      en: { chooseMode: 'Choose a mode', shop: 'SHOP', pass: 'PASS', missions: 'MISSIONS', play: 'PLAY', back: 'Back', tier: 'Tier', tierUp: 'Pass tier %n reached!', passTitle: 'RAMPART PASS', claim: 'CLAIM', claimAll: 'CLAIM ALL', passHow: 'Earn XP: raiders, headshots, waves and missions', misNew: 'New missions every day', misDone: 'Mission complete!', m_siege: 'Siege', d_siege: 'Endless waves. Pick upgrades between waves.', m_boss: 'Boss Rush', d_boss: 'Big chiefs every wave. Bring your best bow!', m_head: 'Headhunter', d_head: 'Few arrows. Headshots give arrows back and triple points.', m_night: 'Night Raid', d_night: 'Dark skies full of flyers. Only the torch lights the way.', m_time: 'Time Attack', d_time: '90 seconds, endless raiders. Score as much as you can!', t_bows: 'Bows', t_arrows: 'Arrows', t_upg: 'Upgrades', t_outfits: 'Outfits', b_oak: 'Oak Bow', b_recurve: 'Recurve Bow', b_longbow: 'Longbow', b_crossbow: 'Crossbow', b_elven: 'Elven Bow', b_dragon: 'Dragon Bow', s_bomb: 'Bomb Arrow', s_ice: 'Ice Arrow', s_zap: 'Lightning Arrow', s_bombD: 'Explodes and hits every raider close by', s_iceD: 'Freezes raiders close by for 3 seconds', s_zapD: 'Lightning jumps to 4 raiders', u_wall: 'Stone Wall', u_power: 'Sharp Steel', u_reload: 'Quick Draw', u_gold: 'Treasure', u_wallD: '+20 wall strength per level', u_powerD: '+10% damage per level', u_reloadD: 'Reload 6% faster per level', u_goldD: '+15% coins per level', o_ranger: 'Ranger', o_crimson: 'Crimson', o_frost: 'Frost', o_royal: 'Royal', o_shadow: 'Shadow', o_golden: 'Golden', dmg: 'Damage', speed: 'Speed', reload: 'Reload', passOnly: 'Pass tier %n', buy: 'BUY', equip: 'EQUIP', equipped: 'EQUIPPED', owned: 'Owned', maxed: 'MAX', upgrade: 'UPGRADE', needCoins: 'Not enough coins', noArrows: 'Out of arrows!', arrowsLeft: 'Arrows', timeL: 'Time', rk1: 'NICE!', rk2: 'GREAT!', rk3: 'SUPERB!', rk4: 'LEGENDARY!', mKill: 'Defeat %n raiders', mHead: 'Land %n headshots', mWave: 'Reach wave %n', mSpec: 'Use %n special arrows', mCombo: 'Reach a %n combo', mModes: 'Play %n different modes',
+      en: { s_bundle: 'Arrow Bundle', s_bundleD: '+3 of every special arrow', needGems: 'Not enough gems', gems: 'Gems', chooseMode: 'Choose a mode', shop: 'SHOP', pass: 'PASS', missions: 'MISSIONS', play: 'PLAY', back: 'Back', tier: 'Tier', tierUp: 'Pass tier %n reached!', passTitle: 'RAMPART PASS', claim: 'CLAIM', claimAll: 'CLAIM ALL', passHow: 'Earn XP: raiders, headshots, waves and missions', misNew: 'New missions every day', misDone: 'Mission complete!', m_siege: 'Siege', d_siege: 'Endless waves. Pick upgrades between waves.', m_boss: 'Boss Rush', d_boss: 'Big chiefs every wave. Bring your best bow!', m_head: 'Headhunter', d_head: 'Few arrows. Headshots give arrows back and triple points.', m_night: 'Night Raid', d_night: 'Dark skies full of flyers. Only the torch lights the way.', m_time: 'Time Attack', d_time: '90 seconds, endless raiders. Score as much as you can!', t_bows: 'Bows', t_arrows: 'Arrows', t_upg: 'Upgrades', t_outfits: 'Outfits', b_oak: 'Oak Bow', b_recurve: 'Recurve Bow', b_longbow: 'Longbow', b_crossbow: 'Crossbow', b_elven: 'Elven Bow', b_dragon: 'Dragon Bow', s_bomb: 'Bomb Arrow', s_ice: 'Ice Arrow', s_zap: 'Lightning Arrow', s_bombD: 'Explodes and hits every raider close by', s_iceD: 'Freezes raiders close by for 3 seconds', s_zapD: 'Lightning jumps to 4 raiders', u_wall: 'Stone Wall', u_power: 'Sharp Steel', u_reload: 'Quick Draw', u_gold: 'Treasure', u_wallD: '+20 wall strength per level', u_powerD: '+10% damage per level', u_reloadD: 'Reload 6% faster per level', u_goldD: '+15% coins per level', o_ranger: 'Ranger', o_crimson: 'Crimson', o_frost: 'Frost', o_royal: 'Royal', o_shadow: 'Shadow', o_golden: 'Golden', dmg: 'Damage', speed: 'Speed', reload: 'Reload', passOnly: 'Pass tier %n', buy: 'BUY', equip: 'EQUIP', equipped: 'EQUIPPED', owned: 'Owned', maxed: 'MAX', upgrade: 'UPGRADE', needCoins: 'Not enough coins', noArrows: 'Out of arrows!', arrowsLeft: 'Arrows', timeL: 'Time', rk1: 'NICE!', rk2: 'GREAT!', rk3: 'SUPERB!', rk4: 'LEGENDARY!', mKill: 'Defeat %n raiders', mHead: 'Land %n headshots', mWave: 'Reach wave %n', mSpec: 'Use %n special arrows', mCombo: 'Reach a %n combo', mModes: 'Play %n different modes',
         hint: 'Pull back, let go!', tagline: 'Pull back, let go, and keep the raiders away from your wall!', wave: 'Wave', chief: 'Big chief!', head: 'Headshot!', combo: 'Combo', pick: 'Pick an upgrade', wall: 'Wall',
         power: 'Strong arrows', powerD: '+60% damage', quick: 'Quick hands', quickD: 'Shoot faster', multi: 'Extra arrow', multiD: '+1 arrow each shot', pierce: 'Sharp tips', pierceD: 'Arrows go through 1 more', fire: 'Fire arrows', fireD: 'Hits keep burning', repair: 'Repair wall', repairD: 'Fix 45% of the wall', stone: 'Thicker wall', stoneD: '+40 wall strength' },
-      fr: { chooseMode: 'Choisis un mode', shop: 'BOUTIQUE', pass: 'PASS', missions: 'MISSIONS', play: 'JOUER', back: 'Retour', tier: 'Palier', tierUp: 'Palier %n du pass atteint !', passTitle: 'PASS DU REMPART', claim: 'PRENDRE', claimAll: 'TOUT PRENDRE', passHow: 'Gagne de l’XP : pillards, tirs à la tête, vagues et missions', misNew: 'Nouvelles missions chaque jour', misDone: 'Mission accomplie !', m_siege: 'Siège', d_siege: 'Vagues sans fin. Choisis des bonus entre les vagues.', m_boss: 'Course aux chefs', d_boss: 'De grands chefs à chaque vague. Prends ton meilleur arc !', m_head: 'Chasseur de têtes', d_head: 'Peu de flèches. Les tirs à la tête en rendent et triplent les points.', m_night: 'Raid de nuit', d_night: 'Un ciel noir plein de volants. Seule la torche éclaire.', m_time: 'Contre la montre', d_time: '90 secondes, pillards sans fin. Marque un max de points !', t_bows: 'Arcs', t_arrows: 'Flèches', t_upg: 'Améliorations', t_outfits: 'Tenues', b_oak: 'Arc en chêne', b_recurve: 'Arc recourbé', b_longbow: 'Arc long', b_crossbow: 'Arbalète', b_elven: 'Arc elfique', b_dragon: 'Arc du dragon', s_bomb: 'Flèche bombe', s_ice: 'Flèche de glace', s_zap: 'Flèche éclair', s_bombD: 'Explose et touche les pillards proches', s_iceD: 'Gèle les pillards proches 3 secondes', s_zapD: 'L’éclair touche 4 pillards', u_wall: 'Mur de pierre', u_power: 'Acier tranchant', u_reload: 'Tir rapide', u_gold: 'Trésor', u_wallD: '+20 de solidité par niveau', u_powerD: '+10 % de dégâts par niveau', u_reloadD: 'Recharge 6 % plus vite par niveau', u_goldD: '+15 % de pièces par niveau', o_ranger: 'Rôdeur', o_crimson: 'Pourpre', o_frost: 'Givre', o_royal: 'Royal', o_shadow: 'Ombre', o_golden: 'Doré', dmg: 'Dégâts', speed: 'Vitesse', reload: 'Recharge', passOnly: 'Palier %n du pass', buy: 'ACHETER', equip: 'ÉQUIPER', equipped: 'ÉQUIPÉ', owned: 'Acquis', maxed: 'MAX', upgrade: 'AMÉLIORER', needCoins: 'Pas assez de pièces', noArrows: 'Plus de flèches !', arrowsLeft: 'Flèches', timeL: 'Temps', rk1: 'BIEN !', rk2: 'SUPER !', rk3: 'SUPERBE !', rk4: 'LÉGENDAIRE !', mKill: 'Bats %n pillards', mHead: 'Réussis %n tirs à la tête', mWave: 'Atteins la vague %n', mSpec: 'Utilise %n flèches spéciales', mCombo: 'Fais un combo de %n', mModes: 'Joue %n modes différents',
+      fr: { s_bundle: 'Lot de flèches', s_bundleD: '+3 de chaque flèche spéciale', needGems: 'Pas assez de gemmes', gems: 'Gemmes', chooseMode: 'Choisis un mode', shop: 'BOUTIQUE', pass: 'PASS', missions: 'MISSIONS', play: 'JOUER', back: 'Retour', tier: 'Palier', tierUp: 'Palier %n du pass atteint !', passTitle: 'PASS DU REMPART', claim: 'PRENDRE', claimAll: 'TOUT PRENDRE', passHow: 'Gagne de l’XP : pillards, tirs à la tête, vagues et missions', misNew: 'Nouvelles missions chaque jour', misDone: 'Mission accomplie !', m_siege: 'Siège', d_siege: 'Vagues sans fin. Choisis des bonus entre les vagues.', m_boss: 'Course aux chefs', d_boss: 'De grands chefs à chaque vague. Prends ton meilleur arc !', m_head: 'Chasseur de têtes', d_head: 'Peu de flèches. Les tirs à la tête en rendent et triplent les points.', m_night: 'Raid de nuit', d_night: 'Un ciel noir plein de volants. Seule la torche éclaire.', m_time: 'Contre la montre', d_time: '90 secondes, pillards sans fin. Marque un max de points !', t_bows: 'Arcs', t_arrows: 'Flèches', t_upg: 'Améliorations', t_outfits: 'Tenues', b_oak: 'Arc en chêne', b_recurve: 'Arc recourbé', b_longbow: 'Arc long', b_crossbow: 'Arbalète', b_elven: 'Arc elfique', b_dragon: 'Arc du dragon', s_bomb: 'Flèche bombe', s_ice: 'Flèche de glace', s_zap: 'Flèche éclair', s_bombD: 'Explose et touche les pillards proches', s_iceD: 'Gèle les pillards proches 3 secondes', s_zapD: 'L’éclair touche 4 pillards', u_wall: 'Mur de pierre', u_power: 'Acier tranchant', u_reload: 'Tir rapide', u_gold: 'Trésor', u_wallD: '+20 de solidité par niveau', u_powerD: '+10 % de dégâts par niveau', u_reloadD: 'Recharge 6 % plus vite par niveau', u_goldD: '+15 % de pièces par niveau', o_ranger: 'Rôdeur', o_crimson: 'Pourpre', o_frost: 'Givre', o_royal: 'Royal', o_shadow: 'Ombre', o_golden: 'Doré', dmg: 'Dégâts', speed: 'Vitesse', reload: 'Recharge', passOnly: 'Palier %n du pass', buy: 'ACHETER', equip: 'ÉQUIPER', equipped: 'ÉQUIPÉ', owned: 'Acquis', maxed: 'MAX', upgrade: 'AMÉLIORER', needCoins: 'Pas assez de pièces', noArrows: 'Plus de flèches !', arrowsLeft: 'Flèches', timeL: 'Temps', rk1: 'BIEN !', rk2: 'SUPER !', rk3: 'SUPERBE !', rk4: 'LÉGENDAIRE !', mKill: 'Bats %n pillards', mHead: 'Réussis %n tirs à la tête', mWave: 'Atteins la vague %n', mSpec: 'Utilise %n flèches spéciales', mCombo: 'Fais un combo de %n', mModes: 'Joue %n modes différents',
         hint: 'Tire en arrière, lâche !', tagline: 'Tire, lâche et garde les pillards loin de ton rempart !', wave: 'Vague', chief: 'Grand chef !', head: 'En pleine tête !', combo: 'Combo', pick: 'Choisis une amélioration', wall: 'Mur',
         power: 'Flèches fortes', powerD: '+60 % de dégâts', quick: 'Mains rapides', quickD: 'Tire plus vite', multi: 'Flèche bonus', multiD: '+1 flèche par tir', pierce: 'Pointes fines', pierceD: 'Traverse 1 ennemi de plus', fire: 'Flèches de feu', fireD: 'Les coups brûlent', repair: 'Réparer', repairD: 'Répare 45 % du mur', stone: 'Mur épais', stoneD: '+40 de solidité' },
-      ar: { chooseMode: 'اختر وضعاً', shop: 'المتجر', pass: 'التذكرة', missions: 'المهام', play: 'العب', back: 'رجوع', tier: 'المستوى', tierUp: 'وصلت إلى مستوى التذكرة %n!', passTitle: 'تذكرة السور', claim: 'استلم', claimAll: 'استلم الكل', passHow: 'اكسب الخبرة: الغزاة والإصابات في الرأس والموجات والمهام', misNew: 'مهام جديدة كل يوم', misDone: 'اكتملت المهمة!', m_siege: 'الحصار', d_siege: 'موجات لا تنتهي. اختر تحسينات بين الموجات.', m_boss: 'سباق الزعماء', d_boss: 'زعماء كبار في كل موجة. أحضر أفضل قوس!', m_head: 'صائد الرؤوس', d_head: 'سهام قليلة. الإصابة في الرأس تعيد السهام وتضاعف النقاط ثلاثاً.', m_night: 'غارة ليلية', d_night: 'سماء مظلمة مليئة بالطائرين. الشعلة وحدها تضيء.', m_time: 'سباق الوقت', d_time: '90 ثانية وغزاة بلا نهاية. اجمع أكبر عدد من النقاط!', t_bows: 'الأقواس', t_arrows: 'السهام', t_upg: 'التحسينات', t_outfits: 'الأزياء', b_oak: 'قوس البلوط', b_recurve: 'القوس المنحني', b_longbow: 'القوس الطويل', b_crossbow: 'القوس والنشاب', b_elven: 'قوس الجان', b_dragon: 'قوس التنين', s_bomb: 'سهم القنبلة', s_ice: 'سهم الجليد', s_zap: 'سهم البرق', s_bombD: 'ينفجر ويصيب الغزاة القريبين', s_iceD: 'يجمد الغزاة القريبين 3 ثوانٍ', s_zapD: 'البرق يقفز إلى 4 غزاة', u_wall: 'سور حجري', u_power: 'فولاذ حاد', u_reload: 'سحب سريع', u_gold: 'كنز', u_wallD: '+20 لقوة السور لكل مستوى', u_powerD: '+10٪ ضرر لكل مستوى', u_reloadD: 'إعادة تلقيم أسرع 6٪ لكل مستوى', u_goldD: '+15٪ عملات لكل مستوى', o_ranger: 'الحارس', o_crimson: 'القرمزي', o_frost: 'الصقيع', o_royal: 'الملكي', o_shadow: 'الظل', o_golden: 'الذهبي', dmg: 'الضرر', speed: 'السرعة', reload: 'التلقيم', passOnly: 'مستوى التذكرة %n', buy: 'اشترِ', equip: 'جهّز', equipped: 'مُجهّز', owned: 'مملوك', maxed: 'الأقصى', upgrade: 'طوّر', needCoins: 'لا توجد عملات كافية', noArrows: 'نفدت السهام!', arrowsLeft: 'السهام', timeL: 'الوقت', rk1: 'جميل!', rk2: 'رائع!', rk3: 'مذهل!', rk4: 'أسطوري!', mKill: 'اهزم %n غازياً', mHead: 'أصب %n مرات في الرأس', mWave: 'اوصل إلى الموجة %n', mSpec: 'استخدم %n سهام خاصة', mCombo: 'حقق سلسلة %n', mModes: 'العب %n أوضاع مختلفة',
+      ar: { s_bundle: 'حزمة السهام', s_bundleD: '+3 من كل سهم خاص', needGems: 'لا توجد جواهر كافية', gems: 'جواهر', chooseMode: 'اختر وضعاً', shop: 'المتجر', pass: 'التذكرة', missions: 'المهام', play: 'العب', back: 'رجوع', tier: 'المستوى', tierUp: 'وصلت إلى مستوى التذكرة %n!', passTitle: 'تذكرة السور', claim: 'استلم', claimAll: 'استلم الكل', passHow: 'اكسب الخبرة: الغزاة والإصابات في الرأس والموجات والمهام', misNew: 'مهام جديدة كل يوم', misDone: 'اكتملت المهمة!', m_siege: 'الحصار', d_siege: 'موجات لا تنتهي. اختر تحسينات بين الموجات.', m_boss: 'سباق الزعماء', d_boss: 'زعماء كبار في كل موجة. أحضر أفضل قوس!', m_head: 'صائد الرؤوس', d_head: 'سهام قليلة. الإصابة في الرأس تعيد السهام وتضاعف النقاط ثلاثاً.', m_night: 'غارة ليلية', d_night: 'سماء مظلمة مليئة بالطائرين. الشعلة وحدها تضيء.', m_time: 'سباق الوقت', d_time: '90 ثانية وغزاة بلا نهاية. اجمع أكبر عدد من النقاط!', t_bows: 'الأقواس', t_arrows: 'السهام', t_upg: 'التحسينات', t_outfits: 'الأزياء', b_oak: 'قوس البلوط', b_recurve: 'القوس المنحني', b_longbow: 'القوس الطويل', b_crossbow: 'القوس والنشاب', b_elven: 'قوس الجان', b_dragon: 'قوس التنين', s_bomb: 'سهم القنبلة', s_ice: 'سهم الجليد', s_zap: 'سهم البرق', s_bombD: 'ينفجر ويصيب الغزاة القريبين', s_iceD: 'يجمد الغزاة القريبين 3 ثوانٍ', s_zapD: 'البرق يقفز إلى 4 غزاة', u_wall: 'سور حجري', u_power: 'فولاذ حاد', u_reload: 'سحب سريع', u_gold: 'كنز', u_wallD: '+20 لقوة السور لكل مستوى', u_powerD: '+10٪ ضرر لكل مستوى', u_reloadD: 'إعادة تلقيم أسرع 6٪ لكل مستوى', u_goldD: '+15٪ عملات لكل مستوى', o_ranger: 'الحارس', o_crimson: 'القرمزي', o_frost: 'الصقيع', o_royal: 'الملكي', o_shadow: 'الظل', o_golden: 'الذهبي', dmg: 'الضرر', speed: 'السرعة', reload: 'التلقيم', passOnly: 'مستوى التذكرة %n', buy: 'اشترِ', equip: 'جهّز', equipped: 'مُجهّز', owned: 'مملوك', maxed: 'الأقصى', upgrade: 'طوّر', needCoins: 'لا توجد عملات كافية', noArrows: 'نفدت السهام!', arrowsLeft: 'السهام', timeL: 'الوقت', rk1: 'جميل!', rk2: 'رائع!', rk3: 'مذهل!', rk4: 'أسطوري!', mKill: 'اهزم %n غازياً', mHead: 'أصب %n مرات في الرأس', mWave: 'اوصل إلى الموجة %n', mSpec: 'استخدم %n سهام خاصة', mCombo: 'حقق سلسلة %n', mModes: 'العب %n أوضاع مختلفة',
         hint: 'اسحب للخلف ثم أفلت!', tagline: 'اسحب وأفلت وأبعد الغزاة عن سورك!', wave: 'الموجة', chief: 'الزعيم الكبير!', head: 'إصابة في الرأس!', combo: 'سلسلة', pick: 'اختر تحسيناً', wall: 'السور',
         power: 'سهام قوية', powerD: '+60٪ ضرر', quick: 'أيدٍ سريعة', quickD: 'إطلاق أسرع', multi: 'سهم إضافي', multiD: '+1 سهم في كل رمية', pierce: 'رؤوس حادة', pierceD: 'يخترق عدواً إضافياً', fire: 'سهام نارية', fireD: 'الإصابات تحترق', repair: 'إصلاح السور', repairD: 'يصلح 45٪ من السور', stone: 'سور أسمك', stoneD: '+40 لقوة السور' }
     },
-    resize: layout,
+    resize: function (K) { layout(K); if (view) view.resize(K.W, K.H, window.devicePixelRatio || 1); },
     idle: function (dt, K, st) { if (music && musicOn && K) music.mood(K, 'menu', null); },
     reset: function (K) {
       if (K.test) K.dbg = function () {
@@ -517,7 +535,7 @@
         spawnT -= dt; if (queue.length && spawnT <= 0) { spawn(K, queue.shift()); spawnT = Math.max(0.3, 1.3 - wave * 0.07) * K.rand(0.5, 1.4); }
         if (!queue.length && !foes.length) {
           var bonus = 20 + wave * 5; K.addScore(bonus); K.floatText(K.W / 2, K.hudH + 80, '+' + bonus, '#B8860B', 26); K.sfx('star');
-          addC(K, 2 + Math.floor(wave / 2), K.W / 2, K.hudH + 100); passAdd(K, 10); misSet(K, 'wave', wave, true);
+          addC(K, 2 + Math.floor(wave / 2), K.W / 2, K.hudH + 100); if (wave % 5 === 0) addGems(K, 2, K.W / 2, K.hudH + 130); passAdd(K, 10); misSet(K, 'wave', wave, true);
           dealCards(K); K.sfx('card');
         }
       }
@@ -531,7 +549,7 @@
         var sx = stopX(f);
         if (f.x > sx) { f.x = Math.max(sx, f.x - f.spd * pace * dt); f.walk += dt * f.spd * 6; f.atk = 0; }
         else {
-          f.atk += dt; hp -= d.dps * dt; wallHit = 1;
+          f.atk += dt; hp -= d.dps * (f.dpsM || 1) * dt; wallHit = 1;
           if (Math.floor(f.atk * 1.4) !== Math.floor((f.atk - dt) * 1.4)) { K.sfx('wall'); if (Math.random() < 0.3) K.sfx('grunt'); K.burst(wallX + 2, (f.fly ? f.y : gy) - d.sz * u, ['#C9C3E0', '#8A84A8'], 4, 90, 3); if (f.k === 'chief' || f.k === 'brute') K.shake(3); }
         }
       });
@@ -565,6 +583,12 @@
     },
     draw: function (ctx, K, state) {
       var W = K.W, H = K.H, i;
+      if (!view && !viewTried && window.ArrowView && !(K.test && !/[?&]3d\b/.test(location.search))) { /* tests run the 2D path (software WebGL is too slow for timed bots) unless ?test&3d */ viewTried = true; try { view = window.ArrowView(document.getElementById('stage')); if (view) view.resize(W, H, window.devicePixelRatio || 1); } catch (e) { view = null; } }
+      if (view) { var fe = window.__bubzi && window.__bubzi.feel ? window.__bubzi.feel() : { x: 0, y: 0 }, O3 = outfit(), B3 = bow();
+        view.render({ u: u, gy: gy, wallX: wallX, wallTop: wallTop, hudH: K.hudH, archer: archer, aimAng: aimAng, pull: aimPow > 0.05 ? aimPow : lastFire > 0 ? -0.2 : 0, ready: reload <= 0 && phase !== 'hub' && phase !== 'shop' && phase !== 'pass' && phase !== 'mis',
+          outfit: O3, bowWood: B3.wood, bowFire: B3.fire, fireArrows: up.fire > 0 || !!B3.fire, foes: foes, arrows: arrows, stuck: stuck, fx: fx, kinds: KINDS, mode: phase === 'hub' || phase === 'shop' || phase === 'pass' || phase === 'mis' ? S('mode', 'siege') : mode, time: K.time,
+          shake: fe, wallDmg: 1 - hp / maxHp, wallHit: wallHit }); }
+      else {
       // sky + hills
       var g = ctx.createLinearGradient(0, K.hudH, 0, gy); g.addColorStop(0, '#8FD8FF'); g.addColorStop(1, '#E6F7FF'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
@@ -591,6 +615,7 @@
       // banner
       ctx.fillStyle = '#8A5A2B'; ctx.fillRect(wallX - u * 0.4, wallTop - u * 2.6, 3, u * 2); ctx.fillStyle = '#E8364F'; ctx.beginPath(); ctx.moveTo(wallX - u * 0.4 + 3, wallTop - u * 2.6); ctx.lineTo(wallX + u * 0.5, wallTop - u * 2.35 + Math.sin(K.time * 5) * 2); ctx.lineTo(wallX - u * 0.4 + 3, wallTop - u * 2.05); ctx.fill();
       ctx.restore();
+      }
       K.steady(ctx, function () { // HUD layer: stays still while the scene shakes
       if (phase === 'hub' || phase === 'shop' || phase === 'pass' || phase === 'mis') return;
       // wall health bar
@@ -601,7 +626,7 @@
       ctx.font = K.font(12); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#241B4D'; ctx.fillText('🧱 ' + Math.ceil(hp) + ' / ' + maxHp, hbx + hbw / 2, hby + 10);
       // upgrades owned
       var ux = hbx; ctx.font = K.font(14); ctx.textAlign = 'left';
-      ['power', 'quick', 'multi', 'pierce', 'fire'].forEach(function (k) { if (up[k]) { var t = CARD_ICON[k] + (up[k] > 1 ? up[k] : ''); ctx.fillText(t, ux, hby + 34); ux += ctx.measureText(t).width + 8; } });
+      ['power', 'quick', 'multi', 'pierce', 'fire'].forEach(function (k) { if (up[k]) { icon(ctx, 'c_' + k, ux + 12, hby + 34, 26, CARD_ICON[k]); ctx.textAlign = 'left'; ctx.fillStyle = '#241B4D'; if (up[k] > 1) ctx.fillText(up[k], ux + 24, hby + 40); ux += up[k] > 1 ? 40 : 30; } });
       });
       // aim guide
       var showPow = aimPow > 0.05;
@@ -611,18 +636,22 @@
         if (drag) { ctx.strokeStyle = 'rgba(36,27,77,0.25)'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(drag.x0, drag.y0); ctx.lineTo(drag.x, drag.y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = 'rgba(36,27,77,0.25)'; ctx.beginPath(); ctx.arc(drag.x0, drag.y0, 8, 0, K.TAU); ctx.fill(); }
       }
       // stuck arrows, raiders, flying arrows
-      stuck.forEach(function (s) { var a = 1 - Math.max(0, s.t - 1.2) / 0.4; ctx.globalAlpha = a; if (s.f) arrowShape(ctx, K, s.f.x + s.dx, (s.f.fly ? s.f.y : gy) + s.dy, s.a, u * 0.9, 0); else arrowShape(ctx, K, s.x, s.y, s.a, u * 0.9, 0); ctx.globalAlpha = 1; });
+      if (!view) stuck.forEach(function (s) { var a = 1 - Math.max(0, s.t - 1.2) / 0.4; ctx.globalAlpha = a; if (s.f) arrowShape(ctx, K, s.f.x + s.dx, (s.f.fly ? s.f.y : gy) + s.dy, s.a, u * 0.9, 0); else arrowShape(ctx, K, s.x, s.y, s.a, u * 0.9, 0); ctx.globalAlpha = 1; });
+      if (view) { ctx.globalAlpha = 1; foes.forEach(function (f) { foeBar(ctx, K, f); }); }
+      else {
       foes.slice().sort(function (a, b) { return (a.fly ? 0 : 1) - (b.fly ? 0 : 1) || b.x - a.x; }).forEach(function (f) { drawFoe(ctx, K, f); });
       drawArcher(ctx, K, aimAng, showPow ? aimPow : lastFire > 0 ? -0.2 : 0);
       arrows.forEach(function (ar) { arrowShape(ctx, K, ar.x, ar.y, Math.atan2(ar.vy, ar.vx), u * 0.9, up.fire); });
+      }
       // special-arrow effects
       fx.forEach(function (q) { var a2 = 1 - q.t / 0.5; ctx.globalAlpha = Math.max(0, a2);
-        if (q.k === 'ring') { ctx.strokeStyle = q.col; ctx.lineWidth = 6 * a2 + 1; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (0.4 + q.t * 1.4), 0, K.TAU); ctx.stroke(); }
+        if (q.k === 'ring' && view) { /* drawn in 3D */ }
+        else if (q.k === 'ring') { ctx.strokeStyle = q.col; ctx.lineWidth = 6 * a2 + 1; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (0.4 + q.t * 1.4), 0, K.TAU); ctx.stroke(); }
         else { ctx.strokeStyle = '#FFF6A8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(q.x, q.y); for (var z = 1; z < 6; z++) ctx.lineTo(q.x + (q.x2 - q.x) * z / 6 + (Math.random() - 0.5) * 18, q.y + (q.y2 - q.y) * z / 6 + (Math.random() - 0.5) * 18); ctx.lineTo(q.x2, q.y2); ctx.stroke(); }
         ctx.globalAlpha = 1; });
       if (armed && phase !== 'cards') { ctx.fillStyle = SPECIALS[armed].col; ctx.beginPath(); ctx.arc(archer.x, archer.y - u * 1.6, u * 0.22 + Math.sin(K.time * 10) * 2, 0, K.TAU); ctx.fill(); }
       // night raid: darkness with a warm torch light around the archer
-      if (mode === 'night' && phase !== 'hub' && phase !== 'shop' && phase !== 'pass' && phase !== 'mis') {
+      if (!view && mode === 'night' && phase !== 'hub' && phase !== 'shop' && phase !== 'pass' && phase !== 'mis') {
         var ng = ctx.createRadialGradient(archer.x, archer.y, u * 2, archer.x, archer.y, Math.max(W, H) * 0.75); ng.addColorStop(0, 'rgba(255,190,90,0.05)'); ng.addColorStop(0.35, 'rgba(12,10,40,0.45)'); ng.addColorStop(1, 'rgba(8,6,30,0.82)');
         ctx.fillStyle = ng; ctx.fillRect(0, 0, W, H);
         foes.forEach(function (f) { if (f.dead) return; var b = body(f); ctx.fillStyle = '#FFE66B'; ctx.beginPath(); ctx.arc(b.hx - 4, b.hy, 2.2, 0, K.TAU); ctx.arc(b.hx + 4, b.hy, 2.2, 0, K.TAU); ctx.fill(); });
@@ -641,7 +670,7 @@
           ctx.fillStyle = '#C9B8FF'; K.roundRect(ctx, -c.w / 2, -c.h / 2 + 6, c.w, c.h, 18); ctx.fill();
           ctx.fillStyle = '#FFFFFF'; K.roundRect(ctx, -c.w / 2, -c.h / 2, c.w, c.h, 18); ctx.fill();
           ctx.fillStyle = '#F1ECFF'; K.roundRect(ctx, -c.w / 2 + 10, -c.h / 2 + 10, c.w - 20, c.h * 0.42, 14); ctx.fill();
-          ctx.font = (c.h * 0.22) + 'px sans-serif'; ctx.fillText(CARD_ICON[c.id], 0, -c.h / 2 + 10 + c.h * 0.21);
+          icon(ctx, 'c_' + c.id, 0, -c.h / 2 + 10 + c.h * 0.21, c.h * 0.38, CARD_ICON[c.id]); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.font = K.font(Math.max(13, Math.min(17, c.w * 0.12))); ctx.fillStyle = '#241B4D'; ctx.fillText(K.t(c.id), 0, c.h * 0.1);
           ctx.font = K.font(Math.max(11, Math.min(13, c.w * 0.09))); ctx.fillStyle = '#6E6890';
           var words = K.t(c.id + 'D').split(' '), line = '', ly = c.h * 0.25, lines = [];
