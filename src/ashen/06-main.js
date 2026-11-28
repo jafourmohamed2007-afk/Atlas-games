@@ -26,12 +26,13 @@ window.addEventListener('keydown', (e) => {
   const k = e.code; KEYS[k] = true;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(k)) e.preventDefault();
   UI.touch = false;
+  if (G.state === 'shop' && (k === 'Escape' || k === 'KeyP')) { closeShop(); return; }
   if (k === 'KeyP' || k === 'Escape') {
     if (G.state === 'play' || G.state === 'pause') togglePause();
     else if (G.state === 'title' && SCREEN !== 'title') SCREEN = 'title';
     return;
   }
-  if (G.state === 'play') return;
+  if (G.state === 'play') { if (k === 'Space' || k === 'ShiftLeft' || k === 'ShiftRight') tryDash(); return; }
   if (G.state === 'levelup' && /^Digit[1-4]$/.test(k)) { UI.pickN = +k.slice(5); return; }
   if (G.state === 'levelup' && k === 'KeyR') { reroll(); return; }
   if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'Tab' || k === 'KeyD' || k === 'KeyS') { if (UI.focus && UI.focus[0] === 's' && UI.focus.length === 2 && (k === 'ArrowRight' || k === 'KeyD')) UI.nudge = 1; else uiNav(1); e.preventDefault(); }
@@ -51,7 +52,8 @@ screenC.addEventListener('pointerdown', (e) => {
   UI.touch = e.pointerType === 'touch';
   const [x, y] = toBuf(e); UI.mx = x; UI.my = y; UI.down = true;
   pdown[e.pointerId] = { x, y, joy: false };
-  if (G.state === 'play' && x < W / 2 && !JOY.on && !(x < 82 && y < 40)) {
+  if (G.state === 'play' && x >= W / 2 && !(y < 46 && x > W - 40)) { tryDash(); pdown[e.pointerId].joy = true; }
+  else if (G.state === 'play' && x < W / 2 && !JOY.on && !(x < 82 && y < 40)) {
     Object.assign(JOY, { on: true, id: e.pointerId, bx: x, by: y, kx: x, ky: y, dx: 0, dy: 0 }); pdown[e.pointerId].joy = true;
   }
   try { screenC.setPointerCapture(e.pointerId); } catch (er) { }
@@ -103,7 +105,7 @@ function frame(now) {
     if (acc > STEP * 4) acc = 0;
   } else if (G.state === 'dying' || G.state === 'victory') {
     updateParticles(dt * 0.5); G.endT -= dt;
-    if (G.endT <= 0) { bankGold(); G.state = G.state === 'dying' ? 'over' : 'win'; }
+    if (G.endT <= 0) { if (G.state === 'dying') { bankGold(); G.state = 'over'; } else G.state = 'dawn'; }
   } else acc = 0;
   VO.update(dt);
   render(dt);
@@ -120,6 +122,8 @@ function render(dt) {
     else if (G.state === 'pause') { drawHUD(true); drawPause(); }
     else if (G.state === 'levelup') { drawHUD(true); drawLevelUp(); drawVoice(H - 26); }
     else if (G.state === 'chest') { drawHUD(true); drawChest(dt); }
+    else if (G.state === 'shop') { drawHUD(true); drawMerchant(); }
+    else if (G.state === 'dawn') drawDawn();
     else if (G.state === 'dying' || G.state === 'victory') drawVoice(42);
     else if (G.state === 'over') drawEnd(false);
     else if (G.state === 'win') drawEnd(true);
@@ -142,5 +146,5 @@ window.__av = {
   spawn: (type, n, o) => { for (let i = 0; i < (n || 1); i++) { const [x, y] = ringPos(rand(0, 60)); spawnEnemy(type, x, y, o); } },
   setTime: (s) => { G.time = s; while (EVENTS[G.evi] && EVENTS[G.evi].t <= s - 0.01) G.evi++; },
   chest: () => dropItem('chest', P.x, P.y + 4), xp: (v) => addXP(v), hurt: (d) => damagePlayer(d), smite, ui: UI,
-  layout: () => ({ W, H, SC, DPR }), enemies: () => enemies.list, gems: () => gems.list, items: () => items.list
+  layout: () => ({ W, H, SC, DPR }), merchant: () => { G.merchantT = 0; }, boss: (t) => spawnBoss(t), endless: enterEndless, dash: tryDash, hazards: () => hazards.list, enemies: () => enemies.list, gems: () => gems.list, items: () => items.list
 };

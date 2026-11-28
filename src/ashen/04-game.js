@@ -84,14 +84,28 @@ const ED = {
   archer: { hp: 15, spd: 30, dmg: 6, xp: 2, r: 5, h: 14, spr: 'archer', kb: 1, col: C.pale },
   toad: { hp: 24, spd: 34, dmg: 5, xp: 2, r: 6, h: 12, spr: 'toad', kb: 0.8, col: C.lime },
   wraith: { hp: 20, spd: 42, dmg: 8, xp: 2, r: 5, h: 13, spr: 'wraith', kb: 0.9, fly: 1, col: C.cyan },
+  spider: { hp: 6, spd: 60, dmg: 4, xp: 1, r: 4, h: 7, spr: 'spider', kb: 1.3, col: C.red },
+  revenant: { hp: 70, spd: 22, dmg: 14, xp: 4, r: 6, h: 15, spr: 'revenant', kb: 0.3, armor: 0.35, col: C.fog },
+  imp: { hp: 18, spd: 40, dmg: 6, xp: 2, r: 4, h: 9, spr: 'imp', kb: 1, fly: 1, col: C.ember },
+  necro: { hp: 45, spd: 24, dmg: 8, xp: 5, r: 5, h: 14, spr: 'necro', kb: 0.6, col: C.purple },
+  shade: { hp: 30, spd: 38, dmg: 10, xp: 3, r: 5, h: 12, spr: 'shade', kb: 0.7, col: C.violet },
   golem: { hp: 2200, spd: 21, dmg: 22, xp: 80, r: 12, h: 18, spr: 'golem', kb: 0, boss: 1, col: C.bone },
+  matriarch: { hp: 2600, spd: 34, dmg: 20, xp: 120, r: 12, h: 13, spr: 'matriarch', kb: 0, boss: 1, fly: 1, col: C.red },
+  toadking: { hp: 3400, spd: 26, dmg: 24, xp: 150, r: 13, h: 16, spr: 'toadking', kb: 0, boss: 1, col: C.lime },
+  lich: { hp: 4400, spd: 30, dmg: 22, xp: 200, r: 9, h: 16, spr: 'lich', kb: 0, boss: 1, col: C.cyan },
   reaper: { hp: 45000, spd: 38, dmg: 30, xp: 0, r: 14, h: 24, spr: 'reaper', kb: 0, boss: 2, col: C.pale },
   lantern: { hp: 1, spd: 0, dmg: 0, xp: 0, r: 5, h: 12, spr: 'lantern', kb: 0, col: C.gold }
 };
 const SPAWN_TABLE = [
   [0, { husk: 6, bat: 3 }], [1, { husk: 5, bat: 4, archer: 1 }], [2, { husk: 4, bat: 3, archer: 2, ghoul: 1 }],
-  [4, { husk: 3, bat: 3, archer: 2, ghoul: 2, toad: 2 }], [6, { husk: 2, bat: 3, archer: 2, ghoul: 3, toad: 2, wraith: 2 }],
-  [9, { bat: 3, archer: 3, ghoul: 4, toad: 3, wraith: 3, husk: 1 }], [12, { bat: 4, archer: 3, ghoul: 5, toad: 3, wraith: 4 }]
+  [3, { husk: 4, bat: 3, archer: 2, ghoul: 1, spider: 2 }], [4, { husk: 3, bat: 3, archer: 2, ghoul: 2, toad: 2, spider: 2 }],
+  [5, { husk: 3, bat: 3, archer: 2, ghoul: 2, toad: 2, spider: 2, revenant: 1 }],
+  [6, { husk: 2, bat: 3, archer: 2, ghoul: 3, toad: 2, wraith: 2, spider: 2, revenant: 1, imp: 2 }],
+  [8, { husk: 2, bat: 3, archer: 2, ghoul: 3, toad: 2, wraith: 2, spider: 2, revenant: 2, imp: 2, necro: 1 }],
+  [9, { bat: 3, archer: 3, ghoul: 4, toad: 3, wraith: 3, husk: 1, spider: 2, revenant: 2, imp: 2, necro: 1 }],
+  [12, { bat: 4, archer: 3, ghoul: 5, toad: 3, wraith: 4, spider: 3, revenant: 3, imp: 2, necro: 1, shade: 2 }],
+  [15, { bat: 3, archer: 3, ghoul: 5, toad: 3, wraith: 4, spider: 3, revenant: 4, imp: 3, necro: 2, shade: 3 }],
+  [22, { archer: 3, ghoul: 5, toad: 3, wraith: 4, spider: 4, revenant: 5, imp: 3, necro: 2, shade: 4 }]
 ];
 
 // ---------- pools ----------
@@ -108,8 +122,9 @@ const nums = new Pool(() => ({}), 150, 150);
 // ---------- run state ----------
 const G = { state: 'title', time: 0, kills: 0, gold: 0, level: 1, xp: 0, xpNext: 6, pendLv: 0, rerolls: 2, choices: [], hero: SAVE.hero | 0,
   weapons: [], passives: [], shake: 0, flash: 0, flashCol: '#fff', evi: 0, dirAcc: 0, boss: null, reaper: null, revived: false, endT: 0,
-  chest: null, uid: 1, lanternT: 8, hurtBy: {}, msg: '', msgT: 0, won: false, banked: 0, lowWarn: 0, fps: 60, dmgDealt: 0 };
-const P = { x: 0, y: 0, r: 5, hp: 100, maxHp: 100, face: { x: 1, y: 0 }, flip: false, moving: false, anim: 0, inv: 0, flash: 0, st: {}, vx: 0, vy: 0 };
+  chest: null, uid: 1, lanternT: 8, hurtBy: {}, endless: false, night: 1, bossIdx: 0, nextEvt: 0, nextBoss: 0, bossSeen: false,
+  merchant: null, merchantT: 75, bought: {}, buffs: { fury: 0, haste: 0 }, bonusHp: 0, bonusArmor: 0, pendSmite: false, pendChest: false, msg: '', msgT: 0, won: false, banked: 0, lowWarn: 0, fps: 60, dmgDealt: 0 };
+const P = { x: 0, y: 0, r: 5, dashT: 0, dashCd: 0, dashX: 1, dashY: 0, ward: 0, hp: 100, maxHp: 100, face: { x: 1, y: 0 }, flip: false, moving: false, anim: 0, inv: 0, flash: 0, st: {}, vx: 0, vy: 0 };
 const IN = { x: 0, y: 0 }; // movement input (keyboard + joystick), filled by main
 const cam = { x: 0, y: 0 };
 
@@ -128,9 +143,9 @@ function recalc() {
     else if (p.id === 'magnet') s.magnet += 0.3 * l; else if (p.id === 'book') s.area += 0.1 * l;
     else if (p.id === 'luck') { s.luck += 0.1 * l; s.crit += 0.04 * l; } else if (p.id === 'blood') s.regen += 0.3 * l;
   }
-  s.cd = Math.max(0.35, s.cd);
+  s.cd = Math.max(0.35, s.cd); s.armorFlat += G.bonusArmor;
   P.st = s;
-  const mx = Math.round(hero.hp * s.hpMul);
+  const mx = Math.round(hero.hp * s.hpMul + G.bonusHp);
   if (mx > P.maxHp) P.hp += mx - P.maxHp;
   P.maxHp = mx; P.hp = Math.min(P.hp, mx);
 }
@@ -143,8 +158,10 @@ function startRun(hi) {
   for (const p of [enemies, projs, ebul, gems, items, zones, fx, parts, nums]) p.clear();
   Object.assign(G, { state: 'play', time: 0, kills: 0, gold: 0, level: 1, xp: 0, xpNext: 5, pendLv: 0, rerolls: 2 + (upL('greed') >= 3 ? 1 : 0), choices: [],
     weapons: [], passives: [], shake: 0, flash: 0, evi: 0, dirAcc: 0, boss: null, reaper: null, revived: false, endT: 0, chest: null, lanternT: 6,
-    msg: '', msgT: 0, won: false, banked: 0, lowWarn: 0, dmgDealt: 0, hurtBy: {} });
-  Object.assign(P, { x: 0, y: 0, hp: 1, maxHp: 1, inv: 0, flash: 0, face: { x: 1, y: 0 }, flip: false, anim: 0 });
+    msg: '', msgT: 0, won: false, banked: 0, lowWarn: 0, dmgDealt: 0, hurtBy: {}, endless: false, night: 1, bossIdx: 0, nextEvt: 0, nextBoss: 0, bossSeen: false,
+    merchant: null, merchantT: 75, bought: {}, buffs: { fury: 0, haste: 0 }, bonusHp: 0, bonusArmor: 0, pendSmite: false, pendChest: false });
+  hazards.clear();
+  Object.assign(P, { x: 0, y: 0, hp: 1, maxHp: 1, dashT: 0, dashCd: 0, ward: 0, inv: 0, flash: 0, face: { x: 1, y: 0 }, flip: false, anim: 0 });
   G.weapons.push({ id: HEROES[hi].weapon, lvl: 1, t: 0.4, evo: false, ang: 0, rot: 0, pos: [] });
   recalc(); P.hp = P.maxHp;
   cam.x = 0; cam.y = 0;
@@ -160,11 +177,11 @@ function spawnEnemy(type, x, y, o) {
   const e = enemies.get(); if (!e) return null;
   const d = ED[type], m = minutes(), elite = !!(o && o.elite);
   e.type = type; e.def = d; e.x = x; e.y = y; e.r = elite ? d.r + 1 : d.r; e.uid = G.uid++;
-  e.maxHp = e.hp = d.hp * (d.boss || type === 'lantern' ? 1 : hpScale()) * (elite ? 9 : 1) * (d.boss === 1 ? 1 + m * 0.55 : 1);
+  e.maxHp = e.hp = d.hp * (d.boss || type === 'lantern' ? 1 : hpScale()) * (elite ? 9 : 1) * (d.boss === 1 ? (1 + m * 0.4) * bossMul() : d.boss === 2 ? 1 + 0.8 * (G.night - 1) : 1);
   e.spd = d.spd * (elite ? 0.9 : 1) * (1 + Math.min(0.35, m * 0.025)) * rand(0.9, 1.1);
   e.dmg = d.dmg * dmgScale() * (elite ? 1.5 : 1); e.elite = elite; e.dead = false; e.flash = 0; e.kx = 0; e.ky = 0;
   e.anim = rand(4); e.flip = false; e.mode = (o && o.mode) || ''; e.vx = (o && o.vx) || 0; e.vy = (o && o.vy) || 0; e.life = (o && o.life) || 0;
-  e.t = rand(1.5, 3); e.fuse = 0; e.orbT = 0; e.slowT = 0; e.dot = 0; e.dotT = 0; e.dotAcc = 0; e.slam = 0; e.dash = 0; e.tele = 0; e.phase = rand(TAU); e.qs = 0;
+  e.t = rand(1.5, 3); e.fuse = 0; e.orbT = 0; e.slowT = 0; e.dot = 0; e.dotT = 0; e.dotAcc = 0; e.slam = 0; e.dash = 0; e.tele = 0; e.phase = rand(TAU); e.qs = 0; e.z = 0; e.leap = 0; e.spiral = 0; e.hop = 0;
   if (d.boss) { G.boss = e; if (type === 'reaper') G.reaper = e; }
   return e;
 }
@@ -179,10 +196,12 @@ function director(dt) {
   let guard = 0;
   while (G.dirAcc >= 1 && guard++ < 20) {
     G.dirAcc -= 1;
-    const type = weighted(weightsNow()), [x, y] = ringPos(), n = type === 'bat' || type === 'husk' ? randi(1, m < 1 ? 2 : 3) : 1;
+    const type = weighted(weightsNow()), [x, y] = ringPos(), n = type === 'spider' ? randi(3, 5) : type === 'bat' || type === 'husk' ? randi(1, m < 1 ? 2 : 3) : 1;
     for (let i = 0; i < n; i++) spawnEnemy(type, x + rand(-10, 10), y + rand(-10, 10), { elite: Math.random() < 0.003 + m * 0.0025 });
   }
   while (EVENTS[G.evi] && G.time >= EVENTS[G.evi].t) EVENTS[G.evi++].f();
+  endlessDirector();
+  merchantTick(dt);
   G.lanternT -= dt;
   if (G.lanternT <= 0) { G.lanternT = 18; let n = 0; for (const e of enemies.list) if (e.type === 'lantern') n++; if (n < 5) spawnLantern(); }
 }
@@ -199,16 +218,16 @@ function wraithRing() {
   for (let i = 0; i < n; i++) { const a = (i / n) * TAU; spawnEnemy('wraith', P.x + Math.cos(a) * r, P.y + Math.sin(a) * r, { mode: 'ring', life: 9, elite: i % 16 === 0 }); }
   banner('THE WRAITHS ENCIRCLE YOU'); VO.say('swarm');
 }
-function golemEvent() { const [x, y] = ringPos(10); spawnEnemy('golem', x, y); banner('THE BONE GOLEM AWAKENS'); VO.say('evil'); AU.boom(); G.shake = 4; }
+function golemEvent() { spawnBoss('golem'); }
 function elitePack() { for (let i = 0; i < 6; i++) { const [x, y] = ringPos(); spawnEnemy(pick(['ghoul', 'toad', 'archer']), x, y, { elite: true }); } banner('ELITES HUNT YOU'); }
 function reaperEvent() {
-  const [x, y] = ringPos(8); spawnEnemy('reaper', x, y); banner('THE PALE REAPER'); VO.say('reaper', true);
-  MUS.mode = 'boss'; G.shake = 6; G.flash = 0.6; G.flashCol = C.pale; AU.boom();
+  spawnBoss('reaper'); G.shake = 6; G.flash = 0.6;
 }
 const EVENTS = [
   { t: 0.6, f: () => VO.say('start', true) }, { t: 120, f: () => banner('THE DEAD GROW RESTLESS') }, { t: 180, f: () => batSwarm(false) },
-  { t: 300, f: golemEvent }, { t: 420, f: wraithRing }, { t: 540, f: elitePack }, { t: 600, f: golemEvent },
-  { t: 720, f: () => { batSwarm(false); batSwarm(true); } }, { t: 780, f: wraithRing }, { t: 840, f: elitePack }, { t: RUN_END, f: reaperEvent }
+  { t: 240, f: spiderNest }, { t: 300, f: golemEvent }, { t: 420, f: wraithRing }, { t: 510, f: () => spawnBoss('matriarch') }, { t: 570, f: elitePack },
+  { t: 600, f: golemEvent }, { t: 660, f: necroCoven }, { t: 720, f: () => { batSwarm(false); batSwarm(true); } }, { t: 750, f: () => spawnBoss('toadking') },
+  { t: 800, f: wraithRing }, { t: 840, f: () => { elitePack(); shadeAmbush(); } }, { t: RUN_END, f: reaperEvent }
 ];
 function banner(s) { G.msg = s; G.msgT = 3; }
 
@@ -231,7 +250,7 @@ function addFx(kind, o) { const f = fx.get(); if (!f) return null; f.kind = kind
 function hurt(e, base, kx, ky, kb, quiet) {
   if (e.dead) return 0;
   const crit = Math.random() < P.st.crit;
-  const d = Math.max(1, Math.round(base * P.st.might * (crit ? 2 : 1) * rand(0.9, 1.1)));
+  const d = Math.max(1, Math.round(base * P.st.might * (crit ? 2 : 1) * (G.buffs.fury > 0 ? 1.5 : 1) * (1 - (e.def.armor || 0)) * rand(0.9, 1.1)));
   e.hp -= d; e.flash = 0.1; G.dmgDealt += d;
   if (kb && e.def.kb) { e.kx += kx * kb * e.def.kb; e.ky += ky * kb * e.def.kb; }
   if (!quiet || crit) number(e.x, e.y - e.def.h - 2, d, crit ? C.gold : C.white, crit ? 1 : 1);
@@ -251,11 +270,18 @@ function killEnemy(e, silent) {
   G.kills++;
   burst(e.x, e.y - d.h / 2, e.elite ? 26 : d.boss ? 60 : 7, [d.col, C.black, C.blood, C.white], d.boss ? 110 : 55, d.boss ? 1.2 : 0.45, 40);
   AU.pop();
-  if (d.boss === 1) { dropItem('chest', e.x, e.y); dropItem('bag', e.x + 12, e.y); dropGem(e.x - 10, e.y, 60); G.shake = 6; AU.boom(); banner('THE GOLEM CRUMBLES'); G.boss = null; return; }
-  if (d.boss === 2) { G.reaper = null; G.boss = null; winRun(); return; }
+  if (d.boss) {
+    if (e === G.reaper) G.reaper = null;
+    G.boss = findBoss();
+    if (d.boss === 2 && !G.endless) { winRun(); return; }
+    if (d.boss === 2) { G.night++; banner('DAWN... THEN NIGHT ' + G.night + ' FALLS'); VO.say('endless', true); G.gold += Math.round(300 * P.st.greed); }
+    else banner(BOSS_NAMES[e.type] + ' FALLS');
+    dropItem('chest', e.x, e.y); dropItem('bag', e.x + 12, e.y); dropItem('bag', e.x - 12, e.y); dropGem(e.x - 10, e.y + 6, 60); G.shake = 6; AU.boom();
+    return;
+  }
   dropGem(e.x, e.y, e.elite ? 25 : d.xp);
   const luck = 1 + P.st.luck;
-  if (Math.random() < 0.012 * luck) dropItem('coin', e.x + 3, e.y);
+  if (Math.random() < 0.035 * luck) dropItem('coin', e.x + 3, e.y);
   if (e.elite) { dropItem('bag', e.x + 5, e.y); if (Math.random() < 0.35) dropItem('chicken', e.x - 5, e.y); if (Math.random() < 0.06 * luck) dropItem('vacuum', e.x, e.y + 5); }
   else if (Math.random() < 0.0012 * luck) dropItem('chicken', e.x, e.y);
 }
@@ -266,10 +292,11 @@ function dropGem(x, y, v) {
 }
 function dropItem(kind, x, y) {
   const it = items.get(); if (!it) return;
-  it.kind = kind; it.x = x; it.y = y; it.pull = false; it.sp = 0; it.anim = rand(4); it.v = kind === 'bag' ? randi(10, 25) : 1;
+  it.kind = kind; it.x = x; it.y = y; it.pull = false; it.sp = 0; it.anim = rand(4); it.v = kind === 'bag' ? randi(15, 35) : kind === 'coin' ? randi(1, 3) : 1;
 }
 function damagePlayer(d, src) {
   if (P.inv > 0 || G.state !== 'play' || URLQ.has('god')) return;
+  if (P.ward > 0) { P.ward--; P.inv = 0.6; AU.glass(); burst(P.x, P.y - 8, 14, [C.cyan, C.white], 50, 0.4); number(P.x, P.y - 18, 'BLOCK', C.cyan); return; }
   G.hurtBy[src || '?'] = (G.hurtBy[src || '?'] || 0) + 1;
   d = Math.max(1, d * (1 - P.st.armorPct) - P.st.armorFlat);
   P.hp -= d; P.inv = 0.5; P.flash = 0.15; G.shake = Math.max(G.shake, 1.5); AU.hurt();
@@ -353,11 +380,11 @@ function openChest() {
 }
 function bankGold() {
   if (G.banked) return; G.banked = 1;
-  SAVE.gold += G.gold; SAVE.kills += G.kills; SAVE.runs++; SAVE.best = Math.max(SAVE.best, Math.min(G.time, RUN_END + 300));
+  SAVE.gold += G.gold; SAVE.kills += G.kills; SAVE.runs++; SAVE.best = Math.max(SAVE.best, G.time); SAVE.night = Math.max(SAVE.night || 1, G.night);
   if (G.won) SAVE.wins++; saveNow();
 }
 function winRun() {
-  G.won = true; G.gold += Math.round(500 * P.st.greed); G.state = 'victory'; G.endT = 2.6; G.flash = 1; G.flashCol = C.white; G.shake = 8;
+  G.won = true; G.gold += Math.round(500 * P.st.greed); G.state = 'victory'; G.endT = 2.6; G.flash = 1; G.flashCol = C.white; G.shake = 8; hazards.clear();
   VO.say('win', true); MUS.mode = 'title'; AU.boom(); smite();
 }
 
@@ -370,12 +397,14 @@ function nearest(x, y, maxR, skipUid) {
 function update(dt) {
   G.time += dt;
   MUS.intensity = Math.min(4, Math.floor(G.time / 150));
+  MUS.mode = G.boss && !G.boss.dead ? 'boss' : 'run';
   updatePlayer(dt);
   director(dt);
   updateEnemies(dt);
   gridBuild(enemies.list);
   updateWeapons(dt);
   updateProjectiles(dt);
+  updateHazards(dt);
   updatePickups(dt);
   updateParticles(dt);
   if (G.msgT > 0) G.msgT -= dt;
@@ -385,7 +414,9 @@ function update(dt) {
 function updatePlayer(dt) {
   let mx = IN.x, my = IN.y; const l = Math.hypot(mx, my); if (l > 1) { mx /= l; my /= l; }
   P.moving = l > 0.1;
-  const spd = 66 * P.st.speed;
+  const spd = 66 * P.st.speed * (G.buffs.haste > 0 ? 1.3 : 1);
+  if (G.buffs.fury > 0) G.buffs.fury -= dt; if (G.buffs.haste > 0) G.buffs.haste -= dt;
+  dashUpdate(dt);
   P.x += mx * spd * dt; P.y += my * spd * dt;
   if (P.moving) { const n = Math.hypot(mx, my); P.face.x = mx / n; P.face.y = my / n; if (Math.abs(mx) > 0.15) P.flip = mx < 0; P.anim += dt * 8; }
   if (P.st.regen) P.hp = Math.min(P.maxHp, P.hp + P.st.regen * dt);
@@ -428,7 +459,7 @@ function updateEnemies(dt) {
         else { vx = dx * sp; vy = dy * sp; e.t -= dt; if (e.t <= 0 && dist < 90) { e.slam = 0.85; addFx('tele', { x: e.x, y: e.y, r: 52, life: 0.85, col: C.red }); } }
         break;
       case 'reaper': reaperAI(e, dt, dx, dy, dist); vx = e.vx; vy = e.vy; break;
-      default: vx = dx * sp; vy = dy * sp;
+      default: if (aiSpecial(e, dt, dx, dy, dist, sp)) { vx = e.vx; vy = e.vy; } else { vx = dx * sp; vy = dy * sp; }
     }
     // separation from neighbours (using last step's grid), walkers only
     if (!d.fly && !d.boss && e.type !== 'lantern' && GRID.list) {
@@ -444,7 +475,7 @@ function updateEnemies(dt) {
     const kd = Math.exp(-dt * 9); e.kx *= kd; e.ky *= kd;
     if (Math.abs(vx) > 1) e.flip = vx < 0;
     // contact damage
-    if (e.dmg > 0) { const cx = px - e.x, cy = py - e.y, rr = e.r + P.r; if (cx * cx + cy * cy < rr * rr) damagePlayer(e.dmg, e.type); }
+    if (e.dmg > 0 && !(e.z > 8)) { const cx = px - e.x, cy = py - e.y, rr = e.r + P.r; if (cx * cx + cy * cy < rr * rr) damagePlayer(e.dmg, e.type); }
     // recycle stragglers in front of the player
     if (dist > VR * 1.7 && !d.boss && e.mode !== 'stream') {
       if (e.type === 'lantern') { killEnemy(e, true); continue; }
@@ -481,7 +512,7 @@ function toadBoom(e) {
   killEnemy(e, true);
 }
 function fireEnemy(kind, x, y, vx, vy, dmg) {
-  const b = ebul.get(); if (!b) return; b.kind = kind; b.x = x; b.y = y; b.vx = vx; b.vy = vy; b.dmg = dmg; b.life = 4; b.r = kind === 'scythe' ? 4 : 2; b.rot = 0;
+  const b = ebul.get(); if (!b) return; b.kind = kind; b.x = x; b.y = y; b.vx = vx; b.vy = vy; b.dmg = dmg; b.life = 4; b.r = kind === 'scythe' ? 4 : kind === 'bone' ? 2 : 3; b.rot = 0;
 }
 
 // ---------- weapons ----------
@@ -638,7 +669,9 @@ function updateProjectiles(dt) {
   // enemy bullets
   const B = ebul.list;
   for (let i = B.length - 1; i >= 0; i--) {
-    const b = B[i]; b.life -= dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += dt * 14;
+    const b = B[i];
+    if (b.kind === 'glob') { if (globStep(b, dt)) ebul.kill(i); continue; }
+    b.life -= dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += dt * 14;
     if (b.life <= 0) { ebul.kill(i); continue; }
     const dx = P.x - b.x, dy = P.y - 6 - b.y; if (dx * dx + dy * dy < (b.r + P.r) ** 2) { damagePlayer(b.dmg, b.kind); ebul.kill(i); }
   }

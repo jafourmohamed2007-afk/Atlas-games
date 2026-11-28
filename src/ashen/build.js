@@ -3,7 +3,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const DIR = __dirname, ROOT = path.join(DIR, '..', '..');
-const LINES = ['start', 'level', 'swarm', 'evil', 'evolve', 'lowhp', 'reaper', 'win', 'dead'];
+const LINES = ['start', 'level', 'swarm', 'evil', 'evolve', 'lowhp', 'reaper', 'win', 'dead', 'merchant', 'endless', 'boss'];
 
 module.exports = function build(g, h) {
   const esc = h.esc, SITE = h.SITE;

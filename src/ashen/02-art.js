@@ -166,6 +166,90 @@ function bakeArt() {
     ['...kk...', '..k..k..', '.kkkkkk.', '.kyoyok.', '.koYYok.', '.kyYYyk.', '.koyyok.', '.kkkkkk.', '..kHHk..', '...HH...', '..kHHk..', '.kkkkkk.'],
     ['...kk...', '..k..k..', '.kkkkkk.', '.koyoyk.', '.kyYYyk.', '.koYYok.', '.kyoyyk.', '.kkkkkk.', '..kHHk..', '...HH...', '..kHHk..', '.kkkkkk.']]);
 
+  // ---------- new enemies ----------
+  defSprite('spider', [
+    ['k...kk...k', '.k.kRRk.k.', '..kRrrRk..', 'kkRryyrRkk', '..kRRRRk..', '.k.kRRk.k.', 'k..k..k..k'],
+    ['.k..kk..k.', 'k..kRRk..k', '.kkRrrRkk.', '..Rryyrr..', 'kkkRRRRkkk', '..k.kk.k..', '.k......k.']], { outline: C.gold });
+  const RV = [
+    '...kkkkk....',
+    '..kGlllGk...',
+    '..kGkrkrk...',
+    '..kGlllGk...',
+    '...kkGkk....',
+    '.kkGGGGGkkk.',
+    'kBkGlpplGkbk',
+    'kBkGplplGkbk',
+    'kBkGGGGGGkbk',
+    '.kk.kGGk.kbk',
+    '....kGGk..k.',
+    '....kgkgk...'];
+  defSprite('revenant', withLegs(RV, [['...kGk.kGk..', '...kgk.kgk..', '..kkk..kkk..'], ['....kGkGk...', '...kgk..kgk.', '...kk....kk.']]), { outline: C.gold });
+  const NC = [
+    '....kkkk....',
+    '...kuuuuk...',
+    '..kuuuuuuk..',
+    '..kukppkuk..',
+    '..kupsspuk..',
+    '...kuppuk..s',
+    '..kuuVVuuk.k',
+    '.kuuVuuVuukh',
+    '.kpuVuuVupkh',
+    '..kuVuuVuk.h',
+    '..kuuuuuuk.h'];
+  defSprite('necro', withLegs(NC, [['..kuuuuuuk..', '.kuuVuuVuuk.', '.kkkk..kkkk.'], ['..kuuuuuuk..', '..kuuVVuuk..', '..kkkkkkkk..']]), { outline: C.gold });
+  defSprite('imp', [
+    ['k........k', 'kR..kk..Rk', 'kRRkrrkRRk', '.kRryyrRk.', '..krrrrk..', '..kRrrRk..', '...kRRk...', '....kk....', '....k.....'],
+    ['..........', '.k..kk..k.', 'kRRkrrkRRk', 'kRRryyrRRk', 'k.krrrrk.k', '..kRrrRk..', '...kRRk...', '....kk....', '.....k....']], { outline: C.gold });
+  const SH = [
+    '...kkkk...',
+    '..kDDDDk..',
+    '.kDDDDDDk.',
+    '.kDrDDrDk.',
+    '.kDDDDDDk.',
+    'kDDuDDuDDk',
+    'kDuDDDDuDk',
+    '.kDDuuDDk.',
+    '.kDuDDuDk.'];
+  defSprite('shade', withLegs(SH, [['..kDkkDk..', '..k.k.k...', '...k...k..'], ['..kDkkDk..', '...k.k.k..', '..k...k...']]), { outline: C.violet, swap: { D: 'V', u: 'v' } });
+  // ---------- new bosses ----------
+  defSprite('matriarch', [
+    ['kk..................kk', 'kRk................kRk', 'kRRk....k....k...kRRk', 'kRRRk..kRk..kRk.kRRRk', 'kRRRRkkRRRkkRRRkRRRRk', '.kRRRRRRrRRRRrRRRRRk.', '..kRRRRryyRRyyrRRRk..', '...kkRRrrrRRrrrRRkk..', '.....kRRrwrrwrRRk....', '......kRRrrrrRRk.....', '.......kkRRRRkk......', '.........kRRk........', '..........kk.........'],
+    ['......................', '......................', '........k....k........', '.......kRk..kRk.......', 'kkk...kRRRkkRRRk...kkk', 'kRRkkkRRRrRRrRRRkkkRRk', 'kRRRRRRRryyRyyrRRRRRRk', '.kRRRRRRrrrRrrrRRRRRk.', '..kkRRRRrwrrwrRRRRkk..', '....kkkRRrrrrRRkkk....', '.......kkRRRRkk.......', '.........kRRk.........', '..........kk..........']], { outline: C.red });
+  const TK = [
+    '......y.y.y.y.......',
+    '......yyyyyyy.......',
+    '...kk.kyoyoyk.kk....',
+    '..kyLk.kkkkk.kLyk...',
+    '..kkLkkkkkkkkkLkk...',
+    '.kLLLLLLLLLLLLLLLk..',
+    'kLnLLLLLLLLLLLLLnLk.',
+    'kLLLnLLLnLLLnLLLLLk.',
+    'knLLLLLLLLLLLLLLLnk.',
+    'kLLLLLLttttttLLLLLk.',
+    'kLLLLLttttttttLLLLk.',
+    'knLLLLttttttttLLLnk.',
+    '.kLLLLLttttttLLLLk..',
+    '..kkkkkkkkkkkkkkk...'];
+  defSprite('toadking', withLegs(TK, [['.kLLk.........kLLk..', 'kkkkk..........kkkkk'], ['..kLLk.......kLLk...', '.kkkkk.......kkkkk..']]), { outline: C.lime });
+  const LI = [
+    '.....y.y.y......',
+    '.....yyyyy......',
+    '....kpppppk.....',
+    '....kpkpkpk..kk.',
+    '....kpcpcpk.kcck',
+    '....kpppppk..kk.',
+    '.....kpkpk...kh.',
+    '...kkuuuuukk.kh.',
+    '..kuuVyyyVuuk.h.',
+    '.kuuVuuuuuVuukh.',
+    '.kpuuVuuuVuupkh.',
+    '..kuuuVuVuuuk.h.',
+    '..kuuuuVuuuuk.h.',
+    '..kuuuuuuuuuk.h.'];
+  defSprite('lich', withLegs(LI, [['.kuuuVuuVuuuk...', '.kuVuuuVuuVuk...', 'kkkkkkkkkkkkkk..'], ['.kuuuVuuVuuuk...', 'kuVuuuVuuuVuk...', '.kkkkkkkkkkkk...']]), { outline: C.cyan });
+  defSprite('merchant', [
+    ['.......kk..........', '......kyyk.........', '.....kkkkkk........', '....kRrRrRrRk......', '...kRrRrRrRrRk.....', '..kkkkkkkkkkkkk....', '..khtkpppk.khhk....', '..khtkpkpk.khhk....', '..khhkpppkkhhhk.kk.', '..khhhkkkhhhhhkkyk.', '..kkkkkkkkkkkkkkkk.', '..khHHHHHHHHHHHhk..', '..kkkkkkkkkkkkkkk..', '...kGk.......kGk...', '...kkk.......kkk...']]);
+
   // ---------- pickups ----------
   const GEM = ['..k..', '.kck.', 'kcwck', 'kbcbk', '.kbk.', '..k..'];
   defSprite('gemB', [GEM], { swap: { c: 'c', b: 'b' } });
@@ -213,6 +297,15 @@ function bakeArt() {
     armor: ['kkkkkkkk', 'kllGGllk', 'kllGGllk', 'kGGGGGGk', 'kllGGllk', '.kllllk.', '..kllk..', '...kk...'],
     revive: ['..kkk...', '.kyky...', '.ky.yk..', '..kyk...', 'kkkykkk.', 'kyyyyyk.', '...yk...', '...yk...'],
     greed: ['..kk....', '.kyyk...', '..kk....', '.khhhk..', 'khyhhhk.', 'khhyhhk.', '.kkkkk..', '........'],
+    potion: ['...kk...', '...kk...', '..kppk..', '.krrrrk.', 'krrwrrrk', 'krrrrrRk', 'kRrrrRRk', '.kkkkkk.'],
+    tonic: ['...kk...', '...kk...', '..kppk..', '.kccbbk.', 'kcwcbbbk', 'kccbbbBk', 'kBbbbBBk', '.kkkkkk.'],
+    fury: ['...kk...', '...kk...', '..kppk..', '.koooek.', 'koYooeek', 'kooeeerk', 'kreeerrk', '.kkkkkk.'],
+    ward: ['.kkkkkk.', 'kcbbbbck', 'kbcwwcbk', 'kbwccwbk', 'kbcwwcbk', '.kbccbk.', '..kbbk..', '...kk...'],
+    tome: ['.kkkkkk.', 'kbbbbbbk', 'kbYyyYbk', 'kbyccybk', 'kbYyyYbk', 'kbbbbbbk', 'kppppppk', '.kkkkkk.'],
+    crystal: ['...kk...', '..krrk..', '.krwrRk.', 'krwrrRRk', 'krrrRRRk', '.krRRRk.', '..kRRk..', '...kk...'],
+    token: ['..kkkk..', '.kcccck.', 'kcckkcck', 'kckcckck', 'kcckkcck', 'kcckkcck', '.kcccck.', '..kkkk..'],
+    mystery: ['.kkkkkk.', 'khhyyhhk', 'kkkkkkkk', 'khhkkhhk', 'khykkyhk', 'khhhhhhk', 'khhhhhhk', '.kkkkkk.'],
+    dash: ['........', '..kkkkk.', '.....kwk', 'kkkk..kw', '......kw', '.kkkk.kw', '.....kwk', '..kkkkk.'],
     skull: ['.kkkkk..', 'kpppppk.', 'kpkpkpk.', 'kpppppk.', '.kpkpk..', '..kkk...', '........', '........'],
     gold: ['.kkkk...', 'kyYYyk..', 'kyoyyk..', 'kyoyyk..', 'kyyyok..', '.kkkk...', '........', '........']
   };

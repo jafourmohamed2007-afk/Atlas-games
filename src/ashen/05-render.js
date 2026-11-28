@@ -15,7 +15,7 @@ function spr(name, fi, x, y, flip, white, outline) {
   if (outline && f.o) { c = flip ? f.of : f.o; dx = 1; }
   ctx.drawImage(c, Math.round(x - s.w / 2 - dx), Math.round(y - s.h - dx));
 }
-function icon(name, x, y, sc) { const s = SPR['i_' + name]; if (!s) return; sc = sc || 1; ctx.drawImage(s.fr[0].n, Math.round(x), Math.round(y), s.w * sc, s.h * sc); }
+function icon(name, x, y, sc) { const s = SPR['i_' + name] || SPR[name]; if (!s) return; sc = sc || 1; ctx.drawImage(s.fr[0].n, Math.round(x), Math.round(y), s.w * sc, s.h * sc); }
 function line(x0, y0, x1, y1, col, wdt) {
   x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
   const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let err = dx - dy, n = 0;
@@ -69,6 +69,23 @@ function renderWorld(dt) {
     if (f.kind === 'tele') { const k2 = 1 - f.life / f.max; ctx.globalAlpha = 0.25 + k2 * 0.3; ctx.fillStyle = f.col; ctx.beginPath(); ctx.ellipse(f.x - ox, f.y - oy, f.r * k2, f.r * k2 * 0.8, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; ringPx(f.x - ox, f.y - oy, f.r, f.col, 1); }
     else if (f.kind === 'line') { ctx.globalAlpha = 0.5 + 0.5 * Math.sin(tnow * 40); line(f.x - ox, f.y - oy, f.x - ox + Math.cos(f.a) * f.r, f.y - oy + Math.sin(f.a) * f.r, f.col, 2); ctx.globalAlpha = 1; }
   }
+  // poison hazards
+  for (const h of hazards.list) {
+    if (!vis(h.x, h.y, h.r + 4)) continue;
+    const a = Math.min(1, h.life / 0.5, (h.max - h.life) / 0.3 + 0.3);
+    ctx.globalAlpha = 0.3 * a; ctx.fillStyle = C.pine; ctx.beginPath(); ctx.ellipse(h.x - ox, h.y - oy, h.r, h.r * 0.7, 0, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 0.35 * a; ctx.fillStyle = C.lime; ctx.beginPath(); ctx.ellipse(h.x - ox, h.y - oy, h.r * 0.6, h.r * 0.4, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = a;
+    ringPx(h.x - ox, h.y - oy, h.r, C.lime, 2, 0.7); ctx.globalAlpha = 1;
+  }
+  // wandering merchant
+  const M = G.merchant;
+  if (M && vis(M.x, M.y, 40)) {
+    ctx.globalAlpha = 0.16 + 0.08 * Math.sin(tnow * 4); ctx.fillStyle = C.gold; ctx.beginPath(); ctx.ellipse(M.x - ox, M.y - oy - 4, 26, 18, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+    rect(M.x - ox - 9, M.y - oy - 1, 18, 2, C.black, 0.4);
+    spr('merchant', 0, M.x - ox, M.y - oy + 1);
+    if (Math.random() < 0.2) burst(M.x + rand(-8, 8), M.y - 14, 1, [C.gold, C.light], 6, 0.8, -15);
+    text(M.t < 10 && ((tnow * 4) | 0) % 2 ? '' : 'SHOP', M.x - ox, M.y - oy - 26, C.gold, 1, 'c', true);
+  }
   // gems & items
   for (const g of gems.list) {
     if (!vis(g.x, g.y, 8)) continue;
@@ -93,10 +110,10 @@ function renderWorld(dt) {
   for (const e of drawList) {
     if (!playerDrawn && e.y > P.y) { drawPlayer(); playerDrawn = true; }
     const d = e.def, x = e.x - ox, y = e.y - oy;
-    let yy = y; if (d.fly) yy -= 4 + Math.sin(e.anim) * 1.5;
+    let yy = y - (e.z || 0); if (d.fly) yy -= 4 + Math.sin(e.anim) * 1.5;
     shadow(x, y, Math.max(4, e.r * 1.6));
     if (e.type === 'toad' && e.fuse > 0 && ((tnow * 20) | 0) % 2) { spr(d.spr, e.anim, x, yy, e.flip, true); continue; }
-    if (e.type === 'reaper' && e.tele > 0 && ((tnow * 16) | 0) % 2) { spr(d.spr, 0, x, yy, e.flip, true); continue; }
+    if (e.tele > 0 && ((tnow * 16) | 0) % 2) { spr(d.spr, 0, x, yy, e.flip, true); continue; }
     if (e.elite || d.boss) { ctx.globalAlpha = e.elite ? elitePulse : 0.8; spr(d.spr, e.anim, x, yy, e.flip, false, true); ctx.globalAlpha = 1; }
     spr(d.spr, e.anim, x, yy, e.flip, e.flash > 0);
     if (e.dotT > 0 && Math.random() < 0.3) burst(e.x + rand(-3, 3), e.y - d.h / 2, 1, [C.orange, C.ember], 10, 0.3, -30);
@@ -119,6 +136,10 @@ function renderWorld(dt) {
   for (const b of ebul.list) {
     const x = b.x - ox, y = b.y - oy;
     if (b.kind === 'scythe') { ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(Math.round(b.rot * 4) / 4); ctx.drawImage(SPR.scythe.fr[0].n, -4, -4); ctx.restore(); }
+    else if (b.kind === 'fire') { rect(x - 1, y - 1, 3, 3, C.orange); rect(x, y, 1, 1, C.light); rect(x - b.vx * 0.04, y - b.vy * 0.04, 2, 2, C.ember, 0.6); }
+    else if (b.kind === 'shriek') { rect(x - 1, y - 1, 3, 3, C.red); rect(x, y, 1, 1, C.white); }
+    else if (b.kind === 'hex') { rect(x - 2, y - 1, 4, 3, C.violet); rect(x - 1, y - 2, 2, 5, C.violet); rect(x, y, 1, 1, C.cyan); }
+    else if (b.kind === 'glob') { rect(b.tx - ox - 3, b.ty - oy - 1, 6, 2, C.black, 0.35); rect(x - 2, y - 2, 4, 4, C.lime); rect(x - 1, y - 1, 1, 1, C.white); }
     else { const a = Math.atan2(b.vy, b.vx); line(x - Math.cos(a) * 4, y - Math.sin(a) * 4, x, y, C.pale); rect(x, y, 1, 1, C.red); }
   }
   // effects
@@ -162,6 +183,8 @@ function drawPlayer() {
   if (P.inv > 0 && ((tnow * 20) | 0) % 2 && P.flash <= 0) ctx.globalAlpha = 0.5;
   spr(h.id, P.moving ? P.anim : 0, x, y + 1, P.flip, P.flash > 0);
   ctx.globalAlpha = 1;
+  if (P.ward > 0) { ctx.globalAlpha = 0.5 + 0.2 * Math.sin(tnow * 6); ringPx(x, y - 7, 11, C.cyan, 1, 1); ctx.globalAlpha = 1; }
+  if (G.buffs.fury > 0 && Math.random() < 0.3) burst(P.x + rand(-4, 4), P.y - rand(2, 14), 1, [C.red, C.ember], 10, 0.4, -20);
   // HP bar under the sprite
   rect(x - 8, y + 3, 16, 3, C.black); rect(x - 7, y + 4, 14 * Math.max(0, P.hp / P.maxHp), 1, P.hp / P.maxHp < 0.3 ? C.red : C.lime);
 }
@@ -222,7 +245,7 @@ function drawHUD(overlay) {
   // timer
   const tt = G.time >= RUN_END ? C.red : C.pale;
   text(fmtTime(G.time), W / 2, 9, tt, 2, 'c', true);
-  if (G.reaper) text('THE REAPER', W / 2, 21, C.red, 1, 'c', true);
+  if (G.endless) text('NIGHT ' + G.night, W / 2, 21, C.violet, 1, 'c', true); else if (G.reaper) text('THE REAPER', W / 2, 21, C.red, 1, 'c', true);
   // kills & gold
   const rx = W - 4; icon('skull', rx - 8 - textW(String(G.kills)) - 2, 9); text(G.kills, rx, 10, C.pale, 1, 'r', true);
   icon('gold', rx - 8 - textW(String(G.gold)) - 2, 19); text(G.gold, rx, 20, C.gold, 1, 'r', true);
@@ -238,13 +261,35 @@ function drawHUD(overlay) {
     frame9(x, y, 12, 12, C.night, C.dusk);
     if (p) { icon(PD[p.id].icon, x + 2, y + 2); pips(x + 1, y + 13, p.lvl, 5, C.lime); }
   }
+  // active buffs
+  let bx = sx, by = 40;
+  const buff = (ic, label, col) => { icon(ic, bx, by); text(label, bx + 10, by + 2, col, 1, 'l', true); bx += 12 + textW(label); };
+  if (G.buffs.fury > 0) buff('fury', Math.ceil(G.buffs.fury) + 'S', C.orange);
+  if (G.buffs.haste > 0) buff('tonic', Math.ceil(G.buffs.haste) + 'S', C.cyan);
+  if (P.ward > 0) buff('ward', 'X' + P.ward, C.cyan);
+  // dash: cooldown ring (a big tap target on touch screens)
+  { const r = UI.touch ? 15 : 8, cx = W - r - 6, cy = H - r - (G.boss && !G.boss.dead ? 24 : 6), k = P.dashCd > 0 ? 1 - P.dashCd / 2.4 : 1;
+    ctx.globalAlpha = 0.55; ctx.fillStyle = C.black; ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = k >= 1 ? C.cyan : C.slate; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r - 1, -Math.PI / 2, -Math.PI / 2 + TAU * k); ctx.stroke();
+    if (UI.touch) icon('dash', cx - 8, cy - 8, 2); else icon('dash', cx - 4, cy - 4); if (!UI.touch) text('SPACE', cx, cy - r - 7, C.grey, 1, 'c', true); }
+  // merchant pointer when the cart is off screen
+  if (G.merchant) {
+    const M = G.merchant, mx = M.x - ox, my = M.y - oy - 8;
+    if (mx < 6 || my < 46 || mx > W - 6 || my > H - 6) {
+      const cx = W / 2, cy = H / 2, a = Math.atan2(my - cy, mx - cx), px = clamp(cx + Math.cos(a) * W, 12, W - 12), py = clamp(cy + Math.sin(a) * H, 50, H - 14);
+      const pulse = 0.6 + 0.4 * Math.sin(tnow * 6); ctx.globalAlpha = pulse;
+      frame9(px - 7, py - 7, 14, 14, C.night, C.gold); icon('gold', px - 3, py - 3); ctx.globalAlpha = 1;
+      rect(px + Math.cos(a) * 9 - 1, py + Math.sin(a) * 9 - 1, 3, 3, C.gold);
+      text(Math.ceil(M.t) + 'S', px, py + 9, C.gold, 1, 'c', true);
+    }
+  }
   // pause button (touch-friendly)
   if (button('pause', W - 17, 29, 14, 12, '', { col: C.fog })) togglePause();
   rect(W - 12, 32, 1, 6, C.pale); rect(W - 9, 32, 1, 6, C.pale);
   // boss bar
   if (G.boss && !G.boss.dead) {
     const b = G.boss, bw = Math.min(220, W - 40), x = (W - bw) / 2, y = H - 14;
-    text(b.type === 'reaper' ? 'THE PALE REAPER' : 'BONE GOLEM', W / 2, y - 7, b.type === 'reaper' ? C.pale : C.bone, 1, 'c', true);
+    text(BOSS_NAMES[b.type] || '', W / 2, y - 7, b.def.col, 1, 'c', true);
     frame9(x - 2, y - 1, bw + 4, 7, C.black, C.wine); rect(x, y + 1, bw * Math.max(0, b.hp / b.maxHp), 3, b.type === 'reaper' ? C.spirit : C.red);
   }
   if (G.msgT > 0) { ctx.globalAlpha = Math.min(1, G.msgT); text(G.msg, W / 2, H * 0.3, C.gold, 1, 'c', true); ctx.globalAlpha = 1; }
@@ -344,7 +389,7 @@ function drawTitle(dt) {
   if (button('shop', W / 2 - bw / 2, y, bw2, 14, 'EMBER SHRINE', { col: C.orange })) { SCREEN = 'shop'; }
   if (button('opt', W / 2 - bw / 2 + bw2 + 4, y, bw2, 14, 'OPTIONS', { col: C.fog })) { SCREEN = 'options'; }
   statsLine(Math.min(H - 9, y + 22));
-  text(UI.touch ? 'DRAG THE LEFT HALF OF THE SCREEN TO MOVE' : 'WASD / ARROWS TO MOVE   P / ESC TO PAUSE', W / 2, Math.min(H - 8, y + 36), C.grey, 1, 'c');
+  text(UI.touch ? 'LEFT HALF: MOVE   RIGHT HALF: DASH' : 'WASD MOVE   SPACE DASH   P PAUSE', W / 2, Math.min(H - 8, y + 36), C.grey, 1, 'c');
 }
 function beginRun() { AU.init(); startRun(G.hero); SCREEN = 'title'; }
 function drawShop() {
@@ -480,7 +525,7 @@ function drawEnd(win) {
   const sc = W < 340 ? 2 : 3;
   text(win ? 'DAWN BREAKS' : 'YOU HAVE FALLEN', W / 2, y, win ? C.gold : C.red, sc, 'c', true); y += sc * 5 + 6;
   text(win ? 'YOU HAVE SURVIVED THE VIGIL' : 'THE VIGIL ENDS', W / 2, y, C.pale, 1, 'c', true); y += 16;
-  const rows = [['TIME SURVIVED', fmtTime(G.time)], ['LEVEL', G.level], ['ENEMIES SLAIN', G.kills], ['GOLD EARNED', G.gold], ['TOTAL GOLD', SAVE.gold]];
+  const rows = [['TIME SURVIVED', fmtTime(G.time)]].concat(G.endless ? [['NIGHT REACHED', G.night]] : []).concat([['LEVEL', G.level], ['ENEMIES SLAIN', G.kills], ['GOLD EARNED', G.gold], ['TOTAL GOLD', SAVE.gold]]);
   const bw = Math.min(180, W - 40);
   frame9(W / 2 - bw / 2 - 6, y - 5, bw + 12, rows.length * 10 + 8, C.night, C.slate);
   rows.forEach(([k, v]) => { text(k, W / 2 - bw / 2, y, C.fog, 1, 'l'); text(v, W / 2 + bw / 2, y, k.indexOf('GOLD') >= 0 ? C.gold : C.white, 1, 'r'); y += 10; });
@@ -491,5 +536,45 @@ function drawEnd(win) {
   if (button('again', W / 2 - b * 1.5 - 4, y, b, 15, 'RETRY', { col: C.gold })) beginRun();
   if (button('eshop', W / 2 - b / 2, y, b, 15, 'SHRINE', { col: C.orange })) { G.state = 'title'; SCREEN = 'shop'; MUS.mode = 'title'; }
   if (button('etitle', W / 2 + b / 2 + 4, y, b, 15, 'TITLE', { col: C.fog })) { G.state = 'title'; SCREEN = 'title'; MUS.mode = 'title'; }
+  drawVoice(Math.min(H - 24, y + 34));
+}
+
+// ---------- merchant shop (in-run) ----------
+function drawMerchant() {
+  dim(0.65);
+  const M = G.merchant; if (!M) { G.state = 'play'; return; }
+  const portrait = W < 400;
+  text("THE WANDERING MERCHANT", W / 2, 10, C.gold, portrait ? 1 : 2, 'c', true);
+  text('SPEND THIS RUN\'S GOLD. EACH WARE SELLS ONCE PER VISIT.', W / 2, portrait ? 19 : 25, C.fog, 1, 'c', true);
+  icon('gold', W / 2 - textW(G.gold + '') / 2 - 6, portrait ? 27 : 33); text(G.gold, W / 2 + 6, portrait ? 28 : 34, C.gold, 1, 'c', true);
+  const cols = portrait ? 1 : 2, cw = portrait ? W - 16 : Math.min(220, (W - 24) / 2), rh = 30, x0 = Math.round((W - (cw * cols + (cols - 1) * 6)) / 2), y0 = portrait ? 38 : 44;
+  M.stock.forEach((slot, i) => {
+    const it = SHOP_BY[slot.id], price = itemPrice(it), cx = x0 + (i % cols) * (cw + 6), cy = y0 + Math.floor(i / cols) * (rh + 4);
+    frame9(cx, cy, cw, rh, slot.sold ? C.black : C.night, slot.sold ? C.dusk : C.slate);
+    ctx.globalAlpha = slot.sold ? 0.4 : 1;
+    frame9(cx + 3, cy + 4, 22, 22, C.black, C.dusk); icon(it.icon, cx + 6, cy + 7, 2);
+    text(it.name, cx + 29, cy + 5, C.white, 1, 'l', true);
+    wrap(it.desc, cw - 29 - 52, 1).slice(0, 2).forEach((l, j) => text(l, cx + 29, cy + 13 + j * 7, C.fog, 1));
+    ctx.globalAlpha = 1;
+    const bw = 46;
+    if (button('ware' + i, cx + cw - bw - 4, cy + (rh - 14) / 2, bw, 14, slot.sold ? 'SOLD' : price + '', { disabled: slot.sold || G.gold < price, col: C.gold, tc: C.gold })) buyItem(slot);
+  });
+  const by = y0 + Math.ceil(M.stock.length / cols) * (rh + 4) + 4;
+  if (button('leave', W / 2 - 50, Math.min(H - 18, by), 100, 14, 'LEAVE THE CART', { col: C.fog })) closeShop();
+  if (G.pendChest || G.pendSmite) text(G.pendChest ? 'YOUR CHEST OPENS WHEN YOU LEAVE' : 'THE ROSARY BURNS WHEN YOU LEAVE', W / 2, Math.min(H - 26, by + 18), C.gold, 1, 'c', true);
+}
+// ---------- dawn: end the vigil or go on into the endless night ----------
+function drawDawn() {
+  dim(0.45);
+  ctx.globalAlpha = 0.3; const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, C.gold); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+  let y = Math.round(H * 0.16); const sc = W < 340 ? 2 : 3;
+  text('DAWN BREAKS', W / 2, y, C.gold, sc, 'c', true); y += sc * 5 + 8;
+  text('THE PALE REAPER IS DEFEATED. +500 GOLD', W / 2, y, C.pale, 1, 'c', true); y += 10;
+  text('BUT THE DARK IS STIRRING AGAIN...', W / 2, y, C.violet, 1, 'c', true); y += 18;
+  const bw = Math.min(170, W - 40);
+  if (button('endless', W / 2 - bw / 2, y, bw, 18, 'ENTER THE ENDLESS NIGHT', { col: C.violet, tc: C.light })) enterEndless();
+  y += 22;
+  text('NEW BOSSES EVERY 2 MINUTES, FOREVER STRONGER', W / 2, y, C.fog, 1, 'c', true); y += 14;
+  if (button('endrun', W / 2 - bw / 2, y, bw, 14, 'END THE VIGIL', { col: C.gold })) { bankGold(); G.state = 'win'; }
   drawVoice(Math.min(H - 24, y + 34));
 }

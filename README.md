@@ -23,7 +23,7 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `bubble-bastion.html` | Tower defense: pop bubbles drifting down a stream | Pick a tower, tap the grass · arrows + Space, 1-4 pick, U/S/N |
 | `arrow-rampart.html` | Wall defense archery with upgrade cards | Pull back and let go · Up/Down aim, hold Space, 1-3 cards |
 | `pocket-grove.html` | 3D idle garden (three.js) | Tap plots · arrows + Enter, S shop, A album, H pets, B boost |
-| `ashen-vigil.html` | Pixel survivor roguelite (bullet heaven), 100% canvas UI, narrator voice | WASD / arrows · drag left half on phones · P/Esc pause, 1-4 cards, R reroll |
+| `ashen-vigil.html` | Pixel survivor roguelite (bullet heaven) with an endless mode, 100% canvas UI, narrator voice | WASD / arrows, Space dash · phones: left half moves, right half dashes · P/Esc pause, 1-4 cards, R reroll |
 
 Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
 coins, 8 unlockable skins (shared across all games), a daily bonus streak, a "show, don't tell" tutorial, and ad placeholders.
@@ -67,7 +67,8 @@ URL flags: `?lang=en|fr|ar`, `?test` (instant ads plus debug hooks), `?speed=N`.
 
 ### Ashen Vigil (standalone pixel survivor)
 Unlike the kit games, it draws every screen itself on one `<canvas>` (no HTML buttons) and keeps its own save (`ashenvigil:save`: gold, Ember Shrine upgrades, best time, total kills).
-Source: `src/ashen/NN-*.js` (core, art, audio + voice, game, render/UI, main), inlined into `games/ashen-vigil.html` by `node tools/build.js` (or `node src/ashen/build.js`).
+After the Pale Reaper (15:00) the player picks End the Vigil or the Endless Night (a boss every 2 minutes, forever stronger). A wandering merchant sells 11 run items for run gold.
+Source: `src/ashen/NN-*.js` (core, art, audio + voice, game, night = endless/bosses/merchant/dash, render/UI, main), inlined into `games/ashen-vigil.html` by `node tools/build.js` (or `node src/ashen/build.js`).
 Narrator lines: `src/ashen/vo/*.mp3` (ElevenLabs), embedded as base64 data URIs at build time, so the game makes no network calls. A missing clip falls back to subtitles plus a rune chime.
 Site images: `node src/ashen/thumbs.js` captures `thumbs/ashen-vigil*.{webp,jpg}` from the real game. Test flags: `?fps`, `?god`, `?speed=N`, `?t=MINUTES`; debug hooks on `window.__av`.
 

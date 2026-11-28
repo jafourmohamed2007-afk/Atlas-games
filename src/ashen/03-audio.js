@@ -67,6 +67,8 @@ const AU = {
   heal() { if (!this.ctx) return; const t = this.ctx.currentTime;[440, 554, 659].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.08, 0, 0, t + i * 0.05)); },
   chestOpen() { if (!this.ctx) return; const t = this.ctx.currentTime;[392, 494, 587, 784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.22, 'square', 0.06, 0, 0, t + i * 0.08)); this.burst(0.8, 0.2, 7000, 'highpass', 0, t + 0.5); },
   smite() { this.burst(1.2, 0.5, 2500, 'bandpass'); this.tone(1047, 0.8, 'triangle', 0.1, 523); this.tone(1568, 0.8, 'triangle', 0.08, 784); },
+  dash() { if (!this.can('dash', 80)) return; this.burst(0.18, 0.3, 1800, 'bandpass'); this.tone(300, 0.15, 'triangle', 0.06, 900); },
+  buy() { if (!this.ctx) return; const t = this.ctx.currentTime;[784, 988, 1319].forEach((f, i) => this.tone(f, 0.12, 'square', 0.06, 0, 0, t + i * 0.05)); },
   click() { if (!this.can('click', 40)) return; this.tone(880, 0.04, 'square', 0.05, 660); },
   hover() { if (!this.can('hover', 50)) return; this.tone(1320, 0.025, 'square', 0.02); },
   deny() { this.tone(200, 0.15, 'square', 0.06, 120); },
@@ -122,7 +124,10 @@ const VO = {
     lowhp: { t: 'Health critical. Find light!', cd: 35 },
     reaper: { t: 'The Reaper has come for you.', cd: 30 },
     win: { t: 'Dawn breaks. You have survived the vigil.', cd: 5 },
-    dead: { t: 'You have fallen. The vigil ends.', cd: 5 }
+    dead: { t: 'You have fallen. The vigil ends.', cd: 5 },
+    merchant: { t: 'A merchant emerges from the mist. Trade, if you dare.', cd: 90 },
+    endless: { t: 'The night returns... and it will never end.', cd: 10 },
+    boss: { t: 'Another horror rises from the dark.', cd: 40 }
   },
   buf: {}, failed: {}, last: {}, pending: null, speaking: false, until: 0, src: null, sub: '', subT: 0, subMax: 1, decoded: false, cur: '',
   decodeAll() {
