@@ -23,7 +23,7 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `bubble-bastion.html` | Tower defense: pop bubbles drifting down a stream | Pick a tower, tap the grass · arrows + Space, 1-4 pick, U/S/N |
 | `arrow-rampart.html` | Wall defense archery with upgrade cards | Pull back and let go · Up/Down aim, hold Space, 1-3 cards |
 | `pocket-grove.html` | 3D idle garden (three.js) | Tap plots · arrows + Enter, S shop, A album, H pets, B boost |
-| `shattered-crown.html` | Dark-fantasy stick-figure tug-of-war RTS (standalone, 100% canvas UI, optional ElevenLabs voice) | 1-4 train · Z/X/C stances · U armory · click a warrior to possess, A/D, W/Space, mouse |
+| `shattered-crown.html` | Dark-fantasy stick-figure tug-of-war RTS (standalone, 100% canvas UI, baked ElevenLabs voice + sound effects) | 1-4 train · Z/X/C stances · U armory · click a warrior to possess, A/D, W/Space, mouse |
 
 Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
 coins, 8 unlockable skins (shared across all games), a daily bonus streak, a "show, don't tell" tutorial, and ad placeholders.
