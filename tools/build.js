@@ -21,6 +21,8 @@ let built = 0;
 for (const g of games) {
   // 3D games are ES modules under src/<dir>/main.js, bundled (three.js + models) by esbuild into one script
   const BUNDLED = { 'pocket-grove': 'src/grove/main.js' };
+  // standalone games (own canvas UI, no kit): modules in src/<dir>/NN-*.js, built by src/<dir>/build.js
+  if (g.standalone) { const n = require(path.join(ROOT, 'src', g.standalone, 'build.js'))(g, { SITE, esc, safeScript, ICON }); console.log('built games/' + g.id + '.html', (n / 1024).toFixed(1) + ' KB'); built++; continue; }
   const src = path.join(ROOT, BUNDLED[g.id] || path.join('src/games', g.id + '.js'));
   if (!fs.existsSync(src)) { console.log('skip (no source yet):', g.id); continue; }
   const code = BUNDLED[g.id] ? require('esbuild').buildSync({ entryPoints: [src], bundle: true, format: 'iife', minify: true, write: false, target: 'es2019', loader: { '.glb': 'binary' }, legalComments: 'none' }).outputFiles[0].text : (fs.existsSync(path.join(ROOT, 'src/games', g.id.split('-')[0] + '-fight.js')) ? fs.readFileSync(path.join(ROOT, 'src/games', g.id.split('-')[0] + '-fight.js'), 'utf8') + '\n' : '') + fs.readFileSync(src, 'utf8');

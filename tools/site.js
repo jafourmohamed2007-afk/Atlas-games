@@ -22,7 +22,7 @@ const tr = (s, o) => String(s).replace(/\{(\w+)\}/g, (m, k) => (o[k] !== undefin
 const lp = (lang, p) => (lang === 'en' ? '' : lang + '/') + p;
 const abs = (p) => SITE + '/' + p.replace(/(^|\/)index\.html$/, '$1');
 const HOT = ['pocket-grove', 'ink-heroes', 'rooftop-rush'];
-const ORDER = ['pocket-grove', 'ink-heroes', 'spear-hills', 'merge-blasters', 'tiny-siege', 'bubble-bastion', 'arrow-rampart', 'rooftop-rush', 'block-bloom', 'jelly-drop', 'hop-hook', 'hill-hopper', 'number-pop', 'wiggle-snake', 'memo-match'];
+const ORDER = ['pocket-grove', 'ashen-vigil', 'ink-heroes', 'spear-hills', 'merge-blasters', 'tiny-siege', 'bubble-bastion', 'arrow-rampart', 'rooftop-rush', 'block-bloom', 'jelly-drop', 'hop-hook', 'hill-hopper', 'number-pop', 'wiggle-snake', 'memo-match'];
 const CATS = ['action', 'farm', 'puzzle', 'running', 'skill', 'learning', 'cars'];
 const MOODS = { quick: ['arrow-rampart', 'spear-hills', 'wiggle-snake', 'number-pop', 'hop-hook', 'rooftop-rush', 'memo-match'], brain: ['bubble-bastion', 'tiny-siege', 'merge-blasters', 'block-bloom', 'memo-match', 'number-pop', 'jelly-drop'], chill: ['pocket-grove', 'block-bloom', 'jelly-drop', 'memo-match', 'wiggle-snake'] };
 const TILE = { quick: ['#FFE066', '#FFB020', '#4A2E00', 'clock'], brain: ['#7DF5CF', '#1FC79A', '#063A2C', 'bulb'], chill: ['#B5E2FF', '#5AA9FF', '#0B2A55', 'cloud'],

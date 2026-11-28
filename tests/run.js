@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { chromium, devices } = require('playwright');
 const ROOT = path.join(__dirname, '..');
-const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/games.json'), 'utf8'))
+const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/games.json'), 'utf8')).filter((g) => !g.standalone)
   .map((g) => g.id).filter((id) => fs.existsSync(path.join(ROOT, 'games', id + '.html')));
 const only = process.argv.slice(2);
 const list = only.length ? games.filter((g) => only.includes(g)) : games;

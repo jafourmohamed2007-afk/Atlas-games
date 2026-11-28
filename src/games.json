@@ -1,5 +1,32 @@
 [
   {
+    "id": "ashen-vigil",
+    "standalone": "ashen",
+    "category": "action",
+    "color": "#E0563A",
+    "isNew": true,
+    "title": {
+      "en": "Ashen Vigil: Night of a Thousand",
+      "fr": "Veille de Cendre : la Nuit des Mille",
+      "ar": "سهرة الرماد: ليلة الألف"
+    },
+    "desc": {
+      "en": "A dark-fantasy pixel survivor roguelite. Your weapons fire on their own: dodge swarms of bats, ghouls, skull archers and wraiths, collect soul gems, pick upgrades, evolve your weapons and survive 15 minutes until the Pale Reaper comes. With a narrated voice, boss chests and a permanent Ember Shrine shop. Free online, no download.",
+      "fr": "Un roguelite de survie pixel art en dark fantasy. Tes armes tirent toutes seules : esquive les nuées de chauves-souris, goules, archers squelettes et spectres, ramasse les gemmes d'âme, choisis tes améliorations, fais évoluer tes armes et survis 15 minutes jusqu'à l'arrivée de la Faucheuse Pâle. Avec un narrateur, des coffres de boss et la boutique permanente du Sanctuaire des Braises. Gratuit, sans téléchargement.",
+      "ar": "لعبة نجاة روغلايت بأسلوب البكسل في عالم فانتازيا مظلم. أسلحتك تطلق وحدها: تفادَ أسراب الخفافيش والغيلان ورماة الجماجم والأشباح، اجمع جواهر الأرواح، اختر التطويرات، طوّر أسلحتك وانجُ 15 دقيقة حتى يأتي الحاصد الشاحب. مع راوٍ وصناديق زعماء ومتجر دائم في معبد الجمر. مجاناً وبدون تحميل."
+    },
+    "keywords": {
+      "en": "survivor games, roguelite, bullet heaven, pixel art games, dark fantasy, action games",
+      "fr": "jeux de survie, roguelite, pixel art, dark fantasy, jeux d'action",
+      "ar": "ألعاب نجاة, روغلايت, ألعاب بكسل, فانتازيا مظلمة, ألعاب أكشن"
+    },
+    "howto": {
+      "en": "Move with WASD or the arrows (on phones, drag the left half of the screen). Your weapons attack by themselves. Pick up gems to level up and choose one of 3-4 upgrades (Reroll or Skip if you like). Max a weapon and own its paired passive, then open a boss chest to evolve it. Break lanterns for items. P or Esc pauses. Survive 15:00, then defeat the Pale Reaper. Spend gold in the Ember Shrine between runs.",
+      "fr": "Déplace-toi avec ZQSD/WASD ou les flèches (sur téléphone, glisse sur la moitié gauche de l'écran). Tes armes attaquent seules. Ramasse les gemmes pour monter de niveau et choisis une amélioration parmi 3 ou 4 (Relancer ou Passer). Monte une arme au maximum avec son passif associé, puis ouvre un coffre de boss pour la faire évoluer. Casse les lanternes pour des objets. P ou Échap met en pause. Survis 15:00 puis bats la Faucheuse Pâle. Dépense ton or au Sanctuaire des Braises.",
+      "ar": "تحرك بـ WASD أو الأسهم (على الهاتف اسحب في النصف الأيسر من الشاشة). أسلحتك تهاجم وحدها. اجمع الجواهر لترتفع في المستوى واختر تطويراً من 3 أو 4 (إعادة أو تخطٍّ). طوّر سلاحاً للحد الأقصى مع القدرة المرافقة له ثم افتح صندوق زعيم ليتطور. اكسر الفوانيس للحصول على أغراض. P أو Esc للإيقاف. انجُ حتى 15:00 ثم اهزم الحاصد الشاحب. أنفق الذهب في معبد الجمر."
+    }
+  },
+  {
     "id": "spear-hills",
     "category": "action",
     "color": "#FF5E5B",
