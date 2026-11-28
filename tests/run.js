@@ -7,7 +7,8 @@ const fs = require('fs');
 const { chromium, devices } = require('playwright');
 const ROOT = path.join(__dirname, '..');
 const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/games.json'), 'utf8'))
-  .map((g) => g.id).filter((id) => fs.existsSync(path.join(ROOT, 'games', id + '.html')));
+  .map((g) => g.id).filter((id) => fs.existsSync(path.join(ROOT, 'games', id + '.html')))
+  .filter((id) => id !== 'neon-overdrive'); // no kit: tested by tests/neon.js
 const only = process.argv.slice(2);
 const list = only.length ? games.filter((g) => only.includes(g)) : games;
 const KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'Enter', 'KeyA', 'KeyD', 'KeyW', 'KeyS', 'Digit1', 'Digit2', 'Digit3', 'KeyX'];

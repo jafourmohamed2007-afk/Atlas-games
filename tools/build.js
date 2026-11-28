@@ -22,11 +22,12 @@ for (const g of games) {
   // 3D games are ES modules under src/<dir>/main.js, bundled (three.js + models) by esbuild into one script
   const BUNDLED = { 'pocket-grove': 'src/grove/main.js', 'arrow-rampart-3d': 'src/arrow/main.js' };
   // editions: one source file built as two games (the edition flag is set before the game code runs)
-  const MODULES = { 'arrow-rampart': ['src/games/ink-music.js'], 'stick-dominion': ['src/games/ink-music.js'] }; // shared modules a game needs before its own code (bundled games import theirs)
+  const MODULES = { 'arrow-rampart': ['src/games/ink-music.js'] }; // shared modules a game needs before its own code (bundled games import theirs)
   const EDITION = { 'ink-heroes-remastered': ['ink-heroes', 'remastered'] }[g.id];
   const src = path.join(ROOT, BUNDLED[g.id] || path.join('src/games', (EDITION ? EDITION[0] : g.id) + '.js'));
   if (!fs.existsSync(src)) { console.log('skip (no source yet):', g.id); continue; }
   const code = BUNDLED[g.id] ? require('esbuild').buildSync({ entryPoints: [src], bundle: true, format: 'iife', minify: true, write: false, target: 'es2019', loader: { '.glb': 'binary' }, legalComments: 'none' }).outputFiles[0].text : (MODULES[g.id] || ['-music.js', '-fight.js'].map((suf) => path.join('src/games', g.id.split('-')[0] + suf))).map((f) => path.join(ROOT, f)).filter((f) => fs.existsSync(f)).map((f) => fs.readFileSync(f, 'utf8') + '\n').join('') + (EDITION ? 'window.INK_EDITION = ' + JSON.stringify(EDITION[1]) + ';\n' : '') + fs.readFileSync(src, 'utf8');
+  const SOLO = { 'neon-overdrive': true }[g.id]; // draws its whole UI on one canvas: no kit CSS/JS inlined
   const url = `${SITE}/play/${g.id}.html`;
   const title = `${g.title.en} – Play Free Online | Bubzi`;
   const ld = {
@@ -59,16 +60,13 @@ for (const g of games) {
 <link rel="icon" href="${ICON}">
 <script type="application/ld+json">${safeScript(JSON.stringify(ld))}</script>
 <style>
-${css}
+${SOLO ? 'html,body{margin:0;height:100%;overflow:hidden;background:#07070c}' : css}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <noscript><p style="padding:24px;font:700 18px sans-serif">${esc(g.title.en)}: please enable JavaScript to play. ${esc(g.desc.en)}</p></noscript>
-<script>
-${safeScript(kit)}
-</script>
-<script>
+${SOLO ? '' : '<script>\n' + safeScript(kit) + '\n</script>\n'}<script>
 ${safeScript(code)}
 </script>
 </body>

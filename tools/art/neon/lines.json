@@ -1,0 +1,90 @@
+{
+  "voice": "N2lVS1w4EtoT3dr4eOWO",
+  "model": "eleven_turbo_v2_5",
+  "lines": {
+    "link": {
+      "en": "Neural link established. Survive.",
+      "fr": "Connexion neurale établie. Survis.",
+      "ar": "تم إنشاء الرابط العصبي. انجُ."
+    },
+    "start": {
+      "en": "Arena online. Fight.",
+      "fr": "Arène en ligne. Combats.",
+      "ar": "الساحة متصلة. قاتل."
+    },
+    "wave": {
+      "en": "Next wave. Incoming.",
+      "fr": "Vague suivante. En approche.",
+      "ar": "الموجة التالية. إنهم قادمون."
+    },
+    "clear": {
+      "en": "Wave cleared. Choose your upgrade.",
+      "fr": "Vague terminée. Choisis ton amélioration.",
+      "ar": "تم تطهير الموجة. اختر ترقيتك."
+    },
+    "double": {
+      "en": "Double kill.",
+      "fr": "Double élimination.",
+      "ar": "قتل مزدوج."
+    },
+    "triple": {
+      "en": "Triple kill. Brutal.",
+      "fr": "Triple élimination. Brutal.",
+      "ar": "قتل ثلاثي. وحشي."
+    },
+    "rampage": {
+      "en": "Rampage. Unstoppable.",
+      "fr": "Carnage total. Rien ne t’arrête.",
+      "ar": "هيجان كامل. لا أحد يوقفك."
+    },
+    "boss": {
+      "en": "Warning: Boss signature detected.",
+      "fr": "Alerte : signature de boss détectée.",
+      "ar": "تحذير: تم رصد بصمة الزعيم."
+    },
+    "bossdown": {
+      "en": "Boss signature terminated.",
+      "fr": "Signature du boss éliminée.",
+      "ar": "تم القضاء على بصمة الزعيم."
+    },
+    "critical": {
+      "en": "System critical.",
+      "fr": "Système critique.",
+      "ar": "النظام في حالة حرجة."
+    },
+    "repair": {
+      "en": "Integrity restored.",
+      "fr": "Intégrité restaurée.",
+      "ar": "تمت استعادة السلامة."
+    },
+    "upgrade": {
+      "en": "Upgrade installed.",
+      "fr": "Amélioration installée.",
+      "ar": "تم تثبيت الترقية."
+    },
+    "dead": {
+      "en": "Signal lost. Neural link severed.",
+      "fr": "Signal perdu. Lien neural rompu.",
+      "ar": "فُقدت الإشارة. انقطع الرابط العصبي."
+    },
+    "record": {
+      "en": "New record. Legendary.",
+      "fr": "Nouveau record. Légendaire.",
+      "ar": "رقم قياسي جديد. أسطوري."
+    }
+  },
+  "sfx": {
+    "impact": {
+      "text": "heavy sci-fi bass impact, metallic crunch, punchy, short, no music",
+      "dur": 1.0
+    },
+    "explode": {
+      "text": "deep cyberpunk explosion with electric crackle and sub bass boom, punchy",
+      "dur": 1.6
+    },
+    "alarm": {
+      "text": "ominous low synth warning horn, sci-fi boss alarm, two long blasts",
+      "dur": 2.5
+    }
+  }
+}

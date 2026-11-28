@@ -52,29 +52,29 @@
     }
   },
   {
-    "id": "stick-dominion",
+    "id": "neon-overdrive",
     "category": "action",
-    "color": "#C0392B",
+    "color": "#2EF9FF",
     "isNew": true,
     "title": {
-      "en": "Stick Dominion",
-      "fr": "Stick Dominion",
-      "ar": "ستيك دومينيون"
+      "en": "Neon Overdrive: Voice Protocol",
+      "fr": "Neon Overdrive : Protocole Vocal",
+      "ar": "نيون أوفردرايف: بروتوكول الصوت"
     },
     "desc": {
-      "en": "Lead the Quill Order against the Smudge Horde in a 2D stickman army strategy game. Mine gold, train Blades, Slingers, Pikemen, Hexers and Giants, command your army or take control of one soldier and fight with real combos, then topple the enemy Monument. 12-level campaign, Survival mode and upgrades. Free online, no download.",
-      "fr": "Mène l’Ordre de la Plume contre la Horde Tachée dans un jeu de stratégie d’armée de bâtons en 2D. Mine de l’or, forme des Lames, Frondeurs, Piquiers, Ensorceleurs et Géants, commande ton armée ou prends le contrôle d’un soldat pour combattre avec de vrais combos, puis renverse le Monument ennemi. Campagne de 12 niveaux, mode Survie et améliorations. Gratuit, sans téléchargement.",
-      "ar": "قُد نظام الريشة ضد جحافل اللطخة في لعبة استراتيجية لجيش من رجال العصي ثنائية الأبعاد. انقب الذهب ودرّب السيافين والرماة والرماحين والسحرة والعمالقة، وقُد جيشك أو تحكم بجندي واحد وقاتل بسلاسل ضربات حقيقية، ثم أسقط نُصب العدو. حملة من 12 مرحلة ووضع النجاة وتحسينات. مجاناً وبدون تحميل."
+      "en": "A fast top-down neon arena shooter with an AI announcer. Dash through Swarmers, dodge Sniper laser sights, shatter Splitters and take down the Overmind boss. Pick glowing upgrade cards between waves: Multishot, Piercing Rounds, Overclocked Dash and more. Link your own ElevenLabs key for a live voice announcer and generated explosions, or play offline with the built-in voice pack. Free online, no download.",
+      "fr": "Un jeu de tir néon en arène, vu de dessus, avec un annonceur IA. Fonce à travers les Essaims, esquive les lasers des Snipers, brise les Diviseurs et abats le boss Overmind. Entre les vagues, choisis des cartes d’amélioration lumineuses : Tir multiple, Balles perforantes, Dash surcadencé et plus. Relie ta propre clé ElevenLabs pour un annonceur vocal en direct et des explosions générées, ou joue hors ligne avec le pack vocal intégré. Gratuit, sans téléchargement.",
+      "ar": "لعبة إطلاق نار سريعة في ساحة نيون من الأعلى مع معلّق بالذكاء الاصطناعي. اندفع عبر الأسراب وتفادَ ليزر القناصة وحطّم المنقسمات وأسقط الزعيم أوفرمايند. اختر بطاقات ترقية متوهجة بين الموجات: طلقات متعددة وطلقات خارقة واندفاع فائق والمزيد. اربط مفتاح ElevenLabs الخاص بك لمعلّق صوتي مباشر وانفجارات مولّدة، أو العب دون اتصال مع حزمة الصوت المدمجة. مجاناً وبدون تحميل."
     },
     "keywords": {
-      "en": "stickman army game, stick strategy, army battle game, stickman war, strategy games",
-      "fr": "jeu d’armée stickman, stratégie stickman, jeu de bataille, jeux de stratégie",
-      "ar": "لعبة جيش ستيكمان, استراتيجية ستيكمان, لعبة معارك, ألعاب استراتيجية"
+      "en": "neon shooter, arena shooter, top-down shooter, twin stick shooter, cyberpunk game, action games",
+      "fr": "jeu de tir néon, tir en arène, jeu de tir vu de dessus, jeu cyberpunk, jeux d’action",
+      "ar": "لعبة إطلاق نار نيون, ساحة إطلاق نار, لعبة سايبربانك, ألعاب أكشن"
     },
     "howto": {
-      "en": "Tap the unit buttons to train (Diggers mine gold). Use Attack, Hold and Defend to command the army, or the crown to take control of a soldier: arrows to move, sword to attack, boot to kick. Keys: 1-6 train, C/X/Z commands, T take control, A/D move, J attack, K kick.",
-      "fr": "Touche les boutons d’unités pour former (les Mineurs ramènent l’or). Attaque, Tenir et Défense commandent l’armée, la couronne te donne un soldat : flèches pour bouger, épée pour frapper, botte pour le coup de pied. Touches : 1-6 former, C/X/Z ordres, T commander, A/D bouger, J frapper, K pied.",
-      "ar": "انقر أزرار الوحدات للتدريب (المنقبون يجلبون الذهب). استخدم هجوم وثبات ودفاع لقيادة الجيش، أو التاج للتحكم بجندي: الأسهم للحركة والسيف للضرب والحذاء للركل. المفاتيح: 1-6 تدريب، C/X/Z أوامر، T قيادة، A/D حركة، J ضرب، K ركلة."
+      "en": "WASD or arrows to move, mouse to aim, left click to fire, Space to dash through danger. On phones: left thumb moves, right thumb aims and fires, DASH button dashes. Between waves pick an upgrade with a click or 1-3. Esc pauses.",
+      "fr": "ZQSD ou flèches pour bouger, souris pour viser, clic gauche pour tirer, Espace pour un dash à travers le danger. Sur téléphone : pouce gauche pour bouger, pouce droit pour viser et tirer, bouton DASH. Entre les vagues, choisis une amélioration d’un clic ou avec 1-3. Échap met en pause.",
+      "ar": "WASD أو الأسهم للحركة، الفأرة للتصويب، النقر الأيسر للإطلاق، المسافة للاندفاع عبر الخطر. على الهاتف: الإبهام الأيسر للحركة والأيمن للتصويب والإطلاق وزر الاندفاع. بين الموجات اختر ترقية بالنقر أو 1-3. ESC للإيقاف المؤقت."
     }
   },
   {
