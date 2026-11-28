@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Shattered Crown: Legion of Ash</title>
+<title>Shattered Crown</title>
 <meta name="description" content="A dark-fantasy stick-figure tug-of-war RTS. Mine gold, raise a legion, possess any warrior and topple the Crimson Monolith.">
 <meta name="theme-color" content="#07050a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -210,16 +210,18 @@ const Voice = {
   },
   play(id) {
     const text = LINES[id]; if (!text) return;
-    this.text = text; this.textT = 0; this.speaking = true;
-    if (AudioSys.muted || !AudioSys.ctx) { this.fakeSpeak(text, false); return; }
+    this.text = text; this.textT = 0; this.speaking = true; const line = this.line = (this.line || 0) + 1;
+    if (AudioSys.muted || !AudioSys.ctx) { this.fakeSpeak(text, false, true); return; }
     if (this.mode === 'eleven' && this.key) {
       this.fetchLine(text).then(entry => {
+        if (this.line !== line) return;
         if (AudioSys.muted) { this.done(); return; }
         const s = AudioSys.ctx.createBufferSource(); s.buffer = entry.buf; s.playbackRate.value = 0.96;
         s.connect(AudioSys.voiceIn); this.source = s;
         s.onended = () => { if (this.source === s) { this.source = null; this.done(); } };
         s.start();
       }).catch(err => {
+        if (this.line !== line) return;
         this.fails++;
         const msg = String(err && err.message || err);
         this.flash('VOICE LINK ERROR: ' + msg.slice(0, 40));
@@ -266,18 +268,18 @@ const Voice = {
         const u = new SpeechSynthesisUtterance(text);
         const v = this.pickVoice(); if (v) u.voice = v;
         u.pitch = 0.35; u.rate = 0.9; u.volume = 1;
-        let ended = false; const end = () => { if (!ended) { ended = true; this.done(); } };
+        let ended = false; const line = this.line; const end = () => { if (!ended) { ended = true; if (this.line === line) this.done(); } };
         u.onend = end; u.onerror = end;
         setTimeout(end, 1500 + text.length * 90);
         speechSynthesis.speak(u);
-        this.fakeSpeak(text, false);
+        this.fakeSpeak(text, false, false);
         return;
       } catch (e) { /* fall through to the growl */ }
     }
-    this.fakeSpeak(text, true);
+    this.fakeSpeak(text, true, true);
   },
   // drives the visualiser (and, without speechSynthesis, an audible rune-growl babble)
-  fakeSpeak(text, audible) {
+  fakeSpeak(text, audible, autoEnd) {
     const dur = 0.9 + text.length * 0.058;
     if (AudioSys.ctx) {
       const c = AudioSys.ctx, t0 = c.currentTime;
@@ -298,7 +300,8 @@ const Voice = {
       }
       o.start(t0); o2.start(t0); o.stop(t0 + dur); o2.stop(t0 + dur);
     }
-    if (!window.speechSynthesis || audible) setTimeout(() => this.done(), dur * 1000);
+    const line = this.line;
+    if (autoEnd) setTimeout(() => { if (this.line === line) this.done(); }, dur * 1000);
   },
   done() { if (!this.speaking) return; this.speaking = false; this.gap = 0.9; },
   flash(msg) { this.status = msg; this.statusT = 4; },
@@ -308,7 +311,7 @@ const Voice = {
     if (!this.speaking && this.gap > 0) { this.gap -= dt; if (this.gap <= 0 && this.pending) { const p = this.pending; this.pending = null; this.play(p.id); } }
   },
   stopAll() {
-    this.pending = null;
+    this.pending = null; this.line = (this.line || 0) + 1;
     if (this.source) { try { this.source.stop(); } catch (e) { /* already stopped */ } this.source = null; }
     if (window.speechSynthesis) speechSynthesis.cancel();
     this.speaking = false; this.gap = 0;
@@ -841,7 +844,7 @@ function hurt(t, amt, src, o = {}) {
   const dirx = Math.sign(o.kx || (src ? t.x - src.x : 1)) || 1;
   blood(o.px !== undefined ? o.px : hx, o.py !== undefined ? o.py : hy, dirx, o.crit ? 16 : 7);
   if (!o.silent) SFX.flesh(t.x);
-  if (src === G.possessed || t === G.possessed) floatText(t.x, t.j.head.y - 16, String(Math.round(amt)), o.crit ? '#ffef8a' : '#ffffff', o.crit ? 16 : 12);
+  if (G.possessed && (src === G.possessed || t === G.possessed)) floatText(t.x, t.j.head.y - 16, String(Math.round(amt)), o.crit ? '#ffef8a' : '#ffffff', o.crit ? 16 : 12);
   if (t.hp <= 0) kill(t, o.kx || dirx * 120, o.ky || -150);
 }
 function kill(t, kx, ky) {
@@ -2342,6 +2345,7 @@ function render(dt) {
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
   drawHUD();
+  if (G.armory || G.paused || G.state !== 'play') UI.btns = [];
   if (G.armory) drawArmory();
   else if (G.state === 'victory' || G.state === 'defeat' || G.state === 'complete') drawEndScreen();
   else if (G.paused) drawPause();
