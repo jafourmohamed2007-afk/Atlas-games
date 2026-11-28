@@ -85,6 +85,38 @@
     "alarm": {
       "text": "ominous low synth warning horn, sci-fi boss alarm, two long blasts",
       "dur": 2.5
+    },
+    "dash": {
+      "text": "fast sci-fi energy whoosh dash, short airy swoosh with electric shimmer",
+      "dur": 0.6
+    },
+    "hurt": {
+      "text": "electric shield damage zap with glitchy digital crunch, short",
+      "dur": 0.6
+    },
+    "pickup": {
+      "text": "bright sci-fi energy pickup chime, rising sparkle, short",
+      "dur": 0.6
+    },
+    "charge": {
+      "text": "rising sci-fi laser charge-up whine, tense, one second",
+      "dur": 1.0
+    },
+    "snipe": {
+      "text": "sharp high-powered sci-fi sniper laser shot, crisp zap",
+      "dur": 0.5
+    },
+    "upgrade": {
+      "text": "futuristic power-up installed, ascending synth arpeggio with shimmer",
+      "dur": 1.2
+    },
+    "wave": {
+      "text": "cyberpunk arena wave start, deep synth riser into a punchy hit",
+      "dur": 1.6
+    },
+    "laser": {
+      "text": "tiny punchy retro laser pew, very short, clean",
+      "dur": 0.5
     }
   }
 }
