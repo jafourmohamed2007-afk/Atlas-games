@@ -62,9 +62,9 @@
       "ar": "نيون أوفردرايف: بروتوكول الصوت"
     },
     "desc": {
-      "en": "A fast top-down neon arena shooter with an AI announcer. Dash through Swarmers, dodge Sniper laser sights, shatter Splitters and take down the Overmind boss. Pick glowing upgrade cards between waves: Multishot, Piercing Rounds, Overclocked Dash and more. Link your own ElevenLabs key for a live voice announcer and generated explosions, or play offline with the built-in voice pack. Free online, no download.",
-      "fr": "Un jeu de tir néon en arène, vu de dessus, avec un annonceur IA. Fonce à travers les Essaims, esquive les lasers des Snipers, brise les Diviseurs et abats le boss Overmind. Entre les vagues, choisis des cartes d’amélioration lumineuses : Tir multiple, Balles perforantes, Dash surcadencé et plus. Relie ta propre clé ElevenLabs pour un annonceur vocal en direct et des explosions générées, ou joue hors ligne avec le pack vocal intégré. Gratuit, sans téléchargement.",
-      "ar": "لعبة إطلاق نار سريعة في ساحة نيون من الأعلى مع معلّق بالذكاء الاصطناعي. اندفع عبر الأسراب وتفادَ ليزر القناصة وحطّم المنقسمات وأسقط الزعيم أوفرمايند. اختر بطاقات ترقية متوهجة بين الموجات: طلقات متعددة وطلقات خارقة واندفاع فائق والمزيد. اربط مفتاح ElevenLabs الخاص بك لمعلّق صوتي مباشر وانفجارات مولّدة، أو العب دون اتصال مع حزمة الصوت المدمجة. مجاناً وبدون تحميل."
+      "en": "A fast top-down neon arena shooter with an AI announcer. Dash through Swarmers, dodge Sniper laser sights, shatter Splitters and take down the Overmind boss. Pick glowing upgrade cards between waves: Multishot, Piercing Rounds, Overclocked Dash and more. A gravelly AI announcer calls your kills, boss warnings and close calls, with a live waveform on screen. Free online, no download.",
+      "fr": "Un jeu de tir néon en arène, vu de dessus, avec un annonceur IA. Fonce à travers les Essaims, esquive les lasers des Snipers, brise les Diviseurs et abats le boss Overmind. Entre les vagues, choisis des cartes d’amélioration lumineuses : Tir multiple, Balles perforantes, Dash surcadencé et plus. Un annonceur IA à la voix rauque commente tes éliminations, les alertes de boss et les moments critiques, avec une onde sonore à l’écran. Gratuit, sans téléchargement.",
+      "ar": "لعبة إطلاق نار سريعة في ساحة نيون من الأعلى مع معلّق بالذكاء الاصطناعي. اندفع عبر الأسراب وتفادَ ليزر القناصة وحطّم المنقسمات وأسقط الزعيم أوفرمايند. اختر بطاقات ترقية متوهجة بين الموجات: طلقات متعددة وطلقات خارقة واندفاع فائق والمزيد. معلّق بصوت أجش يعلن عن عمليات القتل وتحذيرات الزعيم واللحظات الحرجة، مع موجة صوتية حية على الشاشة. مجاناً وبدون تحميل."
     },
     "keywords": {
       "en": "neon shooter, arena shooter, top-down shooter, twin stick shooter, cyberpunk game, action games",
@@ -72,9 +72,9 @@
       "ar": "لعبة إطلاق نار نيون, ساحة إطلاق نار, لعبة سايبربانك, ألعاب أكشن"
     },
     "howto": {
-      "en": "WASD or arrows to move, mouse to aim, left click to fire, Space to dash through danger. On phones: left thumb moves, right thumb aims and fires, DASH button dashes. Between waves pick an upgrade with a click or 1-3. Esc pauses.",
-      "fr": "ZQSD ou flèches pour bouger, souris pour viser, clic gauche pour tirer, Espace pour un dash à travers le danger. Sur téléphone : pouce gauche pour bouger, pouce droit pour viser et tirer, bouton DASH. Entre les vagues, choisis une amélioration d’un clic ou avec 1-3. Échap met en pause.",
-      "ar": "WASD أو الأسهم للحركة، الفأرة للتصويب، النقر الأيسر للإطلاق، المسافة للاندفاع عبر الخطر. على الهاتف: الإبهام الأيسر للحركة والأيمن للتصويب والإطلاق وزر الاندفاع. بين الموجات اختر ترقية بالنقر أو 1-3. ESC للإيقاف المؤقت."
+      "en": "WASD or arrows to move, mouse to aim, left click to fire, Space to dash through danger. On phones: left thumb moves, hold FIRE to shoot where you move (or drag the right thumb to aim and fire), DASH button dashes. Between waves pick an upgrade with a click or 1-3. Esc pauses.",
+      "fr": "ZQSD ou flèches pour bouger, souris pour viser, clic gauche pour tirer, Espace pour un dash à travers le danger. Sur téléphone : pouce gauche pour bouger, maintiens TIR pour tirer où tu vas (ou glisse le pouce droit pour viser et tirer), bouton DASH. Entre les vagues, choisis une amélioration d’un clic ou avec 1-3. Échap met en pause.",
+      "ar": "WASD أو الأسهم للحركة، الفأرة للتصويب، النقر الأيسر للإطلاق، المسافة للاندفاع عبر الخطر. على الهاتف: الإبهام الأيسر للحركة، واضغط مطولاً على زر الإطلاق للإطلاق باتجاه حركتك (أو اسحب الإبهام الأيمن للتصويب)، وزر الاندفاع. بين الموجات اختر ترقية بالنقر أو 1-3. ESC للإيقاف المؤقت."
     }
   },
   {

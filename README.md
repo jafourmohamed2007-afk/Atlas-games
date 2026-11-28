@@ -24,7 +24,7 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `bubble-bastion.html` | Tower defense: pop bubbles drifting down a stream | Pick a tower, tap the grass · arrows + Space, 1-4 pick, U/S/N |
 | `arrow-rampart.html` | 2D wall defense archery: 5 modes, shop with feathers + gems, Rampart Pass, daily missions, special arrows |
 | `arrow-rampart-3d.html` | The same game in 3D (three.js, `src/arrow/`, Blender icons), built from the same source; separate saves | Same as Arrow Rampart | Pull back and let go · Up/Down aim, hold Space, 1-3 cards / special arrows · hub: arrows + Enter, S shop, T pass, M missions |
-| `neon-overdrive.html` | Neon top-down arena shooter, 100% canvas UI; ElevenLabs live announcer + generated SFX with your own key, built-in voice pack offline | WASD move, mouse aim/click fire, Space dash, 1-3 upgrade cards, Esc pause · phones: twin thumbs + DASH |
+| `neon-overdrive.html` | Neon top-down arena shooter, 100% canvas UI; ElevenLabs announcer + SFX generated ahead of time (no key for players) | WASD move, mouse aim, hold left click to fire, Space dash, 1-3 upgrade cards, Esc pause · phones: left thumb + hold FIRE, DASH |
 | `pocket-grove.html` | 3D idle garden (three.js) | Tap plots · arrows + Enter, S shop, A album, H pets, B boost |
 
 Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,

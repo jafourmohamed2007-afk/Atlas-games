@@ -1,9 +1,8 @@
 /* NEON OVERDRIVE: VOICE PROTOCOL — single-file cyber-arena survival shooter for Bubzi.
-   Everything (boot screen, key box, menus, HUD, upgrade cards, waveform) is drawn on ONE full-viewport <canvas>:
-   no HTML buttons, inputs or CSS overlays.
-   ElevenLabs: with the player's own key, a live announcer (text-to-speech, eleven_turbo_v2_5, voice "Callum") and three
-   generated heavy SFX (/v1/sound-generation). Without a key (BYPASS / OFFLINE SYNTH MODE): the built-in voice pack in
-   audio/neon-overdrive/ (made by tools/art/neon/gen-audio.py with the same voice) plus the Web Audio SoundFX synth.
+   Everything (boot screen, menus, HUD, upgrade cards, waveform, touch buttons) is drawn on ONE full-viewport <canvas>:
+   no HTML buttons, inputs or CSS overlays. Players never need an API key: the announcer (voice "Callum") and the heavy
+   SFX were made ahead of time with ElevenLabs (tools/art/neon/gen-audio.py → audio/neon-overdrive/); the Web Audio
+   SoundFX synth plays rapid fire and covers any sound that fails to load.
    Loop: requestAnimationFrame with delta time; simulation is frame-rate independent. */
 (function () {
   'use strict';
@@ -40,29 +39,29 @@
       privacy: 'Your key is saved in this browser only and is sent only to api.elevenlabs.io.', linking: 'LINKING', linked: 'LINK ESTABLISHED', bad: 'LINK REJECTED: INVALID KEY', limit: 'RATE LIMITED: OFFLINE FALLBACK', quota: 'OUT OF CREDITS: OFFLINE FALLBACK', net: 'NO SIGNAL: OFFLINE FALLBACK', short: 'KEY TOO SHORT', clip: 'CLIPBOARD BLOCKED: USE CTRL+V', got: 'KEY RECEIVED', chars: 'chars',
       start: 'START RUN', controls: 'CONTROLS', relink: 'NEURAL LINK', sound: 'SOUND', voice: 'VOICE', on: 'ON', off: 'OFF', best: 'BEST', wave: 'WAVE', score: 'SCORE', integ: 'INTEGRITY', dash: 'DASH', left: 'HOSTILES', cleared: 'CLEARED', choose: 'CHOOSE AN UPGRADE', paused: 'PAUSED', resume: 'RESUME', quit: 'ABANDON RUN', lost: 'SIGNAL LOST', kills: 'KILLS', reboot: 'REBOOT', menu: 'MAIN MENU', newBest: 'NEW RECORD',
       modeLive: 'LIVE · ELEVENLABS', modePack: 'VOICE PACK', modeSynth: 'SYNTH', announcer: 'ANNOUNCER', sfx: 'SFX', sfxLive: 'GENERATED', sfxPack: 'PACK', lv: 'LV', boss: 'OVERMIND', bossWarn: 'BOSS SIGNATURE', back: 'BACK', tx: 'TX', idle: 'IDLE',
-      awaiting: 'AWAITING KEY', online: 'ONLINE', offline: 'OFFLINE', rejected: 'REJECTED', kill2: 'DOUBLE KILL', kill3: 'TRIPLE KILL', kill6: 'RAMPAGE', tapHint: 'LEFT THUMB MOVE · RIGHT THUMB AIM + FIRE',
+      awaiting: 'AWAITING KEY', online: 'ONLINE', offline: 'OFFLINE', rejected: 'REJECTED', kill2: 'DOUBLE KILL', kill3: 'TRIPLE KILL', kill6: 'RAMPAGE', tapHint: 'LEFT THUMB MOVE · HOLD FIRE TO SHOOT', clickHint: 'HOLD LEFT CLICK TO FIRE · SPACE TO DASH', fire: 'FIRE', engage: 'ENGAGE NEURAL LINK', soundHint: 'Turn the sound on: the announcer talks.',
       ctl: ['WASD / ARROWS   move', 'MOUSE   aim        LEFT CLICK   fire', 'SPACE   dash (invulnerable)', '1 2 3   pick upgrade        ESC   pause'],
-      ctlT: ['LEFT THUMB   move', 'RIGHT THUMB   aim + fire', 'DASH button   dash (invulnerable)', 'Tap a card to pick an upgrade'],
+      ctlT: ['LEFT THUMB   move', 'FIRE button   hold to shoot where you move', 'RIGHT THUMB drag   aim + fire', 'DASH button   dash (invulnerable)'],
       u: { multi: ['MULTISHOT', '+1 projectile per shot'], pierce: ['PIERCING ROUNDS', 'Shots pass through +1 enemy'], dash: ['OVERCLOCKED DASH', '-30% cooldown, dash shreds enemies'], rapid: ['HYPER TRIGGER', '+22% fire rate'], boom: ['EXPLOSIVE ROUNDS', 'Shots burst on impact'], heal: ['NANO REPAIR', '+25 max integrity, full repair'], rail: ['RAIL COILS', '+35% damage, faster shots'] } },
     fr: { sub: 'PROTOCOLE VOCAL', init: 'INITIALISATION DU LIEN NEURAL', keyLabel: 'CLÉ API ELEVENLABS', keyPh: 'Colle (Ctrl+V) ou tape ta clé', paste: 'COLLER', connect: 'CONNEXION', forget: 'OUBLIER LA CLÉ', bypass: 'CONTOURNER / MODE SYNTHÉ HORS LIGNE',
       privacy: 'Ta clé reste dans ce navigateur et n’est envoyée qu’à api.elevenlabs.io.', linking: 'CONNEXION', linked: 'LIEN ÉTABLI', bad: 'LIEN REFUSÉ : CLÉ INVALIDE', limit: 'LIMITE ATTEINTE : MODE HORS LIGNE', quota: 'PLUS DE CRÉDITS : MODE HORS LIGNE', net: 'PAS DE SIGNAL : MODE HORS LIGNE', short: 'CLÉ TROP COURTE', clip: 'PRESSE-PAPIERS BLOQUÉ : CTRL+V', got: 'CLÉ REÇUE', chars: 'car.',
       start: 'LANCER', controls: 'COMMANDES', relink: 'LIEN NEURAL', sound: 'SON', voice: 'VOIX', on: 'OUI', off: 'NON', best: 'RECORD', wave: 'VAGUE', score: 'SCORE', integ: 'INTÉGRITÉ', dash: 'DASH', left: 'HOSTILES', cleared: 'TERMINÉE', choose: 'CHOISIS UNE AMÉLIORATION', paused: 'PAUSE', resume: 'REPRENDRE', quit: 'ABANDONNER', lost: 'SIGNAL PERDU', kills: 'ÉLIMINATIONS', reboot: 'REDÉMARRER', menu: 'MENU', newBest: 'NOUVEAU RECORD',
       modeLive: 'DIRECT · ELEVENLABS', modePack: 'PACK VOCAL', modeSynth: 'SYNTHÉ', announcer: 'ANNONCEUR', sfx: 'SFX', sfxLive: 'GÉNÉRÉS', sfxPack: 'PACK', lv: 'NV', boss: 'OVERMIND', bossWarn: 'SIGNATURE DE BOSS', back: 'RETOUR', tx: 'TX', idle: 'VEILLE',
-      awaiting: 'EN ATTENTE DE CLÉ', online: 'EN LIGNE', offline: 'HORS LIGNE', rejected: 'REFUSÉ', kill2: 'DOUBLÉ', kill3: 'TRIPLÉ', kill6: 'CARNAGE', tapHint: 'POUCE GAUCHE BOUGER · POUCE DROIT VISER + TIRER',
+      awaiting: 'EN ATTENTE DE CLÉ', online: 'EN LIGNE', offline: 'HORS LIGNE', rejected: 'REFUSÉ', kill2: 'DOUBLÉ', kill3: 'TRIPLÉ', kill6: 'CARNAGE', tapHint: 'POUCE GAUCHE BOUGER · MAINTIENS TIR', clickHint: 'MAINTIENS CLIC GAUCHE POUR TIRER · ESPACE POUR DASH', fire: 'TIR', engage: 'ACTIVER LE LIEN NEURAL', soundHint: 'Active le son : l’annonceur parle.',
       ctl: ['ZQSD / FLÈCHES   bouger', 'SOURIS   viser        CLIC GAUCHE   tirer', 'ESPACE   dash (invulnérable)', '1 2 3   amélioration        ÉCHAP   pause'],
-      ctlT: ['POUCE GAUCHE   bouger', 'POUCE DROIT   viser + tirer', 'Bouton DASH   dash (invulnérable)', 'Touche une carte pour choisir'],
+      ctlT: ['POUCE GAUCHE   bouger', 'Bouton TIR   maintiens pour tirer où tu vas', 'POUCE DROIT glissé   viser + tirer', 'Bouton DASH   dash (invulnérable)'],
       u: { multi: ['TIR MULTIPLE', '+1 projectile par tir'], pierce: ['BALLES PERFORANTES', 'Les tirs traversent +1 ennemi'], dash: ['DASH SURCADENCÉ', '-30 % de recharge, le dash déchiquette'], rapid: ['GÂCHETTE HYPER', '+22 % de cadence'], boom: ['BALLES EXPLOSIVES', 'Les tirs explosent à l’impact'], heal: ['NANO-RÉPARATION', '+25 intégrité max, réparation totale'], rail: ['BOBINES RAIL', '+35 % de dégâts, tirs plus rapides'] } },
     ar: { sub: 'بروتوكول الصوت', init: 'تهيئة الرابط العصبي', keyLabel: 'مفتاح ElevenLabs API', keyPh: 'الصق (Ctrl+V) أو اكتب مفتاحك', paste: 'لصق', connect: 'اتصال', forget: 'انسَ المفتاح', bypass: 'تخطٍّ / وضع المُركِّب دون اتصال',
       privacy: 'يُحفظ مفتاحك في هذا المتصفح فقط ولا يُرسل إلا إلى api.elevenlabs.io.', linking: 'جارٍ الربط', linked: 'تم إنشاء الرابط', bad: 'رُفض الرابط: مفتاح غير صالح', limit: 'تجاوز الحد: وضع دون اتصال', quota: 'نفد الرصيد: وضع دون اتصال', net: 'لا إشارة: وضع دون اتصال', short: 'المفتاح قصير جداً', clip: 'الحافظة محظورة: استخدم Ctrl+V', got: 'تم استلام المفتاح', chars: 'حرفاً',
       start: 'ابدأ الجولة', controls: 'التحكم', relink: 'الرابط العصبي', sound: 'الصوت', voice: 'المعلّق', on: 'تشغيل', off: 'إيقاف', best: 'الأفضل', wave: 'الموجة', score: 'النقاط', integ: 'السلامة', dash: 'اندفاع', left: 'الأعداء', cleared: 'انتهت', choose: 'اختر ترقية', paused: 'إيقاف مؤقت', resume: 'استئناف', quit: 'إنهاء الجولة', lost: 'فُقدت الإشارة', kills: 'القتلى', reboot: 'إعادة التشغيل', menu: 'القائمة', newBest: 'رقم قياسي جديد',
       modeLive: 'مباشر · ElevenLabs', modePack: 'حزمة الصوت', modeSynth: 'مُركِّب', announcer: 'المعلّق', sfx: 'المؤثرات', sfxLive: 'مولَّدة', sfxPack: 'حزمة', lv: 'م', boss: 'العقل الأعلى', bossWarn: 'بصمة الزعيم', back: 'رجوع', tx: 'بث', idle: 'خامل',
-      awaiting: 'بانتظار المفتاح', online: 'متصل', offline: 'دون اتصال', rejected: 'مرفوض', kill2: 'قتل مزدوج', kill3: 'قتل ثلاثي', kill6: 'هيجان', tapHint: 'الإبهام الأيسر للحركة · الأيمن للتصويب والإطلاق',
+      awaiting: 'بانتظار المفتاح', online: 'متصل', offline: 'دون اتصال', rejected: 'مرفوض', kill2: 'قتل مزدوج', kill3: 'قتل ثلاثي', kill6: 'هيجان', tapHint: 'الإبهام الأيسر للحركة · اضغط إطلاق مطولاً', clickHint: 'اضغط مطولاً بالزر الأيسر للإطلاق · المسافة للاندفاع', fire: 'إطلاق', engage: 'تفعيل الرابط العصبي', soundHint: 'شغّل الصوت: المعلّق يتكلم.',
       ctl: ['WASD / الأسهم   حركة', 'الفأرة   تصويب        النقر الأيسر   إطلاق', 'المسافة   اندفاع (حصانة)', '1 2 3   اختيار ترقية        ESC   إيقاف'],
-      ctlT: ['الإبهام الأيسر   حركة', 'الإبهام الأيمن   تصويب وإطلاق', 'زر الاندفاع   اندفاع (حصانة)', 'المس بطاقة لاختيار الترقية'],
+      ctlT: ['الإبهام الأيسر   حركة', 'زر الإطلاق   اضغط مطولاً للإطلاق باتجاه حركتك', 'سحب الإبهام الأيمن   تصويب وإطلاق', 'زر الاندفاع   اندفاع (حصانة)'],
       u: { multi: ['طلقات متعددة', '+1 مقذوف لكل طلقة'], pierce: ['طلقات خارقة', 'الطلقات تخترق عدواً إضافياً'], dash: ['اندفاع فائق', '-30٪ تبريد والاندفاع يمزّق الأعداء'], rapid: ['زناد فائق', '+22٪ سرعة إطلاق'], boom: ['طلقات متفجرة', 'الطلقات تنفجر عند الاصطدام'], heal: ['إصلاح نانوي', '+25 سلامة قصوى وإصلاح كامل'], rail: ['ملفات السكة', '+35٪ ضرر وطلقات أسرع'] } }
   };
   var T = STR[LANG];
-  // Announcer lines. Same text as tools/art/neon/lines.json (the built-in pack). DYN = live-only versions with a number.
+  // Announcer lines: the same text as tools/art/neon/lines.json (the generated voice pack); shown as subtitles.
   var LINES = {
     link: { en: 'Neural link established. Survive.', fr: 'Connexion neurale établie. Survis.', ar: 'تم إنشاء الرابط العصبي. انجُ.' },
     start: { en: 'Arena online. Fight.', fr: 'Arène en ligne. Combats.', ar: 'الساحة متصلة. قاتل.' },
@@ -79,17 +78,6 @@
     dead: { en: 'Signal lost. Neural link severed.', fr: 'Signal perdu. Lien neural rompu.', ar: 'فُقدت الإشارة. انقطع الرابط العصبي.' },
     record: { en: 'New record. Legendary.', fr: 'Nouveau record. Légendaire.', ar: 'رقم قياسي جديد. أسطوري.' }
   };
-  var DYN = {
-    wave: { en: 'Wave {n}. Incoming.', fr: 'Vague {n}. En approche.', ar: 'الموجة {n}. إنهم قادمون.' },
-    clear: { en: 'Wave {n} cleared. Choose your upgrade.', fr: 'Vague {n} terminée. Choisis ton amélioration.', ar: 'تم تطهير الموجة {n}. اختر ترقيتك.' },
-    dead: { en: 'Signal lost. Final score: {n}.', fr: 'Signal perdu. Score final : {n}.', ar: 'فُقدت الإشارة. النتيجة النهائية: {n}.' }
-  };
-  var SFXP = {
-    impact: { text: 'heavy sci-fi bass impact, metallic crunch, punchy, short, no music', dur: 1.0 },
-    explode: { text: 'deep cyberpunk explosion with electric crackle and sub bass boom, punchy', dur: 1.6 },
-    alarm: { text: 'ominous low synth warning horn, sci-fi boss alarm, two long blasts', dur: 2.5 }
-  };
-
   /* ================================================================ colors */
   var C = { bg: '#07070c', cyan: '#2ef9ff', mag: '#ff2bd6', amb: '#ffc23d', lime: '#3dff8b', vio: '#9b5cff', red: '#ff3355', white: '#eafcff', dim: '#5f6b9a', grid: '#1a2150' };
   var RGB = {};
@@ -201,7 +189,7 @@
     this.voices++; s.onended = function () { self.voices--; };
   };
   SoundFX.prototype.pew = function () { if (!this.ok('pew', 0.045)) return; var f = rnd(1250, 1700); this.osc({ type: 'square', f: f, f2: f * 0.17, dur: 0.09, vol: 0.05, lp: 4200 }); this.osc({ type: 'sawtooth', f: f * 0.5, f2: 110, dur: 0.07, vol: 0.03, lp: 2400 }); };
-  SoundFX.prototype.dash = function () { if (!this.ok('dash', 0.08)) return; this.nz({ ft: 'bandpass', f: 500, f2: 3200, dur: 0.24, vol: 0.28, q: 1.3, a: 0.02 }); this.osc({ f: 220, f2: 950, dur: 0.18, vol: 0.07 }); };
+  SoundFX.prototype.dash = function () { if (!this.ok('dash', 0.08)) return; if (Heavy.play('dash', 0.8)) return; this.nz({ ft: 'bandpass', f: 500, f2: 3200, dur: 0.24, vol: 0.28, q: 1.3, a: 0.02 }); this.osc({ f: 220, f2: 950, dur: 0.18, vol: 0.07 }); };
   SoundFX.prototype.hit = function () { if (!this.ok('hit', 0.03)) return; this.osc({ type: 'triangle', f: rnd(800, 1000), f2: 280, dur: 0.05, vol: 0.06 }); this.nz({ ft: 'highpass', f: 3000, dur: 0.03, vol: 0.05 }); };
   SoundFX.prototype.pop = function () { if (!this.ok('pop', 0.035)) return; this.osc({ type: 'square', f: rnd(420, 560), f2: 70, dur: 0.13, vol: 0.09, lp: 1900 }); this.nz({ f: 3200, f2: 260, dur: 0.16, vol: 0.13 }); };
   SoundFX.prototype.boom = function (size) {
@@ -210,77 +198,40 @@
     this.osc({ f: 150, f2: 30, dur: 0.65, vol: 0.5 * size + 0.1 }); this.nz({ f: 2600, f2: 120, dur: 0.75, vol: 0.4 * size + 0.1 }); this.osc({ type: 'sawtooth', f: 70, f2: 28, dur: 0.45, vol: 0.14, lp: 420 });
   };
   SoundFX.prototype.impact = function () { if (!this.ok('impact', 0.08)) return; if (Heavy.play('impact', 0.7)) return; this.osc({ f: 210, f2: 42, dur: 0.26, vol: 0.4 }); this.nz({ f: 1600, f2: 200, dur: 0.22, vol: 0.25 }); };
-  SoundFX.prototype.hurt = function () { if (!this.ok('hurt', 0.1)) return; this.osc({ type: 'sawtooth', f: 320, f2: 65, dur: 0.3, vol: 0.18, lp: 1500 }); this.nz({ ft: 'bandpass', f: 900, dur: 0.22, vol: 0.18 }); this.impact(); };
+  SoundFX.prototype.hurt = function () { if (!this.ok('hurt', 0.1)) return; if (Heavy.play('hurt', 0.85)) return; this.osc({ type: 'sawtooth', f: 320, f2: 65, dur: 0.3, vol: 0.18, lp: 1500 }); this.nz({ ft: 'bandpass', f: 900, dur: 0.22, vol: 0.18 }); this.impact(); };
   SoundFX.prototype.chime = function () { if (!this.ok('chime', 0.1)) return; var s = this; [880, 1320, 1760, 2640].forEach(function (f, i) { s.osc({ f: f, dur: 0.55, vol: 0.07, at: i * 0.06 }); s.osc({ type: 'triangle', f: f * 2, dur: 0.25, vol: 0.02, at: i * 0.06 }); }); };
   SoundFX.prototype.hover = function () { if (!this.ok('hover', 0.05)) return; this.osc({ f: 2400, dur: 0.03, vol: 0.025 }); };
   SoundFX.prototype.click = function () { if (!this.ok('click', 0.03)) return; this.osc({ type: 'square', f: 1300, f2: 600, dur: 0.05, vol: 0.05, lp: 3200 }); };
   SoundFX.prototype.type = function () { if (!this.ok('type', 0.02)) return; this.osc({ type: 'square', f: rnd(2200, 3600), dur: 0.018, vol: 0.02, lp: 5000 }); };
   SoundFX.prototype.err = function () { if (!this.ok('err', 0.2)) return; this.osc({ type: 'square', f: 220, dur: 0.12, vol: 0.06, lp: 1200 }); this.osc({ type: 'square', f: 180, dur: 0.18, vol: 0.06, lp: 1200, at: 0.13 }); };
-  SoundFX.prototype.charge = function () { if (!this.ok('charge', 0.15)) return; this.osc({ f: 260, f2: 1500, dur: 0.95, vol: 0.03, a: 0.25 }); };
-  SoundFX.prototype.snipe = function () { if (!this.ok('snipe', 0.05)) return; this.osc({ type: 'sawtooth', f: 2300, f2: 180, dur: 0.17, vol: 0.08, lp: 6000 }); this.nz({ ft: 'highpass', f: 4000, dur: 0.05, vol: 0.08 }); };
+  SoundFX.prototype.charge = function () { if (!this.ok('charge', 0.15)) return; if (Heavy.play('charge', 0.45)) return; this.osc({ f: 260, f2: 1500, dur: 0.95, vol: 0.03, a: 0.25 }); };
+  SoundFX.prototype.snipe = function () { if (!this.ok('snipe', 0.05)) return; if (Heavy.play('snipe', 0.6)) return; this.osc({ type: 'sawtooth', f: 2300, f2: 180, dur: 0.17, vol: 0.08, lp: 6000 }); this.nz({ ft: 'highpass', f: 4000, dur: 0.05, vol: 0.08 }); };
   SoundFX.prototype.ring = function () { if (!this.ok('ring', 0.1)) return; this.osc({ type: 'triangle', f: 420, f2: 140, dur: 0.22, vol: 0.08 }); };
   SoundFX.prototype.alarm = function () { if (!this.ok('alarm', 1)) return; if (Heavy.play('alarm', 0.75, 1)) return; var s = this; [0, 0.55].forEach(function (at) { s.osc({ type: 'sawtooth', f: 180, f2: 140, dur: 0.45, vol: 0.12, lp: 900, at: at, a: 0.05 }); }); };
-  SoundFX.prototype.pickup = function () { if (!this.ok('pickup', 0.05)) return; this.osc({ f: 600, f2: 1800, dur: 0.15, vol: 0.09 }); this.osc({ type: 'triangle', f: 1200, f2: 2400, dur: 0.12, vol: 0.05, at: 0.06 }); };
-  SoundFX.prototype.wave = function () { if (!this.ok('wave', 0.5)) return; this.osc({ type: 'sawtooth', f: 110, f2: 220, dur: 0.6, vol: 0.1, lp: 900, a: 0.05 }); this.osc({ f: 880, dur: 0.4, vol: 0.04, at: 0.3 }); };
+  SoundFX.prototype.pickup = function () { if (!this.ok('pickup', 0.05)) return; if (Heavy.play('pickup', 0.7)) return; this.osc({ f: 600, f2: 1800, dur: 0.15, vol: 0.09 }); this.osc({ type: 'triangle', f: 1200, f2: 2400, dur: 0.12, vol: 0.05, at: 0.06 }); };
+  SoundFX.prototype.wave = function () { if (!this.ok('wave', 0.5)) return; if (Heavy.play('wave', 0.75)) return; this.osc({ type: 'sawtooth', f: 110, f2: 220, dur: 0.6, vol: 0.1, lp: 900, a: 0.05 }); this.osc({ f: 880, dur: 0.4, vol: 0.04, at: 0.3 }); };
+  SoundFX.prototype.upgrade = function () { if (!this.ok('upgrade', 0.2)) return; if (Heavy.play('upgrade', 0.8, 1)) return; this.chime(); };
   var SFX = new SoundFX();
 
-  /* ---------------- heavy sounds: ElevenLabs generated (live) > built-in pack > synth */
+  /* ---------------- ElevenLabs sound bank (generated ahead of time) > synth fallback */
   var Heavy = {
-    ids: ['impact', 'explode', 'alarm'], buf: {}, src: {}, state: {},
-    loadPack: function () {
-      this.ids.forEach(function (id) {
-        fetchBuf(BASE + 'sfx_' + id + '.mp3').then(function (b) { if (Heavy.src[id] !== 'live') { Heavy.buf[id] = b; Heavy.src[id] = 'pack'; } }, function () { /* synth stays */ });
-      });
-    },
-    generate: function (key) {
-      var p = Promise.resolve();
-      this.ids.forEach(function (id) {
-        p = p.then(function () {
-          Heavy.state[id] = 'gen';
-          return XI.sfx(key, SFXP[id].text, SFXP[id].dur).then(blobToBuf).then(function (b) { Heavy.buf[id] = b; Heavy.src[id] = 'live'; Heavy.state[id] = 'ok'; Log.add('sfx.' + id + ' ........ OK', C.lime); },
-            function (e) { Heavy.state[id] = 'fail'; Log.add('sfx.' + id + ' ........ ' + (e && e.status ? 'HTTP ' + e.status : 'FAIL') + ' > FALLBACK', C.amb); });
-        });
-      });
-      return p;
-    },
+    ids: ['impact', 'explode', 'alarm', 'dash', 'hurt', 'pickup', 'charge', 'snipe', 'upgrade', 'wave'], buf: {},
+    loadPack: function () { this.ids.forEach(function (id) { fetchBuf(BASE + 'sfx_' + id + '.mp3').then(function (b) { Heavy.buf[id] = b; }, function () { /* synth stays */ }); }); },
     play: function (id, vol, rate) {
       var b = this.buf[id]; if (!b) return false; if (!AC || muted) return true;
-      var s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; s.playbackRate.value = rate || rnd(0.88, 1.12); g.gain.value = vol == null ? 0.9 : vol;
+      var s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; s.playbackRate.value = rate || rnd(0.92, 1.08); g.gain.value = vol == null ? 0.9 : vol;
       s.connect(g); g.connect(BUS.sfx); s.start(); return true;
     },
-    label: function () { var l = 0, p = 0; this.ids.forEach(function (id) { if (Heavy.src[id] === 'live') l++; else if (Heavy.src[id] === 'pack') p++; }); return l ? T.sfxLive + ' ×' + l : p ? T.sfxPack : T.modeSynth; }
+    count: function () { return Object.keys(this.buf).length; }
   };
 
-  /* ---------------- ElevenLabs REST client */
-  var XI = {
-    base: 'https://api.elevenlabs.io/v1', voice: 'N2lVS1w4EtoT3dr4eOWO', model: 'eleven_turbo_v2_5', chars: 0, calls: 0,
-    req: function (key, path, body) {
-      XI.calls++;
-      return fetch(this.base + path, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' }, body: JSON.stringify(body) })
-        .then(function (r) {
-          if (r.ok) return r.blob();
-          return r.text().then(function (t) {
-            var e = new Error('HTTP ' + r.status); e.status = r.status;
-            e.kind = /quota|credit/i.test(t) ? 'quota' : (r.status === 401 || r.status === 403) ? 'bad' : r.status === 429 ? 'limit' : r.status === 402 ? 'quota' : 'net';
-            throw e;
-          });
-        }, function () { var e = new Error('network'); e.kind = 'net'; throw e; });
-    },
-    tts: function (key, txt) {
-      XI.chars += txt.length;
-      return this.req(key, '/text-to-speech/' + this.voice + '?output_format=mp3_44100_128', { text: txt, model_id: this.model, language_code: LANG, voice_settings: { stability: 0.35, similarity_boost: 0.8, style: 0.55, use_speaker_boost: true } });
-    },
-    sfx: function (key, txt, dur) { return this.req(key, '/sound-generation', { text: txt, duration_seconds: dur, prompt_influence: 0.6 }); }
-  };
-
-  /* ---------------- Announcer: phrase cache (Blob URLs + decoded buffers), priority queue, never talks over himself */
+  /* ---------------- Announcer: pre-generated ElevenLabs lines, priority queue, never talks over himself */
   var Voice = {
-    mode: 'pack', key: '', cache: {}, pack: {}, q: [], busy: false, cur: null, src: null, liveOffUntil: 0, lastErr: '',
-    text: function (id, n) { return n != null && DYN[id] && this.mode === 'live' ? DYN[id][LANG].replace('{n}', n) : LINES[id][LANG]; },
+    pack: {}, q: [], busy: false, cur: null, src: null,
     say: function (id, o) {
       o = o || {}; if (!LINES[id]) return;
-      var txt = this.text(id, o.n);
-      for (var i = 0; i < this.q.length; i++) if (this.q[i].id === id) { this.q[i].text = txt; return; }
+      var txt = LINES[id][LANG];
+      for (var i = 0; i < this.q.length; i++) if (this.q[i].id === id) return;
       if (this.cur && this.cur.id === id && clock - this.cur.t0 < 0.6) return;
       this.q.push({ id: id, text: txt, pr: o.pr || 1, t: clock, ttl: o.ttl || 3 });
       this.q.sort(function (a, b) { return b.pr - a.pr; }); if (this.q.length > 3) this.q.length = 3;
@@ -296,23 +247,7 @@
         else self.mute(it, buf ? buf.duration : 1.4); // subtitles + visualizer still run
       };
       if (!voiceOn) { done(null); return; }
-      this.clip(it).then(done, function () { done(null); });
-    },
-    clip: function (it) {
-      var self = this, k = LANG + '|' + it.text, c = this.cache[k];
-      if (c) return Promise.resolve(c.buf);
-      if (this.mode === 'live' && this.key && clock > this.liveOffUntil && AC) {
-        return XI.tts(this.key, it.text).then(function (b) { return self.store(k, b); })
-          .catch(function (e) { self.fail(e); return self.packClip(it.id); });
-      }
-      return this.packClip(it.id);
-    },
-    store: function (k, b) { var url = URL.createObjectURL(b), self = this; return blobToBuf(b).then(function (buf) { self.cache[k] = { url: url, buf: buf }; return buf; }); },
-    prewarm: function (ids) {
-      var self = this, p = Promise.resolve();
-      ids.forEach(function (id) {
-        p = p.then(function () { var txt = LINES[id][LANG], k = LANG + '|' + txt; if (self.cache[k] || self.mode !== 'live') return null; return XI.tts(self.key, txt).then(function (b) { return self.store(k, b); }).catch(function (e) { self.fail(e); }); });
-      });
+      this.packClip(it.id).then(done, function () { done(null); });
     },
     packClip: function (id) {
       var self = this; if (this.pack[id]) return Promise.resolve(this.pack[id]); if (!AC) return Promise.resolve(null);
@@ -329,67 +264,9 @@
     mute: function (it, dur) { var self = this, cur = this.cur = { id: it.id, text: it.text, t0: clock, dur: dur, real: false }; setTimeout(function () { if (self.cur === cur) self.end(); }, dur * 1000); },
     end: function () { var self = this; this.cur = null; this.src = null; this.busy = false; if (BUS.sfx) BUS.sfx.gain.setTargetAtTime(0.8, AC.currentTime, 0.15); setTimeout(function () { self.pump(); }, 140); },
     stop: function () { this.q.length = 0; if (this.src) { var s = this.src; this.src = null; try { s.stop(); } catch (e) { /* ended */ } } this.cur = null; this.busy = false; },
-    fail: function (e) {
-      this.lastErr = e && e.kind || 'net';
-      if (this.lastErr === 'bad') { this.mode = 'pack'; Log.add('elevenlabs.tts ...... ' + T.rejected, C.red); }
-      else { this.liveOffUntil = clock + 30; Log.add('elevenlabs.tts ...... ' + (T[this.lastErr] || T.net), C.amb); }
-    },
-    speaking: function () { return !!this.cur; },
-    label: function () { return this.mode === 'live' && clock > this.liveOffUntil ? T.modeLive : Object.keys(this.pack).length ? T.modePack : T.modeSynth; }
+    label: function () { return Object.keys(this.pack).length ? T.modePack : T.modeSynth; }
   };
-
-  /* ---------------- boot log + link */
-  var Log = {
-    lines: [], add: function (s, col) { this.lines.push({ s: s, col: col || C.dim, t: clock }); if (this.lines.length > 6) this.lines.shift(); }
-  };
-  var Link = {
-    status: '', col: C.dim, busy: false, t: 0,
-    set: function (k, col) { this.status = k; this.col = col || C.dim; this.t = clock; },
-    connect: function (key) {
-      key = (key || '').trim(); if (this.busy) return;
-      if (key.length < 20) { this.set('short', C.red); SFX.err(); return; }
-      audio(); this.busy = true; this.set('linking', C.cyan); Log.add('elevenlabs.tts ...... ' + T.linking.toUpperCase(), C.cyan);
-      var self = this, txt = LINES.link[LANG];
-      XI.tts(key, txt).then(function (b) {
-        Store.set('key', key); Voice.key = key; Voice.mode = 'live'; Voice.liveOffUntil = 0;
-        return Voice.store(LANG + '|' + txt, b).then(function () {
-          self.busy = false; self.set('linked', C.lime); Log.add('elevenlabs.tts ...... ' + T.online, C.lime); SFX.chime();
-          Voice.say('link', { pr: 5, ttl: 8 }); Heavy.generate(key); Voice.prewarm(['start', 'double', 'triple', 'critical', 'boss']);
-          setTimeout(function () { if (screen === 'boot') go('menu'); }, 1700);
-        });
-      }).catch(function (e) {
-        self.busy = false; var k = e && e.kind || 'net';
-        self.set(k, k === 'bad' ? C.red : C.amb); Voice.mode = 'pack'; SFX.err();
-        Log.add('elevenlabs.tts ...... ' + (k === 'bad' ? T.rejected : T.offline) + (e && e.status ? ' (HTTP ' + e.status + ')' : ''), k === 'bad' ? C.red : C.amb);
-      });
-    },
-    bypass: function () { audio(); Voice.mode = 'pack'; Voice.key = ''; Log.add('elevenlabs ........ ' + T.offline, C.mag); go('menu'); Voice.say('link', { pr: 5, ttl: 8 }); SFX.chime(); }
-  };
-
-  /* ---------------- canvas key box (masked) */
-  var KeyBox = {
-    val: String(Store.get('key', '') || ''), focus: true, rect: null,
-    key: function (e) {
-      if (e.ctrlKey || e.metaKey) { if (e.code === 'KeyV') pasteFallback(); return false; }
-      if (e.key === 'Backspace') { this.val = this.val.slice(0, -1); SFX.type(); return true; }
-      if (e.key === 'Delete') { this.val = ''; SFX.type(); return true; }
-      if (e.key === 'Enter') { Link.connect(this.val); return true; }
-      if (e.key === 'Escape') { this.focus = false; return true; }
-      if (e.key && e.key.length === 1 && /[A-Za-z0-9_\-]/.test(e.key)) { if (this.val.length < 128) this.val += e.key; SFX.type(); return true; }
-      return false;
-    },
-    paste: function (t) { t = String(t || '').trim().replace(/[^A-Za-z0-9_\-]/g, ''); if (!t) return; this.val = t.slice(0, 128); this.focus = true; Link.set('got', C.cyan); SFX.pickup(); }
-  };
-  var pasted = false;
-  document.addEventListener('paste', function (e) {
-    if (screen !== 'boot') return; pasted = true; e.preventDefault();
-    KeyBox.paste(e.clipboardData && e.clipboardData.getData('text'));
-  });
-  function pasteFallback() { pasted = false; setTimeout(function () { if (!pasted) readClipboard(); }, 200); }
-  function readClipboard() {
-    if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(function (t) { KeyBox.paste(t); }, function () { Link.set('clip', C.amb); });
-    else Link.set('clip', C.amb);
-  }
+  function engage() { audio(); go('menu'); Voice.say('link', { pr: 5, ttl: 8 }); SFX.chime(); }
 
   /* ================================================================ UI widgets (all canvas) */
   var UI = {
@@ -431,10 +308,9 @@
 
   /* ================================================================ input */
   var keys = {}, mouse = { x: -999, y: -999, down: false }, touchMode = !!('ontouchstart' in window) && !(window.matchMedia && matchMedia('(pointer:fine)').matches);
-  var sticks = { move: null, aim: null }, dashBtn = { x: 0, y: 0, r: 0 };
+  var sticks = { move: null, aim: null }, dashBtn = { x: 0, y: 0, r: 0 }, fireBtn = { x: 0, y: 0, r: 0, p: 0 }, fireTouch = null;
   window.addEventListener('keydown', function (e) {
     audio(); keys[e.code] = true;
-    if (screen === 'boot' && KeyBox.focus && KeyBox.key(e)) { e.preventDefault(); return; }
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].indexOf(e.code) >= 0) e.preventDefault();
     if (e.repeat) return;
     if (screen === 'play') {
@@ -447,7 +323,6 @@
     if (e.code === 'ArrowUp' || e.code === 'ArrowLeft') { UI.nav(-1); return; }
     if (e.code === 'Enter' || e.code === 'Space') { if (UI.enter()) return; }
     if (screen === 'pause' && (e.code === 'Escape' || e.code === 'KeyP')) go('play');
-    if (screen === 'boot' && e.code === 'Escape') Link.bypass();
   });
   window.addEventListener('keyup', function (e) { keys[e.code] = false; });
   function pos(e) { var r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
@@ -456,9 +331,10 @@
     var p = pos(e); touchMode = e.pointerType === 'touch' ? true : e.pointerType === 'mouse' ? false : touchMode;
     mouse.x = p.x; mouse.y = p.y; UI.kb = false;
     var it = UI.hit(p.x, p.y); if (it) { UI.fire(it); e.preventDefault(); return; }
-    if (screen === 'boot') { var r = KeyBox.rect; KeyBox.focus = !!(r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); return; }
+    if (screen === 'boot') { engage(); return; }
     if (screen === 'play' && G && G.p.alive) {
       if (e.pointerType === 'touch') {
+        if (hyp(p.x - fireBtn.x, p.y - fireBtn.y) < fireBtn.r * 1.25) { fireTouch = e.pointerId; fireBtn.p = 1; return; }
         if (hyp(p.x - dashBtn.x, p.y - dashBtn.y) < dashBtn.r * 1.3) { tryDash(); return; }
         var st = { id: e.pointerId, ox: p.x, oy: p.y, x: p.x, y: p.y };
         if (p.x < W * 0.5) { if (!sticks.move) sticks.move = st; } else if (!sticks.aim) sticks.aim = st;
@@ -471,10 +347,10 @@
     var p = pos(e); if (e.pointerType !== 'touch') { mouse.x = p.x; mouse.y = p.y; if (UI.kb && (Math.abs(e.movementX) + Math.abs(e.movementY) > 2)) UI.kb = false; }
     ['move', 'aim'].forEach(function (k) { var s = sticks[k]; if (s && s.id === e.pointerId) { s.x = p.x; s.y = p.y; } });
   });
-  function release(e) { if (e.pointerType !== 'touch' && e.button === 0) mouse.down = false; ['move', 'aim'].forEach(function (k) { if (sticks[k] && sticks[k].id === e.pointerId) sticks[k] = null; }); }
+  function release(e) { if (fireTouch === e.pointerId) fireTouch = null; if (e.pointerType !== 'touch' && e.button === 0) mouse.down = false; ['move', 'aim'].forEach(function (k) { if (sticks[k] && sticks[k].id === e.pointerId) sticks[k] = null; }); }
   cv.addEventListener('pointerup', release); cv.addEventListener('pointercancel', release);
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-  window.addEventListener('blur', function () { keys = {}; mouse.down = false; sticks.move = sticks.aim = null; if (screen === 'play') go('pause'); });
+  window.addEventListener('blur', function () { keys = {}; mouse.down = false; fireTouch = null; sticks.move = sticks.aim = null; if (screen === 'play') go('pause'); });
   document.addEventListener('visibilitychange', function () { if (document.hidden && screen === 'play') go('pause'); });
   function stickVec(s, rad) { if (!s) return null; var dx = s.x - s.ox, dy = s.y - s.oy, d = hyp(dx, dy); if (d > rad) { s.ox = s.x - dx / d * rad; s.oy = s.y - dy / d * rad; dx = s.x - s.ox; dy = s.y - s.oy; d = rad; } return { x: dx / rad, y: dy / rad, m: d / rad }; }
 
@@ -603,7 +479,8 @@
     var firing = false;
     var am = stickVec(sticks.aim, 60 * U);
     if (am && am.m > 0.2) { p.aim = Math.atan2(am.y, am.x); firing = am.m > 0.35; }
-    else if (!touchMode) { var mw = toWorld(mouse.x, mouse.y); p.aim = Math.atan2(mw.y - p.y, mw.x - p.x); firing = mouse.down || !!keys.KeyJ; }
+    else if (touchMode) { if (hyp(inX, inY) > 0.2) p.aim = Math.atan2(inY, inX); firing = fireTouch !== null; } // FIRE button shoots where you move
+    else { var mw = toWorld(mouse.x, mouse.y); p.aim = Math.atan2(mw.y - p.y, mw.x - p.x); firing = mouse.down || !!keys.KeyJ; }
     p.fire -= dt;
     if (firing && p.fire <= 0 && G.phase !== 'clear') {
       p.fire = 1 / st.rate; var n = st.shots, spread = n > 1 ? Math.min(0.13, 0.5 / n) : 0;
@@ -809,23 +686,22 @@
     }
     return out;
   }
-  function openCards() { G.cards = rollCards(); G.cardT = 0; mouse.down = false; sticks.move = sticks.aim = null; go('upgrade'); }
+  function openCards() { G.cards = rollCards(); G.cardT = 0; mouse.down = false; fireTouch = null; sticks.move = sticks.aim = null; go('upgrade'); }
   function pickCard(i) {
     if (screen !== 'upgrade' || !G.cards || !G.cards[i] || G.cardT < 0.35) return;
     var id = G.cards[i]; UPG[id].ap(G.st, G.p); G.lv[id] = (G.lv[id] || 0) + 1;
-    SFX.chime(); Voice.say('upgrade', { pr: 2, ttl: 2.5 }); flash(C.cyan, 0.15);
+    SFX.upgrade(); Voice.say('upgrade', { pr: 2, ttl: 2.5 }); flash(C.cyan, 0.15);
     ring(G.p.x, G.p.y, 10, 140, C.cyan, 0.5); shock(G.p.x, G.p.y, 0.7, 800, 0.8);
     G.cards = null; go('play'); startWave();
   }
 
   /* ================================================================ screens */
   var screen = 'boot', screenT = 0;
-  var PRIMARY = { boot: 'connect', menu: 'start', pause: 'resume', over: 'reboot', upgrade: 'card0' };
+  var PRIMARY = { boot: 'engage', menu: 'start', pause: 'resume', over: 'reboot', upgrade: 'card0' };
   function go(s) {
     if (s === 'play' && screen === 'menu') newGame();
     if (s === 'over') { /* stats drawn from G */ }
     screen = s; screenT = 0; UI.focusId = PRIMARY[s] || null; UI.kb = false; mouse.down = false;
-    if (s === 'boot') KeyBox.focus = true;
   }
   var showControls = false;
 
@@ -1012,14 +888,20 @@
     }
     // touch controls
     if (touchMode && p.alive) {
-      var dr = 40 * U; dashBtn.x = W - 70 * U; dashBtn.y = H - 190 * U; dashBtn.r = dr;
+      var fr = 50 * U; fireBtn.x = W - 76 * U; fireBtn.y = H - 96 * U; fireBtn.r = fr; fireBtn.p = Math.max(0, fireBtn.p - rdt * 4);
+      var held = fireTouch !== null, fk = held ? 1 : 0;
+      ctx.fillStyle = rgba(C.mag, 0.12 + 0.25 * fk); ctx.beginPath(); ctx.arc(fireBtn.x, fireBtn.y, fr * (1 - 0.06 * fk), 0, TAU); ctx.fill();
+      glow(C.mag, 14 + 16 * fk); ctx.strokeStyle = rgba(C.mag, 0.9); ctx.lineWidth = 3; ctx.stroke(); noGlow();
+      text(T.fire, fireBtn.x, fireBtn.y, 16 * U, C.white, 'center', { w: 900, sp: 2, glow: 10 * fk + 2, gc: C.mag });
+      var dr = 36 * U; dashBtn.x = W - 186 * U; dashBtn.y = H - 66 * U; dashBtn.r = dr;
       var rdy = p.cd <= 0;
       glow(rdy ? C.lime : C.mag, rdy ? 16 : 4); ctx.strokeStyle = rgba(rdy ? C.lime : C.mag, 0.8); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(dashBtn.x, dashBtn.y, dr, 0, TAU); ctx.stroke(); noGlow();
       ctx.strokeStyle = rgba(C.lime, 0.9); ctx.beginPath(); ctx.arc(dashBtn.x, dashBtn.y, dr - 6, -Math.PI / 2, -Math.PI / 2 + TAU * ready); ctx.stroke();
-      text(T.dash, dashBtn.x, dashBtn.y, 13 * U, rdy ? C.white : C.dim, 'center', { w: 800, sp: 1 });
+      text(T.dash, dashBtn.x, dashBtn.y, 12 * U, rdy ? C.white : C.dim, 'center', { w: 800, sp: 1 });
       ['move', 'aim'].forEach(function (k) { var st = sticks[k]; if (!st) return; var c = k === 'move' ? C.cyan : C.mag; ctx.strokeStyle = rgba(c, 0.4); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(st.ox, st.oy, 60 * U, 0, TAU); ctx.stroke(); glow(c, 12); ctx.fillStyle = rgba(c, 0.5); ctx.beginPath(); ctx.arc(st.x, st.y, 22 * U, 0, TAU); ctx.fill(); noGlow(); });
-      if (G.wave === 1 && G.t < 7) text(T.tapHint, W / 2, H - 40, 12 * U, rgba(C.white, 0.7 * clamp(7 - G.t, 0, 1)), 'center', { mono: true, max: W - 20 });
+      if (G.wave === 1 && G.t < 9) text(T.tapHint, W / 2, H - 190 * U, 12 * U, rgba(C.white, 0.85 * clamp(9 - G.t, 0, 1)), 'center', { mono: true, max: W - 20 });
     }
+    if (!touchMode && G.wave === 1 && G.t < 9) text(T.clickHint, W / 2, H - 46, 15, rgba(C.white, 0.9 * clamp(9 - G.t, 0, 1)), 'center', { mono: true, sp: 1, glow: 10, gc: C.cyan, max: W - 20 });
     // damage vignette
     var hv = Math.max(p.hurtT / 0.35, p.critical ? 0.35 + 0.25 * Math.sin(clock * 6) : 0);
     if (hv > 0) { var g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75); g.addColorStop(0, 'rgba(255,0,60,0)'); g.addColorStop(1, rgba(C.red, 0.45 * hv)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
@@ -1083,47 +965,23 @@
   /* ---------------- boot: NEURAL LINK INITIALIZATION */
   function drawBoot() {
     drawAttract();
-    var cw = Math.min(560, W - 32), cx = W / 2, x = cx - cw / 2, u = clamp(Math.min(W / 600, H / 720), 0.62, 1.15), y = Math.max(20, H / 2 - 330 * u);
+    var cw = Math.min(560, W - 32), cx = W / 2, x = cx - cw / 2, u = clamp(Math.min(W / 600, H / 620), 0.62, 1.15), y = Math.max(20, H / 2 - 250 * u);
     title(cx, y + 34 * u, 54 * u);
     y += 112 * u;
     var hdr = '> ' + T.init, shown = Math.min(hdr.length, Math.floor(screenT * 40));
     text(hdr.slice(0, shown) + (Math.sin(clock * 8) > 0 ? '_' : ' '), x, y, 15 * u, C.cyan, 'left', { mono: true, glow: 10, max: cw });
     y += 26 * u;
-    var log = [['core.audio .......... ' + (AC ? 'OK' : 'STANDBY'), AC ? C.lime : C.dim], ['canvas.render ....... OK', C.lime], ['voice.pack .......... ' + (Object.keys(Voice.pack).length ? Object.keys(Voice.pack).length + ' ' + 'LINES' : 'STANDBY'), Object.keys(Voice.pack).length ? C.lime : C.dim]];
-    Log.lines.forEach(function (l) { log.push([l.s, l.col]); });
-    if (!Log.lines.length) log.push(['elevenlabs.tts ...... ' + T.awaiting, C.amb]);
-    log.slice(-5).forEach(function (l, i) { if (screenT * 6 < i) return; text('> ' + l[0], x, y + i * 17 * u, 11 * u, l[1], 'left', { mono: true, max: cw }); });
-    y += 5 * 17 * u + 14 * u;
-    // key box
-    text(T.keyLabel, x, y, 11 * u, rgba(C.cyan, 0.8), 'left', { mono: true, sp: 2 });
-    y += 14 * u;
-    var bh = 48 * u, r = KeyBox.rect = { x: x, y: y, w: cw, h: bh }, foc = KeyBox.focus;
-    chamfer(r.x, r.y, r.w, r.h, 10); ctx.fillStyle = 'rgba(4,6,16,0.85)'; ctx.fill();
-    glow(C.cyan, foc ? 14 + voiceLevel * 20 : 4); ctx.strokeStyle = rgba(C.cyan, foc ? 0.95 : 0.4); ctx.lineWidth = foc ? 2 : 1.2; ctx.stroke(); noGlow();
-    var masked = KeyBox.val ? new Array(Math.min(KeyBox.val.length, 40) + 1).join('•') : '';
-    ctx.save(); ctx.beginPath(); ctx.rect(r.x + 8, r.y, r.w - 90 * u, r.h); ctx.clip();
-    if (masked) text(masked, r.x + 16, r.y + bh / 2 + 1, 18 * u, C.white, 'left', { mono: true, glow: 6, gc: C.cyan });
-    else text(T.keyPh, r.x + 16, r.y + bh / 2 + 1, 14 * u, rgba(C.dim, 0.9), 'left', { mono: true, max: r.w - 110 * u });
-    if (foc && Math.sin(clock * 7) > 0) { ctx.font = '700 ' + Math.round(18 * u) + 'px ' + MONO; var cwid = masked ? ctx.measureText(masked).width : 0; ctx.fillStyle = C.cyan; ctx.fillRect(r.x + 16 + cwid + 2, r.y + bh * 0.25, 2, bh * 0.5); }
-    ctx.restore();
-    if (KeyBox.val) text(KeyBox.val.length + ' ' + T.chars, r.x + r.w - 12, r.y + bh / 2, 11 * u, C.dim, 'right', { mono: true });
-    y += bh + 12 * u;
-    // buttons
-    var gap = 10, saved = !!Store.get('key', ''), nb = saved ? 3 : 2, bw = (cw - gap * (nb - 1)) / nb, h2 = 44 * u;
-    UI.btn('paste', x, y, bw, h2, T.paste, { col: C.cyan, on: readClipboard });
-    UI.btn('connect', x + bw + gap, y, bw, h2, Link.busy ? T.linking + '…' : T.connect, { col: C.lime, disabled: Link.busy, on: function () { Link.connect(KeyBox.val); } });
-    if (saved) UI.btn('forget', x + (bw + gap) * 2, y, bw, h2, T.forget, { col: C.red, on: function () { Store.del('key'); KeyBox.val = ''; Voice.key = ''; Voice.mode = 'pack'; Link.set('', C.dim); } });
-    y += h2 + 14 * u;
-    // status line
-    if (Link.status) {
-      var st = T[Link.status] || Link.status, sp = Link.busy ? ' ' + '▮▮▮▮▮'.slice(0, 1 + Math.floor(clock * 8) % 5) : '';
-      text(st + sp, cx, y + 6 * u, 14 * u, Link.col, 'center', { mono: true, glow: 10, sp: 1, max: cw });
-    }
-    y += 26 * u;
-    UI.btn('bypass', x, y, cw, 52 * u, '[ ' + T.bypass + ' ]', { col: C.mag, on: Link.bypass });
-    y += 52 * u + 18 * u;
-    text(T.privacy, cx, y, 11 * u, rgba(C.dim, 1), 'center', { mono: true, max: cw });
-    text('tts: eleven_turbo_v2_5 · voice: Callum · sfx: /v1/sound-generation', cx, y + 17 * u, 10 * u, rgba(C.dim, 0.7), 'center', { mono: true, max: cw });
+    var np = Object.keys(Voice.pack).length, nh = Heavy.count();
+    var log = [['core.audio .......... ' + (AC ? 'OK' : 'STANDBY'), AC ? C.lime : C.dim], ['canvas.render ....... OK', C.lime],
+      ['voice.pack .......... ' + (np ? np + ' LINES' : 'STANDBY'), np ? C.lime : C.dim], ['sfx.bank ............ ' + (nh ? nh + ' SOUNDS' : 'STANDBY'), nh ? C.lime : C.dim],
+      ['elevenlabs.voice .... CALLUM', C.mag]];
+    log.forEach(function (l, i) { if (screenT * 6 < i) return; text('> ' + l[0], x, y + i * 18 * u, 12 * u, l[1], 'left', { mono: true, max: cw }); });
+    y += log.length * 18 * u + 30 * u;
+    var pulse = 0.5 + 0.5 * Math.sin(clock * 3);
+    glow(C.cyan, 20 * pulse); UI.btn('engage', x, y, cw, 68 * u, '[ ' + T.engage + ' ]', { col: C.cyan, size: 20 * u, on: engage }); noGlow();
+    y += 68 * u + 26 * u;
+    text(T.soundHint, cx, y, 12 * u, rgba(C.white, 0.75), 'center', { mono: true, max: cw });
+    text('voice + sfx: ElevenLabs · voice: Callum · eleven_turbo_v2_5', cx, y + 20 * u, 10 * u, rgba(C.dim, 0.8), 'center', { mono: true, max: cw });
   }
 
   /* ---------------- menu */
@@ -1132,7 +990,7 @@
     var u = clamp(Math.min(W / 600, H / 700), 0.62, 1.2), cx = W / 2, bw = Math.min(360, W - 40), bh = 50 * u, y = Math.max(20, H / 2 - 290 * u);
     title(cx, y + 40 * u, 60 * u);
     y += 116 * u;
-    text(T.announcer + ': ' + Voice.label() + '   ·   ' + T.sfx + ': ' + Heavy.label(), cx, y, 11 * u, rgba(C.cyan, 0.8), 'center', { mono: true, sp: 1, max: W - 30 });
+    text(T.announcer + ': ' + Voice.label() + '   ·   ' + T.sfx + ': ' + Heavy.count() + ' · ELEVENLABS', cx, y, 11 * u, rgba(C.cyan, 0.8), 'center', { mono: true, sp: 1, max: W - 30 });
     drawViz(cx, y + 14 * u, Math.min(340, W - 32), 54);
     y += 100 * u;
     if (showControls) {
@@ -1146,8 +1004,6 @@
     UI.btn('start', cx - bw / 2, y, bw, bh * 1.15, '▶  ' + T.start, { col: C.lime, size: 22 * u, on: function () { audio(); go('play'); } });
     y += bh * 1.15 + 12 * u;
     UI.btn('controls', cx - bw / 2, y, bw, bh, T.controls, { col: C.cyan, on: function () { showControls = true; UI.focusId = 'ctlBack'; } });
-    y += bh + 10 * u;
-    UI.btn('relink', cx - bw / 2, y, bw, bh, T.relink, { col: C.mag, on: function () { Voice.stop(); go('boot'); } });
     y += bh + 10 * u;
     var hw = (bw - 10) / 2;
     UI.btn('sound', cx - bw / 2, y, hw, bh, T.sound + ': ' + (muted ? T.off : T.on), { col: C.amb, on: function () { setMuted(!muted); } });
@@ -1272,19 +1128,20 @@
   if (TEST) {
     window.__neon = {
       s: function () {
-        return { screen: screen, mode: Voice.mode, voice: Voice.cur && Voice.cur.text, vq: Voice.q.map(function (q) { return q.id; }), keyLen: KeyBox.val.length, keyFocus: KeyBox.focus, status: Link.status,
+        return { screen: screen, mode: Voice.label(), voice: Voice.cur && Voice.cur.text, vq: Voice.q.map(function (q) { return q.id; }), fireTouch: fireTouch,
           wave: G && G.wave, phase: G && G.phase, hp: G && G.p.hp, max: G && G.p.max, alive: G && G.p.alive, px: G && Math.round(G.p.x), py: G && Math.round(G.p.y), vx: G && Math.round(G.p.vx), cd: G && G.p.cd, inv: G && G.p.inv,
           score: G && G.score, kills: G && G.kills, enemies: G ? G.en.length : 0, types: G ? G.en.map(function (e) { return e.type; }) : [], queue: G ? G.queue.length : 0, bullets: G ? G.bullets.length : 0, eb: G ? G.eb.length : 0,
           cards: G && G.cards, lv: G && G.lv, st: G && G.st, parts: parts.length, waves: waves.length, trauma: trauma, ui: UI.list.map(function (it) { return { id: it.id, x: it.x + it.w / 2, y: it.y + it.h / 2, dis: !!it.o.disabled }; }),
-          heavy: Heavy.src, pack: Object.keys(Voice.pack).length, calls: XI.calls, ac: !!AC, qual: Qual };
+          heavy: Heavy.count(), pack: Object.keys(Voice.pack).length, ac: !!AC, qual: Qual };
       },
       scr: function () { return G ? G.en.filter(function (e) { return e.warp <= 0; }).map(function (e) { return { t: e.type, x: (e.x - cam.x) * Z + W / 2, y: (e.y - cam.y) * Z + H / 2 }; }) : []; },
+      aim: function () { return G ? G.p.aim : null; },
       speed: function (x) { speedX = x; },
       spawn: function (t, dx, dy) { var e = makeEnemy(t, G.p.x + (dx || 300), G.p.y + (dy || 0), false); return G.en.length; },
       clearQueue: function () { G.queue.length = 0; }, killAll: function () { G.en.slice().forEach(function (e) { kill(e, 0); }); G.en = G.en.filter(function (e) { return !e.dead; }); },
       hurt: function (n) { G.p.inv = 0; hurtPlayer(n, G.p.x + 10, G.p.y); }, god: function () { G.p.inv = 1e9; }, mortal: function () { G.p.inv = 0; },
       wave: function (n) { G.wave = n - 1; G.en.length = 0; G.queue.length = 0; startWave(); },
-      say: function (id) { Voice.say(id, { pr: 5, ttl: 9 }); }, xi: XI, voice: Voice, link: Link
+      say: function (id) { Voice.say(id, { pr: 5, ttl: 9 }); }, voice: Voice
     };
   }
 })();
