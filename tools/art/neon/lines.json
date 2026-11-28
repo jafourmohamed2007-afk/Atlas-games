@@ -71,6 +71,16 @@
       "en": "New record. Legendary.",
       "fr": "Nouveau record. Légendaire.",
       "ar": "رقم قياسي جديد. أسطوري."
+    },
+    "checkpoint": {
+      "en": "Checkpoint saved.",
+      "fr": "Point de contrôle enregistré.",
+      "ar": "تم حفظ نقطة التفتيش."
+    },
+    "victory": {
+      "en": "Arena conquered. You are the overdrive.",
+      "fr": "Arène conquise. Tu es l’overdrive.",
+      "ar": "تم غزو الساحة. أنت الأوفردرايف."
     }
   },
   "sfx": {
@@ -113,10 +123,6 @@
     "wave": {
       "text": "cyberpunk arena wave start, deep synth riser into a punchy hit",
       "dur": 1.6
-    },
-    "laser": {
-      "text": "tiny punchy retro laser pew, very short, clean",
-      "dur": 0.5
     }
   }
 }

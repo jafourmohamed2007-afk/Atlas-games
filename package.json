@@ -4,7 +4,8 @@
   "description": "Bubzi Games: original HTML5 games and website",
   "scripts": {
     "build": "node tools/build.js",
-    "site": "node tools/site.js"
+    "site": "node tools/site.js",
+    "neon-server": "node server/neon-server.js"
   },
   "devDependencies": {
     "@gltf-transform/core": "4.2.1",
@@ -13,5 +14,8 @@
     "esbuild": "0.25.10",
     "meshoptimizer": "^0.25.0",
     "three": "0.181.0"
+  },
+  "dependencies": {
+    "ws": "8.18.0"
   }
 }

@@ -82,7 +82,7 @@ const server = http.createServer((q, s) => { const f = path.join(ROOT, decodeURI
   await p.evaluate(() => { window.__neon.mortal(); window.__neon.hurt(1e4); }); s = await until(p, (x) => x.screen === 'over', 5000);
   if (s.screen !== 'over') F('death should show SIGNAL LOST'); else ok.push('death → SIGNAL LOST screen');
   await sleep(600); await shot(p, 'over');
-  await p.keyboard.press('Enter'); await sleep(150); s = await S(p); if (s.screen !== 'play' || s.wave !== 1) F('Enter should reboot a new run'); else ok.push('REBOOT starts a new run');
+  await p.keyboard.press('Enter'); await sleep(150); s = await S(p); if (s.screen !== 'play' || s.wave !== 1) F('Enter should reboot a new run ' + JSON.stringify([s.screen, s.wave, s.cp, s.ui.map((u) => u.id)])); else ok.push('REBOOT starts a new run');
   await p.close();
 
   /* ---- phone: touch sticks + stacked cards */
