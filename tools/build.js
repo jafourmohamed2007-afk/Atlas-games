@@ -20,9 +20,9 @@ fs.mkdirSync(path.join(ROOT, 'games'), { recursive: true });
 let built = 0;
 for (const g of games) {
   // 3D games are ES modules under src/<dir>/main.js, bundled (three.js + models) by esbuild into one script
-  const BUNDLED = { 'pocket-grove': 'src/grove/main.js', 'arrow-rampart': 'src/arrow/main.js' };
+  const BUNDLED = { 'pocket-grove': 'src/grove/main.js', 'arrow-rampart-3d': 'src/arrow/main.js' };
   // editions: one source file built as two games (the edition flag is set before the game code runs)
-  const MODULES = {}; // shared modules a game needs before its own code (bundled games import theirs)
+  const MODULES = { 'arrow-rampart': ['src/games/ink-music.js'] }; // shared modules a game needs before its own code (bundled games import theirs)
   const EDITION = { 'ink-heroes-remastered': ['ink-heroes', 'remastered'] }[g.id];
   const src = path.join(ROOT, BUNDLED[g.id] || path.join('src/games', (EDITION ? EDITION[0] : g.id) + '.js'));
   if (!fs.existsSync(src)) { console.log('skip (no source yet):', g.id); continue; }

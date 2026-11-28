@@ -22,7 +22,8 @@ Original HTML5 casual games: mobile-first, in **English, French and Arabic (righ
 | `merge-blasters.html` | Merge blasters, pop goo blobs before your wall | Drag same numbers together · B buys, arrows + Space |
 | `tiny-siege.html` | Lane war: miners, stick army, enemy tower | Tap the unit buttons · 1-4 send units, H Attack/Defend |
 | `bubble-bastion.html` | Tower defense: pop bubbles drifting down a stream | Pick a tower, tap the grass · arrows + Space, 1-4 pick, U/S/N |
-| `arrow-rampart.html` | 3D wall defense archery (three.js, `src/arrow/`): 5 modes, shop with feathers + gems, Rampart Pass, daily missions, special arrows | Pull back and let go · Up/Down aim, hold Space, 1-3 cards / special arrows · hub: arrows + Enter, S shop, T pass, M missions |
+| `arrow-rampart.html` | 2D wall defense archery: 5 modes, shop with feathers + gems, Rampart Pass, daily missions, special arrows |
+| `arrow-rampart-3d.html` | The same game in 3D (three.js, `src/arrow/`, Blender icons), built from the same source; separate saves | Same as Arrow Rampart | Pull back and let go · Up/Down aim, hold Space, 1-3 cards / special arrows · hub: arrows + Enter, S shop, T pass, M missions |
 | `pocket-grove.html` | 3D idle garden (three.js) | Tap plots · arrows + Enter, S shop, A album, H pets, B boost |
 
 Every game has a start screen, score, rising difficulty, game over, restart, pause, sound on/off, saved best score,
@@ -55,6 +56,7 @@ node tests/ink-remastered.js              # all Ink tests again, against the Rem
 blender -b -P tools/art/ink/render.py     # Remastered 3D art → games/art/ink-heroes/
 tools/art/ink/gen-audio.sh && tools/art/ink/gen-audio2.sh && tools/art/ink/process-audio.sh   # Ink music, SFX and voices (ElevenLabs) → games/audio/ink-heroes/
 node tests/arrow-meta.js                  # Arrow Rampart: hub, 5 modes, shop, pass, special arrows, Headhunter, Time Attack
+node tests/arrow-3d.js                    # the same checks on Arrow Rampart 3D, plus a 3D view smoke test
 blender -b -P tools/art/arrow/icons.py    # Arrow Rampart 3D item icons → games/art/arrow-rampart/
 tools/art/arrow/gen-audio.sh && tools/art/arrow/process-audio.sh   # Arrow Rampart music/SFX (ElevenLabs) → games/audio/arrow-rampart/
 node tests/goals.js                       # daily goal + beat-your-best on every game

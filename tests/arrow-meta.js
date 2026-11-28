@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Arrow Rampart meta: hub + 5 modes, shop (bow, special arrow, upgrade, outfit), Rampart Pass claim, special arrows, Headhunter quiver, Time Attack timer. */
+/* Arrow Rampart meta (2D build; tests/arrow-3d.js runs it on the 3D build): hub + 5 modes, shop (bow, special arrow, upgrade, outfit), Rampart Pass claim, special arrows, Headhunter quiver, Time Attack timer. */
 'use strict';
 const path = require('path'), { chromium } = require('playwright');
 const URL = 'file://' + path.join(__dirname, '..', 'games', 'arrow-rampart.html') + '?test';
@@ -43,11 +43,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await p.evaluate(() => { window.__bubzi.K.fastX = 60; }); await sleep(2500);
   const st = await p.evaluate(() => window.__bubzi.state()); if (st === 'playing') F('Time Attack did not end at 0'); else ok.push('Time Attack ends (' + st + ')');
   // 3D view smoke test (software WebGL here, so only: it starts, draws, and a wave plays without errors)
+  if (URL.includes('-3d.html')) {
   const p3 = await b.newPage({ viewport: { width: 800, height: 480 } }); p3.on('pageerror', (e) => errs.push('3d: ' + e.message));
   await p3.goto(URL + '&3d'); await sleep(300); await p3.click('#bPlay'); await sleep(500); await p3.keyboard.press('Enter'); await sleep(3500);
   const v3 = await p3.evaluate(() => { const c = document.getElementById('game3d'); return c ? { w: c.width, h: c.height } : null; });
   if (!v3 || !v3.w) F('3D canvas missing'); else ok.push('3D view renders (' + v3.w + 'x' + v3.h + ')');
   await p3.keyboard.down('Space'); await sleep(300); await p3.keyboard.up('Space'); await sleep(800);
+  }
   if (errs.length) errs.forEach((e) => F('pageerror ' + e));
   ok.forEach((m) => console.log('  ✓ ' + m)); if (fails.length) { console.log('FAILED:'); fails.forEach((m) => console.log(' - ' + m)); }
   console.log(fails.length ? 'arrow meta: FAILED' : 'arrow meta: all passed'); await b.close(); process.exit(fails.length ? 1 : 0);

@@ -104,6 +104,32 @@
     }
   },
   {
+    "id": "arrow-rampart-3d",
+    "category": "action",
+    "color": "#3B82F6",
+    "isNew": true,
+    "title": {
+      "en": "Arrow Rampart 3D",
+      "fr": "Rempart des Flèches 3D",
+      "ar": "سور السهام ثلاثي الأبعاد"
+    },
+    "desc": {
+      "en": "Arrow Rampart in full 3D: a castle with towers, a forest valley, 3D raiders and chiefs, night battles lit by a torch. Pull back and let go, 5 modes, a shop with 3D bows, special arrows and outfits, the Rampart Pass and daily missions. Free online, no download.",
+      "fr": "Rempart des Flèches en vraie 3D : un château avec ses tours, une vallée boisée, des pillards et des chefs en 3D, des batailles de nuit à la torche. Tire et lâche, 5 modes, une boutique d’arcs 3D, de flèches spéciales et de tenues, le Pass du Rempart et des missions quotidiennes. Gratuit, sans téléchargement.",
+      "ar": "سور السهام بأبعاد ثلاثية كاملة: قلعة بأبراج ووادٍ من الغابات وغزاة وزعماء ثلاثيو الأبعاد ومعارك ليلية على ضوء الشعلة. اسحب وأفلت، 5 أوضاع، متجر للأقواس ثلاثية الأبعاد والسهام الخاصة والأزياء، وتذكرة السور ومهام يومية. مجاناً وبدون تحميل."
+    },
+    "keywords": {
+      "en": "3d archery game, castle defense, bow and arrow, tower defense 3d, action games",
+      "fr": "jeu de tir à l’arc 3D, défense de château, arc et flèches, jeux d’action",
+      "ar": "لعبة رماية ثلاثية الأبعاد, الدفاع عن القلعة, قوس وسهم, ألعاب أكشن"
+    },
+    "howto": {
+      "en": "Press anywhere, pull back and let go to shoot: pull farther for a stronger shot, and follow the white dots to see where the arrow will fly. Hit raiders before they reach your wall; head hits do double damage. After each wave, tap one of three cards to upgrade your arrows or fix the wall. If the wall breaks, the game is over. Keyboard: Up/Down aim, hold Space to draw and let go to shoot, 1-3 pick a card.",
+      "fr": "Appuie n'importe où, tire vers l'arrière et lâche pour tirer : plus tu tires loin, plus le tir est fort, et les points blancs montrent la trajectoire. Touche les pillards avant qu'ils n'atteignent ton mur ; un tir à la tête fait double dégât. Après chaque vague, touche une des trois cartes pour améliorer tes flèches ou réparer le mur. Si le mur tombe, la partie est finie. Clavier : Haut/Bas pour viser, maintiens Espace pour bander et lâche pour tirer, 1-3 pour choisir une carte.",
+      "ar": "اضغط في أي مكان واسحب للخلف ثم أفلت لتطلق: كلما سحبت أكثر كانت الرمية أقوى، والنقاط البيضاء تُظهر مسار السهم. أصب الغزاة قبل أن يصلوا إلى سورك، وإصابة الرأس تضاعف الضرر. بعد كل موجة، المس إحدى البطاقات الثلاث لتحسين سهامك أو إصلاح السور. إذا انهار السور تنتهي اللعبة. لوحة المفاتيح: أعلى/أسفل للتصويب، اضغط مطولاً على المسافة للشد وأفلت للإطلاق، 1-3 لاختيار بطاقة."
+    }
+  },
+  {
     "id": "arrow-rampart",
     "category": "action",
     "color": "#E8364F",
@@ -114,9 +140,9 @@
       "ar": "سور السهام"
     },
     "desc": {
-      "en": "A 3D castle defense: pull back and let go to defend your castle wall from cartoon raiders. 5 modes (Siege, Boss Rush, Headhunter, Night Raid, Time Attack), a shop (coins and gems) with bows, bomb, ice and lightning arrows, upgrades and outfits, the 30-tier Rampart Pass and daily missions. Free online, no download.",
-      "fr": "Une défense de château en 3D : tire et lâche pour défendre le mur de ton château contre des pillards rigolos. 5 modes (Siège, Course aux chefs, Chasseur de têtes, Raid de nuit, Contre la montre), une boutique (pièces et gemmes) d’arcs, de flèches bombe, glace et éclair, d’améliorations et de tenues, le Pass du Rempart à 30 paliers et des missions quotidiennes. Gratuit, sans téléchargement.",
-      "ar": "دفاع عن القلعة ثلاثي الأبعاد: اسحب وأفلت لتحمي سور قلعتك من غزاة كرتونيين. 5 أوضاع (الحصار، سباق الزعماء، صائد الرؤوس، غارة ليلية، سباق الوقت)، متجر (عملات وجواهر) للأقواس وسهام القنابل والجليد والبرق والتحسينات والأزياء، وتذكرة السور بـ30 مستوى ومهام يومية. مجاناً وبدون تحميل."
+      "en": "Pull back and let go to defend your castle wall from cartoon raiders. 5 modes (Siege, Boss Rush, Headhunter, Night Raid, Time Attack), a shop (feathers and gems) with bows, bomb, ice and lightning arrows, upgrades and outfits, the 30-tier Rampart Pass and daily missions. Free online, no download.",
+      "fr": "Tire et lâche pour défendre le mur de ton château contre des pillards rigolos. 5 modes (Siège, Course aux chefs, Chasseur de têtes, Raid de nuit, Contre la montre), une boutique (plumes et gemmes) d’arcs, de flèches bombe, glace et éclair, d’améliorations et de tenues, le Pass du Rempart à 30 paliers et des missions quotidiennes. Gratuit, sans téléchargement.",
+      "ar": "اسحب وأفلت لتحمي سور قلعتك من غزاة كرتونيين. 5 أوضاع (الحصار، سباق الزعماء، صائد الرؤوس، غارة ليلية، سباق الوقت)، متجر (ريش وجواهر) للأقواس وسهام القنابل والجليد والبرق والتحسينات والأزياء، وتذكرة السور بـ30 مستوى ومهام يومية. مجاناً وبدون تحميل."
     },
     "keywords": {
       "en": "archery game, bow and arrow game, defend the wall, castle defense game, free archer game",
